@@ -18,7 +18,9 @@
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);
   font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;line-height:1.5}
-header{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 16px 8px;border-bottom:1px solid var(--line)}
+header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--card) 82%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:12px 16px 8px;border-bottom:1px solid var(--line)}
+#bg{position:fixed;inset:0;z-index:-1;transition:background 2s}
+body{background:transparent}
 .hrow{display:flex;align-items:center;gap:8px;justify-content:space-between}
 h1{font-size:1.15rem;margin:0;display:flex;align-items:center;gap:6px}
 h1 .pin{width:22px;height:22px;flex:none}
@@ -92,12 +94,14 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 #skyv .sv-bar button{flex:1 1 0;min-width:0;white-space:nowrap;background:rgba(24,22,44,.6);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:17px;padding:7px 4px;font-size:12px;font-weight:600;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
 #skyv #svLines[aria-pressed=false]{opacity:.6}
 #skyv .sv-hint{position:absolute;bottom:56px;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:11px;text-shadow:0 1px 3px #000;transition:opacity 1.2s;pointer-events:none}
-footer{max-width:960px;margin:0 auto;padding:0 16px 30px;font-size:.75rem;color:var(--muted)}
+footer{max-width:928px;margin:0 auto 30px;padding:12px 16px;font-size:.75rem;color:var(--muted);background:color-mix(in srgb,var(--card) 85%,transparent);border-radius:14px}
+@media (max-width:960px){footer{margin:0 16px 30px}}
 .spin{display:inline-block;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
+<div id="bg"></div>
 <header>
   <div class="hrow">
     <h1><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.6 2 4 5.5 4 9.9c0 5.6 6.6 11.3 7.3 11.9.4.3 1 .3 1.4 0 .7-.6 7.3-6.3 7.3-11.9C20 5.5 16.4 2 12 2z" fill="#e53935"/><circle cx="12" cy="9.8" r="3.2" fill="#fff"/></svg>現在位置</h1>
@@ -151,6 +155,12 @@ footer{max-width:960px;margin:0 auto;padding:0 16px 30px;font-size:.75rem;color:
   <section class="card wide">
     <h2><span id="trainH">鉄道運行情報</span> <small id="trainTime"></small></h2>
     <div id="trains"><span class="muted">読み込み中…</span></div>
+    <details id="odptBox" style="margin-top:10px">
+      <summary class="muted">ODPTアクセスキーの設定</summary>
+      <div class="muted" style="margin:6px 0">首都圏では、公共交通オープンデータセンター（ODPT）の公式の運行情報を表示します。キーはこのブラウザの中にだけ保存されます。</div>
+      <div id="odptState" class="muted" style="margin-bottom:6px"></div>
+      <div style="display:flex;gap:6px"><input type="text" id="odptKey" placeholder="アクセスキー（コンシューマキー）" autocomplete="off" spellcheck="false"><button id="odptSave" style="flex:none;white-space:nowrap">保存</button><button id="odptDel" style="flex:none;white-space:nowrap">削除</button></div>
+    </details>
   </section>
 
   <section class="card wide" id="skyCard">
@@ -174,7 +184,7 @@ footer{max-width:960px;margin:0 auto;padding:0 16px 30px;font-size:.75rem;color:
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
   <a href="https://www.p2pquake.net/" target="_blank" rel="noopener">P2P地震情報</a>／
-  <a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>／
+  <a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>・<a href="https://www.odpt.org/" target="_blank" rel="noopener">公共交通オープンデータセンター</a>（運行情報）／
   <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>（地図）／
   <a href="https://ja.wikipedia.org/" target="_blank" rel="noopener">ウィキペディア</a>（誕生日・記念日）。天体は現在地と時刻から計算し、山並みは<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院の標高タイル</a>から描いています。
   情報は参考用です。避難等の判断は自治体・気象庁の発表に従ってください。<br>
@@ -419,6 +429,7 @@ async function loadWeather(){
   renderWeather(w, demo);
 }
 function renderWeather(w, demo){
+  W_CODE = w.current.weather_code; updateBg();
   const c = w.current, d = w.daily, h = w.hourly;
   const [ic, tx] = wmo(c.weather_code);
   $("#weather").innerHTML = `
@@ -586,15 +597,87 @@ async function getDelayList(){
   });
 }
 
+
+/* ---------- ODPT（公共交通オープンデータセンター）の運行情報：首都圏、要アクセスキー ---------- */
+const ODPT_API = "https://api.odpt.org/api/v4/";
+function odptKey(){ try{ return localStorage.getItem("odptKey") || ""; }catch(_){ return ""; } }
+async function odptGet(type, key){
+  if(FORCE_DEMO) throw new Error("デモモード");
+  const r = await fetch(`${ODPT_API}${type}?acl:consumerKey=${encodeURIComponent(key)}`, { cache:"no-store" }).catch(() => { throw new Error("ODPTに接続できませんでした"); });
+  if(r.status === 401 || r.status === 403) throw new Error("アクセスキーが正しくないか、まだ有効になっていません");
+  if(!r.ok) throw new Error("ODPT HTTP " + r.status);
+  return r.json();
+}
+// 路線名・事業者名は変化が少ないので1週間ブラウザに保存
+async function odptNames(key){
+  try{ const c = JSON.parse(localStorage.getItem("odptNames") || "null"); if(c && Date.now() - c.at < 7*86400e3) return c; }catch(_){}
+  const [rw, op] = await Promise.all([odptGet("odpt:Railway", key).catch(() => []), odptGet("odpt:Operator", key).catch(() => [])]);
+  const c = { at:Date.now(), rw:{}, op:{} };
+  for(const x of rw) c.rw[x["owl:sameAs"]] = x["odpt:railwayTitle"]?.ja || x["dc:title"];
+  for(const x of op) c.op[x["owl:sameAs"]] = x["odpt:operatorTitle"]?.ja || x["dc:title"];
+  try{ if(rw.length) localStorage.setItem("odptNames", JSON.stringify(c)); }catch(_){}
+  return c;
+}
+const ODPT_OP_JA = { TokyoMetro:"東京メトロ", Toei:"都営", JR_East:"JR東日本", Tobu:"東武", Seibu:"西武", Odakyu:"小田急", Keio:"京王", Tokyu:"東急", Keikyu:"京急", Keisei:"京成", Sotetsu:"相鉄", TWR:"りんかい線", Yurikamome:"ゆりかもめ", TamaMonorail:"多摩モノレール", YokohamaMunicipal:"横浜市営", MIR:"つくばエクスプレス", TokyoMonorail:"東京モノレール", Minatomirai:"みなとみらい線", SaitamaRailway:"埼玉高速鉄道", ToyoRapid:"東葉高速", Hokuso:"北総" };
+function odptOpName(id, names){ return names.op[id] || ODPT_OP_JA[String(id || "").split(":").pop()] || String(id || "").split(":").pop(); }
+function odptRwName(id, names){ if(!id) return ""; return names.rw[id] || String(id).split(".").pop(); }
+async function loadOdpt(key){
+  const [info, names] = await Promise.all([odptGet("odpt:TrainInformation", key), odptNames(key)]);
+  const rows = (Array.isArray(info) ? info : []).map(x => {
+    const status = x["odpt:trainInformationStatus"]?.ja || "", text = x["odpt:trainInformationText"]?.ja || "";
+    const normal = (!status || /平常/.test(status)) && (!text || /平常|通常(どおり|通り)|ありません/.test(text));
+    const rw = [].concat(x["odpt:railway"] || []).map(r => odptRwName(r, names)).join("・");
+    return { operator:odptOpName(x["odpt:operator"], names), railway:rw, status, text, normal, at:x["dc:date"] || x["odpt:timeOfOrigin"] };
+  });
+  return { rows, at:rows.reduce((m, r) => r.at && r.at > m ? r.at : m, "") };
+}
+const DEMO_ODPT = { rows:[
+  { operator:"東京メトロ", railway:"丸ノ内線", status:"遅延", text:"（サンプル）新宿駅での急病人救護の影響で、一部列車に遅れが出ています。", normal:false },
+  { operator:"JR東日本", railway:"中央線快速", status:"運転見合わせ", text:"（サンプル）人身事故の影響で、東京〜新宿駅間の運転を見合わせています。", normal:false },
+  ...Array.from({ length:28 }, () => ({ normal:true }))
+], at:"" };
+function renderOdpt(data, demo, err){
+  $("#trains").hidden = false;
+  const bad = data.rows.filter(r => !r.normal), ok = data.rows.length - bad.length;
+  $("#trainTime").textContent = data.at ? fmtTime(data.at) + " 更新" : "";
+  let html = `<div style="font-weight:600;margin-bottom:4px">現在運行情報がある路線 <span class="muted" style="font-weight:normal">（首都圏・ODPT）</span></div>`;
+  if(demo) html += `<div class="err" style="font-size:.8rem">${esc(err || "取得できませんでした")}。サンプルを表示しています。</div>`;
+  html += bad.length
+    ? `<ul class="list">${bad.map(r => `<li><div class="line-delay"><span>⚠️ <b>${esc(r.railway || r.operator)}</b>${r.status ? ` <span class="chip st-bad">${esc(r.status)}</span>` : ""}</span><span class="co">${esc(r.operator)}</span></div>${r.text ? `<div class="muted" style="margin-top:2px">${esc(r.text)}</div>` : ""}</li>`).join("")}</ul>`
+    : '<div class="okline" style="margin:6px 0">✓ 現在、運行情報のある路線はありません</div>';
+  if(ok) html += `<div class="muted" style="margin-top:6px">ほか ${ok} 件は平常運転です。</div>`;
+  $("#trains").innerHTML = html;
+  markDemo("train", "#trainH", demo);
+}
+function setupOdptUI(){
+  const inp = $("#odptKey"), st = $("#odptState");
+  const show = () => { const k = odptKey(); st.textContent = k ? `設定済み（…${k.slice(-4)}）` : "未設定（首都圏以外と同じ一覧を表示します）"; inp.value = ""; };
+  $("#odptSave").onclick = () => { const v = inp.value.trim(); if(!v) return; try{ localStorage.setItem("odptKey", v); localStorage.removeItem("odptNames"); }catch(_){} show(); loadTrains(); };
+  $("#odptDel").onclick = () => { try{ localStorage.removeItem("odptKey"); localStorage.removeItem("odptNames"); }catch(_){} show(); loadTrains(); };
+  show();
+}
+
 let LAST_TRAINS = null;
 async function loadTrains(){
-  const [dl] = await Promise.allSettled([getDelayList()]);
-  const delay = dl.status === "fulfilled" ? { list:dl.value, ok:true } : { list:demoTrains(), ok:false, err:dl.reason?.message };
-  LAST_TRAINS = { delay };
-  renderTrains();
+  const key = odptKey(), kanto = trainRegion()[2] === "関東";
+  if(key && kanto){
+    try{ renderOdpt(await loadOdpt(key), false); }
+    catch(e){ hideTrains(e.message); }
+    return;
+  }
+  try{ LAST_TRAINS = { delay:{ list:await getDelayList(), ok:true } }; renderTrains(); }
+  catch(e){ hideTrains(e.message); }
+}
+// 何も取れなかったときは運行情報を出さず、ODPTの設定欄だけを残す
+function hideTrains(reason){
+  LAST_TRAINS = null;
+  $("#trains").innerHTML = ""; $("#trains").hidden = true; $("#trainTime").textContent = "";
+  $("#odptState").title = reason || "";
+  markDemo("train", "#trainH", false);
 }
 function renderTrains(){
   if(!LAST_TRAINS) return;
+  $("#trains").hidden = false;
   const { delay } = LAST_TRAINS, list = delay.list, demo = !delay.ok;
   const [, , areaName, coRe] = trainRegion();
   const mine = list.filter(r => coRe.test((r.company || "") + " " + (r.name || "")));
@@ -994,6 +1077,7 @@ function aimDefault(){
 }
 return {
   init(){ setupUI(); },
+  sunAlt(){ return skyNow().sun.alt; },
   setLoc(lat, lon){ if(lat != null){ ENV.lat = lat; ENV.lon = lon; SKY_C = null; } aimDefault(); },
   terrain(lat, lon){ return loadTerrain(lat, lon); },
   setWeather(code, wind){ ENV.code = code; if(wind != null) ENV.wx.wind = wind; }
@@ -1122,8 +1206,8 @@ async function loadWikiDay(d){
     let alive = all.filter(p => !p.dead && p.y >= 1915 && p.jp);
     if(!alive.length) alive = all.filter(p => !p.dead && p.y >= 1915);
     alive.sort((a,b) => a.y - b.y);
-    const oldest = alive[0], others = all.filter(p => p !== oldest).sort((a,b) => (a.dead - b.dead) || (a.y - b.y));
-    const line = p => `<li>${p.y}年 ${p.href ? `<a href="${p.href}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)} <span class="muted">${p.dead ? "故人" : age(p) + "歳"}${p.job ? "・" + esc(p.job) : ""}</span></li>`;
+    const oldest = alive[0], others = all.filter(p => p !== oldest && !p.dead && p.y >= 1915).sort((a,b) => a.y - b.y);
+    const line = p => `<li>${p.y}年 ${p.href ? `<a href="${p.href}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)} <span class="muted">${age(p)}歳${p.job ? "・" + esc(p.job) : ""}</span></li>`;
     $("#bdTag").innerHTML = "";
     $("#calBirth").innerHTML = (oldest ? `<ul class="plist">${person(oldest)}</ul>` : '<span class="muted">見つかりませんでした</span>')
       + (others.length ? `<details style="margin-top:4px"><summary class="muted">ほかの人（${others.length}人）</summary><ul class="plist">${others.map(line).join("")}</ul></details>` : "")
@@ -1238,6 +1322,32 @@ function drawMapFallback(lat, lon){
   $("#mapNote").textContent = "地図画像を読み込めなかったため、経緯線だけの簡易表示です（赤い点が現在位置、影が夜の部分）。";
 }
 
+/* ---------- 背景：いまの天気と日の明るさ ---------- */
+let W_CODE = null;
+const hx = h => [1,3,5].map(i => parseInt(h.slice(i, i+2), 16));
+const mx = (a, b, t) => a.map((v, i) => v + (b[i] - v)*t);
+const css = c => `rgb(${c.map(v => Math.round(Math.max(0, Math.min(255, v)))).join(",")})`;
+// 太陽の高さ → 空の上と下の色
+const BG_KF = [[-90,"#070b1c","#121a33"],[-18,"#0b1026","#1b2a4a"],[-8,"#1c2350","#3e3a6a"],[-2,"#33427e","#d9826a"],[3,"#5b86cf","#f2b98a"],[10,"#4f93e6","#cfe3f7"],[25,"#3d8bfd","#b9dcff"],[90,"#2f7fef","#b0d6ff"]];
+function updateBg(){
+  let sa = 30; try{ sa = Sky.sunAlt(); }catch(_){}
+  let i = 0; while(i < BG_KF.length - 2 && sa > BG_KF[i+1][0]) i++;
+  const a = BG_KF[i], b = BG_KF[i+1], t = Math.max(0, Math.min(1, (sa - a[0])/(b[0] - a[0])));
+  let top = mx(hx(a[1]), hx(b[1]), t), bot = mx(hx(a[2]), hx(b[2]), t);
+  const c = W_CODE, lum = v => v[0]*.3 + v[1]*.59 + v[2]*.11, gray = (v, k) => mx(v, [lum(v), lum(v), lum(v)], k);
+  const kind = c == null ? "clear" : c <= 1 ? "clear" : c <= 3 ? "cloudy" : (c === 45 || c === 48) ? "fog"
+    : ((c >= 71 && c <= 77) || c === 85 || c === 86) ? "snow" : c >= 95 ? "thunder" : "rain";
+  const day = Math.max(0, Math.min(1, (sa + 6)/16));
+  if(kind === "cloudy"){ top = gray(top, .5); bot = gray(bot, .45); }
+  if(kind === "rain"){ top = mx(gray(top, .7), [0,0,0], .2); bot = mx(gray(bot, .65), [0,0,0], .15); }
+  if(kind === "thunder"){ top = mx(gray(top, .6), [30,20,50], .45); bot = mx(gray(bot, .6), [20,15,35], .35); }
+  if(kind === "snow"){ top = mx(gray(top, .6), [225,230,238], .45*day); bot = mx(gray(bot, .5), [238,242,247], .55*day); }
+  if(kind === "fog"){ top = mx(top, [200,206,214], .55*day + .2); bot = mx(bot, [215,220,226], .6*day + .2); }
+  $("#bg").style.background = `linear-gradient(180deg, ${css(top)} 0%, ${css(mx(top, bot, .55))} 55%, ${css(bot)} 100%)`;
+  document.documentElement.style.setProperty("--page-dark", lum(mx(top, bot, .5)) < 110 ? "1" : "0");
+}
+setInterval(updateBg, 60000);
+
 /* ---------- 標高 ---------- */
 let PLACE_DEMO = false;
 async function loadElevation(){
@@ -1258,7 +1368,7 @@ async function loadAll(){
   if(loading) return; loading = true;
   $("#refresh").disabled = true;
   S.elevText = ""; renderPlace(false);
-  Sky.setLoc(S.lat, S.lon);
+  Sky.setLoc(S.lat, S.lon); updateBg();
   const pElev = loadElevation();
   const pPlace = (async () => {
     let placeDemo = false;
@@ -1280,6 +1390,8 @@ async function loadAll(){
 $("#refresh").onclick = () => { S.locMsg = ""; locate(); };
 setInterval(() => { if(document.visibilityState === "visible" && S.lat != null) loadAll(); }, 10*60*1000);
 Sky.init();
+updateBg();
+setupOdptUI();
 $("#mapBtn").onclick = openMap; $("#mapClose").onclick = closeMap;
 tickClock(); setInterval(tickClock, 1000);
 locate();
