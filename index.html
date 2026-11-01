@@ -10,7 +10,7 @@
 :root{
   --bg:#f1f5f9; --card:#ffffff; --text:#0f172a; --muted:#64748b; --line:#e2e8f0;
   --accent:#2563eb; --ok:#16a34a; --warn:#eab308; --alert:#dc2626; --danger:#7c3aed; --emerg:#111827;
-  --chip:#f1f5f9;
+  --chip:#f1f5f9; --demo:#f59e0b;
 }
 @media (prefers-color-scheme: dark){
   :root{ --bg:#0b1220; --card:#131c2e; --text:#e5e7eb; --muted:#94a3b8; --line:#23304a; --chip:#1c2740; --emerg:#000; }
@@ -25,11 +25,14 @@ h1{font-size:1.15rem;margin:0}
 button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);
   border-radius:10px;padding:6px 12px;cursor:pointer}
 button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+input[type=text]{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:8px;padding:5px 8px;width:100%}
 main{max-width:960px;margin:0 auto;padding:12px 16px 40px;display:grid;gap:12px}
 @media (min-width:860px){ main{grid-template-columns:1fr 1fr} .wide{grid-column:1/-1} }
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
 .card h2{font-size:1rem;margin:0 0 10px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .card h2 small{font-weight:normal;color:var(--muted);font-size:.75rem}
+.demo{display:inline-block;background:var(--demo);color:#111;font-size:.7rem;font-weight:700;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:middle}
+#demoBar{background:var(--demo);color:#111;font-size:.85rem;padding:8px 12px;border-radius:10px}
 .muted{color:var(--muted);font-size:.85rem}
 .err{color:var(--alert);font-size:.9rem}
 a{color:var(--accent)}
@@ -40,7 +43,7 @@ a{color:var(--accent)}
 .stat{background:var(--chip);border-radius:10px;padding:8px 10px}
 .stat .k{font-size:.75rem;color:var(--muted)}
 .stat .v{font-size:1.05rem;font-weight:600}
-.arrow{display:inline-block;transition:transform .3s}
+.arrow{display:inline-block}
 .hours{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
 .hour{flex:0 0 58px;text-align:center;background:var(--chip);border-radius:10px;padding:6px 2px;font-size:.8rem}
 .hour .e{font-size:1.3rem}
@@ -56,12 +59,32 @@ td.d{text-align:left}
 .list li{padding:8px 0;border-bottom:1px solid var(--line)}
 .list li:last-child{border-bottom:none}
 .scale{display:inline-block;min-width:2.6em;text-align:center;border-radius:6px;padding:0 6px;font-weight:700;margin-right:6px}
-.s1,.s2{background:#e0f2fe;color:#075985}.s3{background:#bbf7d0;color:#14532d}.s4{background:#fef08a;color:#713f12}
+.s1{background:#e0f2fe;color:#075985}.s3{background:#bbf7d0;color:#14532d}.s4{background:#fef08a;color:#713f12}
 .s5{background:#fb923c;color:#fff}.s6{background:#dc2626;color:#fff}.s7{background:#7e22ce;color:#fff}
 .banner{border-radius:12px;padding:12px 14px;color:#fff;background:var(--alert);font-weight:600}
 .okline{color:var(--ok);font-weight:600}
 .line-delay{display:flex;justify-content:space-between;gap:8px}
 .line-delay .co{color:var(--muted);font-size:.8rem}
+#calCard .cal-date{font-size:1.05rem;font-weight:700}
+#calCard .cal-clock{font-size:2.4rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em;line-height:1.2}
+#calCard .hol{display:inline-block;background:#fee2e2;color:#b91c1c;border-radius:6px;padding:0 6px;font-size:.8rem;margin-left:4px;vertical-align:middle}
+.cal-sec{margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
+.cal-h{font-size:.75rem;color:var(--muted);margin-bottom:2px}
+.plist{list-style:none;margin:0;padding:0;font-size:.9rem}.plist li{padding:2px 0}
+.chip{display:inline-block;border-radius:8px;padding:2px 8px;margin:2px 4px 2px 0;font-size:.8rem;background:var(--chip)}
+.chip b{margin-left:4px}.st-ok b{color:var(--ok)}.st-bad{background:#fee2e2;color:#991b1b}.st-bad b{color:#dc2626}.st-unk b{color:var(--muted)}
+#skyCard{padding:0;overflow:hidden}
+#skyCard h2{padding:14px 16px 0}
+#skyInfo{padding:0 16px 8px;font-size:.8rem;color:var(--muted)}
+#skyv{position:relative;height:440px;background:#000;overflow:hidden;touch-action:pan-y;-webkit-user-select:none;user-select:none}
+#skyv:fullscreen{height:100%}#skyv:-webkit-full-screen{height:100%}
+#skyv.pseudo-full{position:fixed;inset:0;height:auto;z-index:50}
+#skyv canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none}
+#skyv .sv-top{position:absolute;top:8px;left:0;right:0;text-align:center;color:#fff;font-size:12px;font-weight:600;letter-spacing:.06em;text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:none}
+#skyv .sv-bar{position:absolute;left:8px;right:8px;bottom:12px;display:flex;gap:6px}
+#skyv .sv-bar button{flex:1 1 0;min-width:0;white-space:nowrap;background:rgba(24,22,44,.6);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:17px;padding:7px 4px;font-size:12px;font-weight:600;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+#skyv #svLines[aria-pressed=false]{opacity:.6}#skyv #svClr[aria-pressed=true]{background:rgba(120,170,255,.55)}
+#skyv .sv-hint{position:absolute;bottom:56px;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:11px;text-shadow:0 1px 3px #000;transition:opacity 1.2s;pointer-events:none}
 footer{max-width:960px;margin:0 auto;padding:0 16px 30px;font-size:.75rem;color:var(--muted)}
 .spin{display:inline-block;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -77,65 +100,120 @@ footer{max-width:960px;margin:0 auto;padding:0 16px 30px;font-size:.75rem;color:
 </header>
 
 <main>
+  <section class="card wide" id="calCard">
+    <div id="calDate" class="cal-date"></div>
+    <div id="calClock" class="cal-clock"></div>
+    <div id="calRoku"></div>
+    <div class="cal-sec"><div class="cal-h">今日は何の日</div><div id="calAnniv"></div></div>
+    <div class="cal-sec"><div class="cal-h">今日が誕生日の有名人 <span id="bdTag"></span></div><div id="calBirth"></div></div>
+  </section>
+  <div id="demoBar" class="wide" hidden></div>
   <div id="tsunami" class="wide" hidden></div>
 
   <section class="card wide" id="weather">
-    <h2>現在の天気 <small id="wTime"></small></h2>
+    <h2>現在の天気</h2>
     <div class="muted">読み込み中…</div>
   </section>
 
   <section class="card wide">
-    <h2>24時間の予報</h2>
+    <h2 id="hourlyH">24時間の予報</h2>
     <div id="hourly" class="hours"><span class="muted">読み込み中…</span></div>
   </section>
 
   <section class="card wide">
-    <h2>週間天気</h2>
+    <h2 id="dailyH">週間天気</h2>
     <div id="daily"><span class="muted">読み込み中…</span></div>
   </section>
 
+  <section class="card wide" id="skyCard">
+    <h2>星空 <small>現在地・現在時刻の空</small></h2>
+    <div id="skyInfo"></div>
+    <div id="skyv">
+      <canvas id="skyc"></canvas>
+      <div class="sv-top" id="svDir"></div>
+      <div class="sv-hint" id="svHint">左右にドラッグで見回す・月をタップで拡大</div>
+      <div class="sv-bar">
+        <button type="button" id="svMoon">月の方へ</button>
+        <button type="button" id="svClr" aria-pressed="false">雲を消す</button>
+        <button type="button" id="svLines" aria-pressed="true">星座線</button>
+        <button type="button" id="svFull">全画面</button>
+      </div>
+    </div>
+  </section>
+
   <section class="card">
-    <h2>警報・注意報 <small id="warnTime"></small></h2>
+    <h2><span id="warnH">警報・注意報</span> <small id="warnTime"></small></h2>
     <div id="warnings"><span class="muted">読み込み中…</span></div>
   </section>
 
   <section class="card">
-    <h2>最近の地震 <small>震度1以上</small></h2>
+    <h2><span id="quakeH">最近の地震</span> <small>震度1以上</small></h2>
     <div id="quakes"><span class="muted">読み込み中…</span></div>
   </section>
 
   <section class="card wide">
-    <h2>鉄道運行情報 <small id="trainTime"></small></h2>
+    <h2><span id="trainH">鉄道運行情報</span> <small id="trainTime"></small></h2>
     <div id="trains"><span class="muted">読み込み中…</span></div>
+    <details style="margin-top:10px">
+      <summary class="muted">よく使う路線を登録</summary>
+      <div class="muted" style="margin:6px 0">路線名や会社名をカンマ区切りで入力すると、それだけを表示します（例：山手線, 東急, 京王線）。空欄なら地域で自動判定します。</div>
+      <input type="text" id="myLines" placeholder="山手線, 東急">
+    </details>
   </section>
 </main>
 
 <footer>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
-  <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>（逆ジオコーダ）／
+  <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
   <a href="https://www.p2pquake.net/" target="_blank" rel="noopener">P2P地震情報</a>／
-  <a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>。
-  情報は参考用です。避難等の判断は自治体・気象庁の発表に従ってください。
+  <a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>／
+  <a href="https://express.heartrails.com/" target="_blank" rel="noopener">HeartRails Express</a>（最寄り駅）／
+  <a href="https://ja.wikipedia.org/" target="_blank" rel="noopener">ウィキペディア</a>（誕生日・記念日）。星空は現在地と時刻から計算しています（明るい星・星座線・天の川・月の満ち欠け）。
+  情報は参考用です。避難等の判断は自治体・気象庁の発表に従ってください。<br>
+  URLの末尾に <code>?demo</code> を付けると、通信せずにサンプルデータだけで表示します。
 </footer>
 
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
-const S = { lat:null, lon:null, acc:null, prefCode:null, prefName:null, city:null, class20:null, class10:null, office:null };
+const S = { lat:null, lon:null, acc:null, prefCode:null, prefName:null, city:null, town:"", class20:null, class10:null, office:null, demoLoc:false };
+const FORCE_DEMO = /[?&]demo\b/.test(location.search);
+const DEMO_USED = new Set();
 
 const PREFS = ["","北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
 
-/* ---------- utils ---------- */
-async function getJSON(url){
-  const r = await fetch(url, { cache:"no-store" });
-  if(!r.ok) throw new Error("HTTP " + r.status);
-  return r.json();
+/* ---------- 通信（直接取れなければ中継サーバー経由で再試行） ---------- */
+async function fetchText(url, ms = 9000){
+  const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
+  try{
+    const r = await fetch(url, { cache:"no-store", signal:c.signal });
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    return await r.text();
+  } finally { clearTimeout(t); }
 }
+async function getJSON(url, { proxy = false } = {}){
+  if(FORCE_DEMO) throw new Error("デモモード");
+  const tries = [url];
+  if(proxy) tries.push(
+    "https://corsproxy.io/?url=" + encodeURIComponent(url),
+    "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
+    "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(url)
+  );
+  let err;
+  for(const u of tries){
+    try{ return JSON.parse(await fetchText(u)); }catch(e){ err = e; }
+  }
+  throw err || new Error("取得失敗");
+}
+
+/* ---------- utils ---------- */
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pad = n => String(n).padStart(2,"0");
 const WD = ["日","月","火","水","木","金","土"];
+const DEMO_TAG = '<span class="demo">サンプル</span>';
 function fmtTime(d){ d = new Date(d); return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+function localISO(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
 function hm(iso){ return iso ? iso.slice(11,16) : "—"; }
 function dirName(deg){
   const n = ["北","北北東","北東","東北東","東","東南東","南東","南南東","南","南南西","南西","西南西","西","西北西","北西","北北西"];
@@ -149,6 +227,16 @@ function distKm(a,b,c,d){
 }
 function store(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function load(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch(e){ return null; } }
+function markDemo(key, headSel, on){
+  const h = $(headSel);
+  if(h){ h.querySelectorAll(".demo").forEach(x => x.remove()); if(on) h.insertAdjacentHTML("beforeend", DEMO_TAG); }
+  on ? DEMO_USED.add(key) : DEMO_USED.delete(key);
+  const bar = $("#demoBar");
+  bar.hidden = !DEMO_USED.size;
+  bar.textContent = FORCE_DEMO
+    ? "🧪 デモモード：すべてサンプルデータを表示しています（実際の情報ではありません）"
+    : "⚠️ 一部の情報を取得できなかったため、「サンプル」と付いた欄は仮のデータです";
+}
 
 /* WMO 天気コード */
 function wmo(c){
@@ -165,12 +253,86 @@ function wmo(c){
   return m[c] || ["❔","不明"];
 }
 
+/* ====================================================================
+   サンプルデータ（取得に失敗した欄や ?demo のときに使う）
+   ==================================================================== */
+const DEMO_PLACE = { lat:35.6812, lon:139.7671, prefCode:13, prefName:"東京都", city:"千代田区", town:"丸の内一丁目", class20:"1310100", class10:"130010", office:"130000" };
+
+function demoWeather(){
+  const now = new Date(); now.setMinutes(0,0,0);
+  const day0 = new Date(now); day0.setHours(0);
+  const codes = [1,2,3,61,63,2,0];                 // 7日分の天気の流れ
+  const pp = { 0:0, 1:10, 2:20, 3:40, 61:70, 63:90 };
+  const h = { time:[], temperature_2m:[], precipitation_probability:[], precipitation:[], weather_code:[], wind_speed_10m:[], wind_direction_10m:[] };
+  for(let i=0;i<24*7;i++){
+    const t = new Date(day0.getTime() + i*3600e3), d = Math.floor(i/24), hr = i%24;
+    const c = codes[d], rainy = c >= 61;
+    h.time.push(localISO(t));
+    h.temperature_2m.push(+(15 - d*0.6 + 5*Math.sin((hr-9)/24*2*Math.PI) - (rainy?2:0)).toFixed(1));
+    h.weather_code.push(c === 0 && (hr < 6 || hr > 18) ? 0 : c);
+    h.precipitation_probability.push(Math.min(100, pp[c] + (hr%6)*2));
+    h.precipitation.push(rainy ? +(c === 63 ? 2.5 : 0.6 + (hr%3)*0.3).toFixed(1) : 0);
+    h.wind_speed_10m.push(+(2.5 + 2*Math.sin(hr/24*2*Math.PI) + (rainy?3:0)).toFixed(1));
+    h.wind_direction_10m.push((rainy ? 70 : 320) + hr*2);
+  }
+  const daily = { time:[], weather_code:[], temperature_2m_max:[], temperature_2m_min:[], precipitation_sum:[], precipitation_probability_max:[], sunrise:[], sunset:[], wind_speed_10m_max:[], wind_direction_10m_dominant:[] };
+  for(let d=0; d<7; d++){
+    const sl = h.temperature_2m.slice(d*24, d*24+24);
+    daily.time.push(localISO(new Date(day0.getTime()+d*86400e3)).slice(0,10));
+    daily.weather_code.push(codes[d]);
+    daily.temperature_2m_max.push(Math.max(...sl));
+    daily.temperature_2m_min.push(Math.min(...sl));
+    daily.precipitation_sum.push(+h.precipitation.slice(d*24,d*24+24).reduce((a,b)=>a+b,0).toFixed(1));
+    daily.precipitation_probability_max.push(Math.max(...h.precipitation_probability.slice(d*24,d*24+24)));
+    daily.sunrise.push(daily.time[d] + "T06:0" + d);
+    daily.sunset.push(daily.time[d] + "T16:4" + (9-d));
+    daily.wind_speed_10m_max.push(Math.max(...h.wind_speed_10m.slice(d*24,d*24+24)));
+    daily.wind_direction_10m_dominant.push(codes[d] >= 61 ? 70 : 320);
+  }
+  const i = now.getHours();
+  return {
+    current:{ time:localISO(now), temperature_2m:h.temperature_2m[i], apparent_temperature:h.temperature_2m[i]-1.5,
+      relative_humidity_2m:62, precipitation:0, weather_code:h.weather_code[i], pressure_msl:1016.4,
+      wind_speed_10m:h.wind_speed_10m[i], wind_direction_10m:h.wind_direction_10m[i], wind_gusts_10m:+(h.wind_speed_10m[i]*1.8).toFixed(1) },
+    hourly:h, daily
+  };
+}
+function demoWarnings(){
+  return { reportDatetime:new Date().toISOString(),
+    headlineText:"【サンプル】伊豆諸島では、２日明け方まで強風に注意してください。",
+    list:["レベル2大雨注意報","雷注意報","強風注意報"] };
+}
+function demoQuakes(){
+  const ago = h => { const d = new Date(Date.now() - h*3600e3); return `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:00`; };
+  const q = (h,name,lat,lon,m,dep,sc,pts) => ({ earthquake:{ time:ago(h), maxScale:sc, domesticTsunami:"None",
+    hypocenter:{ name, latitude:lat, longitude:lon, magnitude:m, depth:dep } }, points:pts });
+  return [
+    q(3,"千葉県北西部",35.7,140.1,4.2,60,30,[{pref:"東京都",scale:20}]),
+    q(19,"茨城県南部",36.1,140.0,3.6,50,20,[{pref:"東京都",scale:10}]),
+    q(30,"石川県能登地方",37.4,137.2,4.5,10,30,[]),
+    q(52,"日向灘",32.0,131.9,5.1,30,40,[]),
+    q(77,"岩手県沖",39.6,142.3,4.0,40,20,[])
+  ];
+}
+function demoTrains(){
+  const t = Math.floor(Date.now()/1000) - 600;
+  return [
+    {name:"中央線快速電車", company:"JR東日本", lastupdate_gmt:t},
+    {name:"東西線", company:"東京メトロ", lastupdate_gmt:t},
+    {name:"京王線", company:"京王電鉄", lastupdate_gmt:t},
+    {name:"JR京都線", company:"JR西日本", lastupdate_gmt:t},
+    {name:"鹿児島本線", company:"JR九州", lastupdate_gmt:t}
+  ];
+}
+
 /* ---------- 位置情報 ---------- */
 function locate(){
+  if(FORCE_DEMO){ useDemoLoc("デモモード"); return; }
   $("#place").innerHTML = '<span class="spin">⏳</span> 位置情報を取得しています…';
-  if(!("geolocation" in navigator)){ return locFail("このブラウザは位置情報に対応していません。"); }
+  if(!("geolocation" in navigator)) return locFail("このブラウザは位置情報に対応していません。");
   navigator.geolocation.getCurrentPosition(p => {
     S.lat = +p.coords.latitude.toFixed(4); S.lon = +p.coords.longitude.toFixed(4); S.acc = Math.round(p.coords.accuracy);
+    S.demoLoc = false;
     store("lastLoc", { lat:S.lat, lon:S.lon });
     loadAll();
   }, e => {
@@ -178,42 +340,64 @@ function locate(){
     locFail(msg);
   }, { enableHighAccuracy:true, timeout:15000, maximumAge:300000 });
 }
+function useDemoLoc(msg){
+  S.lat = DEMO_PLACE.lat; S.lon = DEMO_PLACE.lon; S.acc = null; S.demoLoc = true; S.locMsg = msg;
+  loadAll();
+}
+// 位置が取れなくても、前回の場所か東京駅で自動的に表示を続ける
 function locFail(msg){
   const last = load("lastLoc");
-  $("#place").innerHTML = `<span class="err">${esc(msg)}</span> `
-    + (last ? '<button id="useLast">前回の場所で表示</button> ' : "")
-    + '<button id="useTokyo">東京駅で表示</button>';
-  if(last) $("#useLast").onclick = () => { S.lat=last.lat; S.lon=last.lon; S.acc=null; loadAll(); };
-  $("#useTokyo").onclick = () => { S.lat=35.6812; S.lon=139.7671; S.acc=null; loadAll(); };
+  if(last){ S.lat=last.lat; S.lon=last.lon; S.acc=null; S.demoLoc=false; S.locMsg = msg + "前回の場所で表示しています。"; loadAll(); }
+  else useDemoLoc(msg + "東京駅で表示しています。");
 }
 
 /* ---------- 地名・気象庁コード ---------- */
 let AREA = null;
-async function resolvePlace(){
-  const g = await getJSON(`https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${S.lat}&lon=${S.lon}`);
-  const muni = String(g?.results?.muniCd ?? "").padStart(5,"0");
-  if(!/^\d{5}$/.test(muni) || muni === "00000") throw new Error("日本国外、または住所を特定できない地点です");
-  S.prefCode = parseInt(muni.slice(0,2),10);
-  S.prefName = PREFS[S.prefCode];
-  S.town = g.results.lv01Nm && g.results.lv01Nm !== "－" ? g.results.lv01Nm : "";
-
-  if(!AREA) AREA = await getJSON("https://www.jma.go.jp/bosai/common/const/area.json");
+function findClass20(muni){
   const c20s = AREA.class20s;
-  let code = c20s[muni + "00"] ? muni + "00" : null;
-  if(!code) code = Object.keys(c20s).find(k => k.startsWith(muni)) || null;
-  if(!code){ const city = muni.slice(0,4) + "000"; if(c20s[city]) code = city; }       // 政令市の区 → 市
-  if(!code){ const city = muni.slice(0,3) + "0000"; if(c20s[city]) code = city; }
-  if(!code) throw new Error("気象庁の地域コードが見つかりません");
-  S.class20 = code;
-  S.city = c20s[code].name;
-  const c15 = AREA.class15s[c20s[code].parent];
-  S.class10 = c15?.parent;
+  if(c20s[muni + "00"]) return muni + "00";
+  const k = Object.keys(c20s).find(k => k.startsWith(muni)); if(k) return k;
+  for(const city of [muni.slice(0,4)+"000", muni.slice(0,3)+"0000"]) if(c20s[city]) return city;   // 政令市の区 → 市
+  return null;
+}
+function setFromClass20(code){
+  const c20 = AREA.class20s[code];
+  S.class20 = code; S.city = c20.name;
+  S.class10 = AREA.class15s[c20.parent]?.parent;
   S.office = AREA.class10s[S.class10]?.parent;
 }
+async function resolvePlace(){
+  if(!AREA) AREA = await getJSON("https://www.jma.go.jp/bosai/common/const/area.json", { proxy:true });
+  // 1) 国土地理院（市区町村コードが取れる）
+  try{
+    const g = await getJSON(`https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${S.lat}&lon=${S.lon}`);
+    const muni = String(g?.results?.muniCd ?? "").padStart(5,"0");
+    if(!/^\d{5}$/.test(muni) || muni === "00000") throw new Error("住所なし");
+    S.prefCode = parseInt(muni.slice(0,2),10); S.prefName = PREFS[S.prefCode];
+    S.town = g.results.lv01Nm && g.results.lv01Nm !== "－" ? g.results.lv01Nm : "";
+    const code = findClass20(muni);
+    if(!code) throw new Error("気象庁の地域コードが見つかりません");
+    setFromClass20(code);
+    return;
+  }catch(e){ /* 2) へ */ }
+  // 2) BigDataCloud（都道府県名・市区町村名から気象庁コードを探す）
+  const j = await getJSON(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${S.lat}&longitude=${S.lon}&localityLanguage=ja`);
+  const pc = PREFS.indexOf(j.principalSubdivision);
+  if(pc < 1) throw new Error("日本国外、または住所を特定できない地点です");
+  S.prefCode = pc; S.prefName = PREFS[pc]; S.town = j.locality && j.locality !== j.city ? j.locality : "";
+  const pfx = pad(pc), names = [j.city, j.locality].filter(Boolean);
+  const code = Object.keys(AREA.class20s).find(k => k.startsWith(pfx) && names.some(n => AREA.class20s[k].name === n || AREA.class20s[k].name.startsWith(n)));
+  if(code) setFromClass20(code); else S.city = j.city || "";
+}
+function applyDemoPlace(){ Object.assign(S, { prefCode:DEMO_PLACE.prefCode, prefName:DEMO_PLACE.prefName, city:DEMO_PLACE.city, town:DEMO_PLACE.town, class20:DEMO_PLACE.class20, class10:DEMO_PLACE.class10, office:DEMO_PLACE.office }); }
 
-function renderPlace(){
+function renderPlace(placeDemo){
   const name = [S.prefName, S.city, S.town].filter(Boolean).join(" ");
-  $("#place").innerHTML = `${esc(name || "現在地")} <span class="muted">(${S.lat}, ${S.lon}${S.acc ? ` ±${S.acc}m` : ""})</span>`;
+  let html = `${esc(name || "現在地")} <span class="muted">(${S.lat}, ${S.lon}${S.acc ? ` ±${S.acc}m` : ""})</span>`;
+  if(placeDemo || S.demoLoc) html += DEMO_TAG;
+  if(S.locMsg) html += `<div class="err" style="font-size:.8rem">${esc(S.locMsg)} <button id="retryLoc" style="padding:2px 8px">再取得</button></div>`;
+  $("#place").innerHTML = html;
+  const b = $("#retryLoc"); if(b) b.onclick = () => { S.locMsg = ""; locate(); };
 }
 
 /* ---------- 気象 (Open-Meteo) ---------- */
@@ -223,63 +407,62 @@ async function loadWeather(){
     + "&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m"
     + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset,wind_speed_10m_max,wind_direction_10m_dominant"
     + "&timezone=Asia%2FTokyo&forecast_days=7&wind_speed_unit=ms";
-  try{
-    const w = await getJSON(url);
-    const c = w.current, d = w.daily, h = w.hourly;
-    const [ic, tx] = wmo(c.weather_code);
-    $("#weather").innerHTML = `
-      <h2>現在の天気 <small>${fmtTime(c.time)} 時点</small></h2>
-      <div class="now">
-        <div class="icon">${ic}</div>
-        <div><div class="temp">${Math.round(c.temperature_2m*10)/10}℃</div><div>${tx}・体感 ${Math.round(c.apparent_temperature)}℃</div></div>
-        <div class="muted">今日 <span class="hi">${Math.round(d.temperature_2m_max[0])}℃</span> / <span class="lo">${Math.round(d.temperature_2m_min[0])}℃</span></div>
-      </div>
-      <div class="grid">
-        <div class="stat"><div class="k">湿度</div><div class="v">${c.relative_humidity_2m}%</div></div>
-        <div class="stat"><div class="k">雨量(直近1時間)</div><div class="v">${c.precipitation} mm</div></div>
-        <div class="stat"><div class="k">今日の降水</div><div class="v">${d.precipitation_sum[0]} mm・${d.precipitation_probability_max[0] ?? "—"}%</div></div>
-        <div class="stat"><div class="k">風</div><div class="v"><span class="arrow" style="transform:rotate(${c.wind_direction_10m}deg)">↓</span> ${dirName(c.wind_direction_10m)} ${c.wind_speed_10m} m/s</div></div>
-        <div class="stat"><div class="k">最大瞬間風速</div><div class="v">${c.wind_gusts_10m} m/s</div></div>
-        <div class="stat"><div class="k">気圧(海面)</div><div class="v">${Math.round(c.pressure_msl)} hPa</div></div>
-        <div class="stat"><div class="k">日の出</div><div class="v">🌅 ${hm(d.sunrise[0])}</div></div>
-        <div class="stat"><div class="k">日の入</div><div class="v">🌇 ${hm(d.sunset[0])}</div></div>
-      </div>`;
+  let w, demo = false;
+  try{ w = await getJSON(url); }catch(e){ w = demoWeather(); demo = true; }
+  renderWeather(w, demo);
+}
+function renderWeather(w, demo){
+  const c = w.current, d = w.daily, h = w.hourly;
+  const [ic, tx] = wmo(c.weather_code);
+  $("#weather").innerHTML = `
+    <h2><span>現在の天気${demo ? DEMO_TAG : ""}</span> <small>${fmtTime(c.time)} 時点</small></h2>
+    <div class="now">
+      <div class="icon">${ic}</div>
+      <div><div class="temp">${Math.round(c.temperature_2m*10)/10}℃</div><div>${tx}・体感 ${Math.round(c.apparent_temperature)}℃</div></div>
+      <div class="muted">今日 <span class="hi">${Math.round(d.temperature_2m_max[0])}℃</span> / <span class="lo">${Math.round(d.temperature_2m_min[0])}℃</span></div>
+    </div>
+    <div class="grid">
+      <div class="stat"><div class="k">湿度</div><div class="v">${c.relative_humidity_2m}%</div></div>
+      <div class="stat"><div class="k">雨量(直近1時間)</div><div class="v">${c.precipitation} mm</div></div>
+      <div class="stat"><div class="k">今日の降水</div><div class="v">${d.precipitation_sum[0]} mm・${d.precipitation_probability_max[0] ?? "—"}%</div></div>
+      <div class="stat"><div class="k">風</div><div class="v"><span class="arrow" style="transform:rotate(${c.wind_direction_10m}deg)">↓</span> ${dirName(c.wind_direction_10m)} ${c.wind_speed_10m} m/s</div></div>
+      <div class="stat"><div class="k">最大瞬間風速</div><div class="v">${c.wind_gusts_10m} m/s</div></div>
+      <div class="stat"><div class="k">気圧(海面)</div><div class="v">${Math.round(c.pressure_msl)} hPa</div></div>
+      <div class="stat"><div class="k">日の出</div><div class="v">🌅 ${hm(d.sunrise[0])}</div></div>
+      <div class="stat"><div class="k">日の入</div><div class="v">🌇 ${hm(d.sunset[0])}</div></div>
+    </div>`;
 
-    // 24時間
-    let i0 = h.time.findIndex(t => t >= c.time.slice(0,13));
-    if(i0 < 0) i0 = 0;
-    let hs = "";
-    for(let i=i0; i<Math.min(i0+24, h.time.length); i++){
-      const [e] = wmo(h.weather_code[i]);
-      hs += `<div class="hour"><div>${h.time[i].slice(11,13)}時</div><div class="e">${e}</div>
-        <div><b>${Math.round(h.temperature_2m[i])}°</b></div>
-        <div class="muted">☂${h.precipitation_probability[i] ?? "—"}%</div>
-        <div class="muted">${h.precipitation[i]}mm</div>
-        <div class="muted"><span class="arrow" style="transform:rotate(${h.wind_direction_10m[i]}deg)">↓</span>${Math.round(h.wind_speed_10m[i])}</div></div>`;
-    }
-    $("#hourly").innerHTML = hs;
-
-    // 週間
-    let rows = "";
-    d.time.forEach((t,i) => {
-      const dt = new Date(t + "T00:00:00+09:00"), wd = dt.getDay();
-      const [e, s] = wmo(d.weather_code[i]);
-      rows += `<tr><td class="d ${wd===0?"sun":wd===6?"sat":""}">${dt.getMonth()+1}/${dt.getDate()}(${WD[wd]})</td>
-        <td title="${s}">${e}</td>
-        <td><span class="hi">${Math.round(d.temperature_2m_max[i])}</span>/<span class="lo">${Math.round(d.temperature_2m_min[i])}</span></td>
-        <td>${d.precipitation_probability_max[i] ?? "—"}%</td>
-        <td>${d.precipitation_sum[i]}</td>
-        <td>${dirName(d.wind_direction_10m_dominant[i])} ${Math.round(d.wind_speed_10m_max[i])}</td></tr>`;
-    });
-    $("#daily").innerHTML = `<table><thead><tr><th style="text-align:left">日付</th><th>天気</th><th>最高/最低℃</th><th>降水確率</th><th>雨量mm</th><th>風 m/s</th></tr></thead><tbody>${rows}</tbody></table>`;
-  }catch(e){
-    $("#weather").innerHTML = `<h2>現在の天気</h2><div class="err">気象データを取得できませんでした（${esc(e.message)}）</div>`;
-    $("#hourly").innerHTML = ""; $("#daily").innerHTML = "";
+  let i0 = h.time.findIndex(t => t >= c.time.slice(0,13));
+  if(i0 < 0) i0 = 0;
+  let hs = "";
+  for(let i=i0; i<Math.min(i0+24, h.time.length); i++){
+    const [e] = wmo(h.weather_code[i]);
+    hs += `<div class="hour"><div>${h.time[i].slice(11,13)}時</div><div class="e">${e}</div>
+      <div><b>${Math.round(h.temperature_2m[i])}°</b></div>
+      <div class="muted">☂${h.precipitation_probability[i] ?? "—"}%</div>
+      <div class="muted">${h.precipitation[i]}mm</div>
+      <div class="muted"><span class="arrow" style="transform:rotate(${h.wind_direction_10m[i]}deg)">↓</span>${Math.round(h.wind_speed_10m[i])}</div></div>`;
   }
+  $("#hourly").innerHTML = hs;
+
+  let rows = "";
+  d.time.forEach((t,i) => {
+    const dt = new Date(t + "T00:00:00"), wd = dt.getDay();
+    const [e, s] = wmo(d.weather_code[i]);
+    rows += `<tr><td class="d ${wd===0?"sun":wd===6?"sat":""}">${dt.getMonth()+1}/${dt.getDate()}(${WD[wd]})</td>
+      <td title="${s}">${e}</td>
+      <td><span class="hi">${Math.round(d.temperature_2m_max[i])}</span>/<span class="lo">${Math.round(d.temperature_2m_min[i])}</span></td>
+      <td>${d.precipitation_probability_max[i] ?? "—"}%</td>
+      <td>${d.precipitation_sum[i]}</td>
+      <td>${dirName(d.wind_direction_10m_dominant[i])} ${Math.round(d.wind_speed_10m_max[i])}</td></tr>`;
+  });
+  $("#daily").innerHTML = `<table><thead><tr><th style="text-align:left">日付</th><th>天気</th><th>最高/最低℃</th><th>降水確率</th><th>雨量mm</th><th>風 m/s</th></tr></thead><tbody>${rows}</tbody></table>`;
+  Sky.setWeather(c.weather_code, c.wind_speed_10m);
+  markDemo("weather", "#hourlyH", demo); markDemo("weather", "#dailyH", demo);
 }
 
 /* ---------- 警報・注意報 (気象庁) ---------- */
-// 気象庁 bosai JSON の種別コード（従来体系）。新体系で未知のコードが来た場合はコード番号で表示します。
+// 従来体系の種別コード。新体系(2026年5月〜)で未知のコードが来た場合は名前欄かコード番号で表示します。
 const WARN = {
   "02":"暴風雪警報","03":"大雨警報","04":"洪水警報","05":"暴風警報","06":"大雪警報","07":"波浪警報","08":"高潮警報",
   "10":"大雨注意報","12":"大雪注意報","13":"風雪注意報","14":"雷注意報","15":"強風注意報","16":"波浪注意報","17":"融雪注意報",
@@ -294,62 +477,53 @@ function warnClass(name){
   return "b-adv";
 }
 async function loadWarnings(){
-  const box = $("#warnings");
-  if(!S.office){ box.innerHTML = '<span class="muted">この地点の警報情報は取得できません。</span>'; return; }
-  const link = `https://www.jma.go.jp/bosai/warning/#area_type=class20s&area_code=${S.class20}&lang=ja`;
+  let data, demo = false;
   try{
-    const w = await getJSON(`https://www.jma.go.jp/bosai/warning/data/warning/${S.office}.json`);
+    if(!S.office) throw new Error("地域コードなし");
+    const w = await getJSON(`https://www.jma.go.jp/bosai/warning/data/warning/${S.office}.json`, { proxy:true });
     let target = null;
     for(const at of (w.areaTypes || [])) for(const a of (at.areas || [])) if(a.code === S.class20) target = a;
     if(!target) for(const at of (w.areaTypes || [])) for(const a of (at.areas || [])) if(a.code === S.class10) target = a;
-    const active = (target?.warnings || []).filter(x => x.code && x.status && !/解除|なし/.test(x.status));
-    $("#warnTime").textContent = w.reportDatetime ? fmtTime(w.reportDatetime) + " 発表" : "";
-    let html = "";
-    if(active.length){
-      html += active.map(x => {
-        const n = x.name || WARN[x.code] || `種別コード${x.code}`;
-        return `<span class="badge ${warnClass(n)}">${esc(n)}</span>`;
-      }).join("");
-    }else{
-      html += '<div class="okline">✓ 発表中の警報・注意報はありません</div>';
-    }
-    html += `<div class="muted" style="margin-top:6px">対象：${esc(S.city)}</div>`;
-    if(w.headlineText) html += `<p style="margin:8px 0 0;font-size:.9rem">${esc(w.headlineText)}</p>`;
-    html += `<div style="margin-top:8px"><a href="${link}" target="_blank" rel="noopener">気象庁で詳しく見る →</a></div>`;
-    box.innerHTML = html;
-  }catch(e){
-    box.innerHTML = `<div class="err">取得できませんでした（${esc(e.message)}）</div><a href="${link}" target="_blank" rel="noopener">気象庁の警報・注意報ページ →</a>`;
-  }
+    const list = (target?.warnings || [])
+      .filter(x => x.code && x.status && !/解除|なし/.test(x.status))
+      .map(x => x.name || WARN[x.code] || `種別コード${x.code}`);
+    data = { reportDatetime:w.reportDatetime, headlineText:w.headlineText, list };
+  }catch(e){ data = demoWarnings(); demo = true; }
+
+  const link = `https://www.jma.go.jp/bosai/warning/#area_type=class20s&area_code=${S.class20 || DEMO_PLACE.class20}&lang=ja`;
+  $("#warnTime").textContent = data.reportDatetime ? fmtTime(data.reportDatetime) + " 発表" : "";
+  let html = data.list.length
+    ? data.list.map(n => `<span class="badge ${warnClass(n)}">${esc(n)}</span>`).join("")
+    : '<div class="okline">✓ 発表中の警報・注意報はありません</div>';
+  html += `<div class="muted" style="margin-top:6px">対象：${esc(S.city || "—")}</div>`;
+  if(data.headlineText) html += `<p style="margin:8px 0 0;font-size:.9rem">${esc(data.headlineText)}</p>`;
+  html += `<div style="margin-top:8px"><a href="${link}" target="_blank" rel="noopener">気象庁で詳しく見る →</a></div>`;
+  $("#warnings").innerHTML = html;
+  markDemo("warn", "#warnH", demo);
 }
 
 /* ---------- 地震・津波 (P2P地震情報) ---------- */
 const SCALE = {10:"1",20:"2",30:"3",40:"4",45:"5弱",46:"5弱?",50:"5強",55:"6弱",60:"6強",70:"7"};
 function scaleCls(v){ return v>=70?"s7":v>=55?"s6":v>=45?"s5":v>=40?"s4":v>=30?"s3":"s1"; }
 async function loadQuakes(){
-  const box = $("#quakes");
-  try{
-    const list = await getJSON("https://api.p2pquake.net/v2/history?codes=551&limit=20");
-    const qs = list.filter(q => q.earthquake && q.earthquake.maxScale >= 10).slice(0,6);
-    if(!qs.length){ box.innerHTML = '<span class="muted">最近の地震情報はありません。</span>'; }
-    else{
-      box.innerHTML = '<ul class="list">' + qs.map(q => {
-        const e = q.earthquake, hy = e.hypocenter || {};
-        const dist = (hy.latitude > -200 && S.lat != null) ? Math.round(distKm(S.lat,S.lon,hy.latitude,hy.longitude)) : null;
-        const mine = S.prefName ? (q.points || []).filter(p => p.pref === S.prefName).reduce((m,p) => Math.max(m,p.scale), 0) : 0;
-        const tsu = { "None":"", "Unknown":"", "Checking":"津波調査中", "NonEffective":"若干の海面変動", "Watch":"津波注意報", "Warning":"津波警報" }[e.domesticTsunami] || "";
-        return `<li><span class="scale ${scaleCls(e.maxScale)}">${SCALE[e.maxScale] || "?"}</span>
-          <b>${esc(hy.name || "震源調査中")}</b>
-          <div class="muted">${esc(e.time.slice(5,16).replace(/\//g,"/"))}
-            ${hy.magnitude > 0 ? ` M${hy.magnitude}` : ""}${hy.depth > 0 ? ` 深さ${hy.depth}km` : hy.depth === 0 ? " ごく浅い" : ""}
-            ${dist != null ? ` ・ 約${dist}km` : ""}
-            ${mine ? ` ・ ${esc(S.prefName)}で震度${SCALE[mine] || "?"}` : ""}
-            ${tsu ? ` ・ <b>${tsu}</b>` : ""}</div></li>`;
-      }).join("") + "</ul>";
-    }
-  }catch(e){
-    box.innerHTML = `<div class="err">取得できませんでした（${esc(e.message)}）</div><a href="https://www.jma.go.jp/bosai/map.html#contents=earthquake_map" target="_blank" rel="noopener">気象庁の地震情報 →</a>`;
-  }
-  // 津波
+  let list, demo = false;
+  try{ list = await getJSON("https://api.p2pquake.net/v2/history?codes=551&limit=20"); }
+  catch(e){ list = demoQuakes(); demo = true; }
+  const qs = list.filter(q => q.earthquake && q.earthquake.maxScale >= 10).slice(0,6);
+  $("#quakes").innerHTML = !qs.length ? '<span class="muted">最近の地震情報はありません。</span>'
+    : '<ul class="list">' + qs.map(q => {
+      const e = q.earthquake, hy = e.hypocenter || {};
+      const dist = (hy.latitude > -200 && S.lat != null) ? Math.round(distKm(S.lat,S.lon,hy.latitude,hy.longitude)) : null;
+      const mine = S.prefName ? (q.points || []).filter(p => p.pref === S.prefName).reduce((m,p) => Math.max(m,p.scale), 0) : 0;
+      const tsu = { "Checking":"津波調査中", "NonEffective":"若干の海面変動", "Watch":"津波注意報", "Warning":"津波警報" }[e.domesticTsunami] || "";
+      return `<li><span class="scale ${scaleCls(e.maxScale)}">${SCALE[e.maxScale] || "?"}</span>
+        <b>${esc(hy.name || "震源調査中")}</b>
+        <div class="muted">${esc(e.time.slice(5,16))}${hy.magnitude > 0 ? ` M${hy.magnitude}` : ""}${hy.depth > 0 ? ` 深さ${hy.depth}km` : hy.depth === 0 ? " ごく浅い" : ""}${dist != null ? ` ・ 約${dist}km` : ""}${mine ? ` ・ ${esc(S.prefName)}で震度${SCALE[mine] || "?"}` : ""}${tsu ? ` ・ <b>${tsu}</b>` : ""}</div></li>`;
+    }).join("") + "</ul>";
+  markDemo("quake", "#quakeH", demo);
+
+  // 津波（サンプル時は出さない）
+  if(demo){ $("#tsunami").hidden = true; return; }
   try{
     const ts = await getJSON("https://api.p2pquake.net/v2/history?codes=552&limit=1");
     const t = ts[0], el = $("#tsunami");
@@ -362,54 +536,610 @@ async function loadQuakes(){
         ${mine.length ? `<div style="font-weight:normal">${mine.map(a=>esc(a.name)+"："+(g[a.grade]||a.grade)).join("、")}</div>` : ""}
         <div><a style="color:#fff" href="https://www.jma.go.jp/bosai/map.html#contents=tsunami" target="_blank" rel="noopener">気象庁で確認 →</a></div></div>`;
       el.hidden = false;
-    }else{ el.hidden = true; }
+    }else el.hidden = true;
   }catch(e){}
 }
 
 /* ---------- 鉄道 (鉄道遅延情報のJSON) ---------- */
-function regionOf(pc){
-  if(pc===1) return {id:2,name:"北海道"};
-  if(pc<=7) return {id:3,name:"東北"};
-  if(pc<=14) return {id:4,name:"関東"};
-  if(pc<=24) return {id:5,name:"中部"};
-  if(pc<=30) return {id:6,name:"近畿"};
-  if(pc<=35) return {id:8,name:"中国"};
-  if(pc<=39) return {id:9,name:"四国"};
-  return {id:7,name:"九州・沖縄"};
-}
-const RAIL_KW = {
-  "北海道":["JR北海道","札幌","函館","道南いさりび"],
-  "東北":["JR東日本","仙台","青い森","IGR","三陸","阿武隈","会津","弘南","由利高原","秋田内陸","山形鉄道","福島交通","八戸"],
-  "関東":["JR東日本","東京メトロ","都営","東急","小田急","京王","西武","東武","京急","京成","相鉄","横浜","つくばエクスプレス","首都圏新都市","りんかい","ゆりかもめ","モノレール","北総","新京成","秩父","関東鉄道","埼玉高速","東葉","江ノ","江ノ島","千葉","シーサイド","日暮里","ニューシャトル","上信","上毛","わたらせ","真岡","野岩","いすみ","小湊","銚子","箱根","富士山麓","富士急","伊豆箱根","舞浜"],
-  "中部":["JR東海","JR東日本","JR西日本","名鉄","名古屋","あおなみ","愛知環状","リニモ","静岡鉄道","遠州","富山","あいの風","IRいしかわ","トキめき","しなの鉄道","長野電鉄","アルピコ","北陸鉄道","福井","えちぜん","ハピライン","伊豆急","伊豆箱根","岳南","天竜浜名湖","富士急","富士山麓","豊橋","長良川","樽見","明知","伊勢鉄道","三岐","養老","近鉄","大井川","上田電鉄","のと","万葉線"],
-  "近畿":["JR西日本","JR東海","大阪メトロ","Osaka Metro","大阪市","阪急","阪神","京阪","南海","近鉄","京都市","神戸","山陽電","北大阪","泉北","能勢","叡山","京福","嵐電","北神","大阪モノレール","和歌山電","紀州","水間","丹後","信楽","近江","ニュートラム","ポートライナー","六甲","北条","嵯峨野"],
-  "中国":["JR西日本","広島電鉄","広電","アストラム","広島高速","一畑","岡山電気","井原","智頭","若桜","錦川","水島"],
-  "四国":["JR四国","伊予鉄","琴平","琴電","とさでん","土佐くろしお","阿佐海岸"],
-  "九州・沖縄":["JR九州","西鉄","西日本鉄道","福岡市","北九州","筑豊","熊本","長崎電気","松浦","島原","南阿蘇","肥薩おれんじ","平成筑豊","甘木","鹿児島","くま川","ゆいレール","沖縄"]
-};
-async function loadTrains(){
-  const box = $("#trains");
-  const reg = S.prefCode ? regionOf(S.prefCode) : {id:4,name:"関東"};
-  const yahoo = `https://transit.yahoo.co.jp/traininfo/area/${reg.id}/`;
-  const linkHtml = `<div style="margin-top:10px"><a href="${yahoo}" target="_blank" rel="noopener">${reg.name}の運行情報をYahoo!路線情報で見る →</a></div>`;
-  try{
-    const list = await getJSON("https://tetsudo.rti-giken.jp/free/delay.json");
-    const kw = RAIL_KW[reg.name] || [];
-    const hit = x => kw.some(k => (x.company + x.name).includes(k));
-    const near = list.filter(hit), other = list.filter(x => !hit(x));
-    const latest = list.reduce((m,x) => Math.max(m, x.lastupdate_gmt || 0), 0);
-    $("#trainTime").textContent = latest ? fmtTime(latest*1000) + " 更新" : "";
-    const li = x => `<li class="line-delay"><span>⚠️ <b>${esc(x.name)}</b></span><span class="co">${esc(x.company)}</span></li>`;
-    let html = `<div class="muted">${esc(reg.name)}エリアで遅延・運転見合わせ中の路線</div>`;
-    html += near.length ? `<ul class="list">${near.map(li).join("")}</ul>` : '<div class="okline" style="margin:6px 0">✓ 目立った遅延情報はありません</div>';
-    if(other.length){
-      html += `<details style="margin-top:8px"><summary class="muted">他地域の遅延（${other.length}件）</summary><ul class="list">${other.map(li).join("")}</ul></details>`;
+// 都道府県 → 地域の鉄道会社（浮遊島ぐらしの対応表を流用）
+const TR_AREA = [
+  [/東京|神奈川|埼玉|千葉|茨城|栃木|群馬|山梨/, 4, "関東", /JR東日本|東京メトロ|東京地下鉄|都営|東京都|東急|小田急|京王|西武|東武|京急|京浜急行|京成|相鉄|相模鉄道|りんかい|東京臨海|ゆりかもめ|つくば|首都圏新都市|横浜|湘南|江ノ島|多摩|埼玉高速|東葉|北総|新京成|芝山|舞浜|千葉都市|山万|関東鉄道|上信|上毛|わたらせ|秩父|富士急|伊豆箱根|箱根|東京モノレール|日暮里|銚子|小湊|いすみ|鹿島|真岡|野岩|ひたちなか/],
+  [/大阪|京都|兵庫|奈良|滋賀|和歌山/, 6, "近畿", /JR西日本|大阪メトロ|大阪市|Osaka Metro|阪急|阪神|京阪|近鉄|近畿日本|南海|泉北|北大阪|神戸|山陽電|能勢|叡山|嵐電|京福|京都市|北神|水間|紀州|和歌山|近江|信楽|北近畿|京都丹後|神鉄|ポートライナー|六甲|大阪モノレール/],
+  [/愛知|岐阜|三重|静岡/, 5, "東海", /JR東海|名鉄|名古屋鉄道|名古屋市|近鉄|近畿日本|あおなみ|リニモ|東部丘陵|豊橋|遠州|静岡鉄道|大井川|天竜|伊豆急|伊豆箱根|岳南|樽見|明知|長良川|養老|三岐|伊勢|愛知環状|東海交通/],
+  [/北海道/, 2, "北海道", /JR北海道|札幌|函館|道南/],
+  [/青森|岩手|宮城|秋田|山形|福島/, 3, "東北", /JR東日本|仙台|青い森|IGR|三陸|阿武隈|福島交通|会津|由利|秋田内陸|山形鉄道|弘南|津軽/],
+  [/新潟|富山|石川|福井|長野/, 5, "北陸・信越", /JR東日本|JR西日本|えちごトキめき|トキ鉄|北越急行|あいの風|IRいしかわ|ハピライン|富山地方|万葉|北陸鉄道|えちぜん|福井鉄道|しなの鉄道|長野電鉄|アルピコ|上田電鉄/],
+  [/鳥取|島根|岡山|広島|山口/, 8, "中国", /JR西日本|広島電鉄|アストラム|広島高速|一畑|岡山電気|井原|智頭|若桜|錦川/],
+  [/徳島|香川|愛媛|高知/, 9, "四国", /JR四国|高松琴平|ことでん|伊予鉄|土佐|阿佐海岸/],
+  [/福岡|佐賀|長崎|熊本|大分|宮崎|鹿児島|沖縄/, 7, "九州・沖縄", /JR九州|西鉄|西日本鉄道|福岡市|北九州|筑豊|平成筑豊|甘木|松浦|島原|熊本|肥薩|くま川|長崎電気|鹿児島市|ゆいレール|沖縄都市/]
+];
+function trainRegion(){ const p = S.prefName || "東京都"; return TR_AREA.find(r => r[0].test(p)) || TR_AREA[0]; }
+function myLines(){ return ($("#myLines").value || "").split(/[,、\s]+/).map(x => x.trim()).filter(Boolean); }
+function trainLabel(r){ return (r.name || "").trim(); }
+
+/* 遅延データ：直接＋複数の中継サーバーを同時に試し、最初に取れたものを使う */
+async function getDelayList(){
+  if(FORCE_DEMO) throw new Error("デモモード");
+  const url = "https://tetsudo.rti-giken.jp/free/delay.json", enc = encodeURIComponent(url);
+  const tries = [
+    () => fetchText(url, 8000),
+    () => fetchText("https://api.allorigins.win/raw?url=" + enc, 12000),
+    () => fetchText("https://api.allorigins.win/get?url=" + enc, 12000).then(t => JSON.parse(t).contents),
+    () => fetchText("https://api.codetabs.com/v1/proxy/?quest=" + enc, 12000),
+    () => fetchText("https://corsproxy.io/?url=" + enc, 12000),
+    () => fetchText("https://api.cors.lol/?url=" + enc, 12000),
+    () => fetchText("https://whateverorigin.org/get?url=" + enc, 12000).then(t => JSON.parse(t).contents)
+  ];
+  return new Promise((res, rej) => {
+    let left = tries.length, done = false;
+    for(const f of tries){
+      f().then(t => { const j = typeof t === "string" ? JSON.parse(t) : t; if(!done && Array.isArray(j)){ done = true; res(j); } })
+         .catch(() => {})
+         .finally(() => { if(--left === 0 && !done) rej(new Error("データ元にも中継サーバーにも接続できませんでした")); });
     }
-    html += `<div class="muted" style="margin-top:6px">※ 鉄道各社公式サイトに15分程度以上の遅れが掲載された路線の一覧です。路線ごとの詳細はリンク先で確認してください。</div>`;
-    box.innerHTML = html + linkHtml;
-  }catch(e){
-    box.innerHTML = `<div class="err">運行情報を取得できませんでした（${esc(e.message)}）</div>` + linkHtml;
+  });
+}
+
+/* 最寄り駅（HeartRails Express。JSONPで読むので CORS の影響を受けない） */
+function jsonp(url, ms = 10000){
+  return new Promise((res, rej) => {
+    const cb = "__jp" + Math.random().toString(36).slice(2), s = document.createElement("script");
+    const done = () => { clearTimeout(t); try{ delete window[cb]; }catch(_){ window[cb] = undefined; } s.remove(); };
+    const t = setTimeout(() => { done(); rej(new Error("timeout")); }, ms);
+    window[cb] = d => { done(); res(d); };
+    s.onerror = () => { done(); rej(new Error("jsonp")); };
+    s.src = url + (url.includes("?") ? "&" : "?") + "jsonp=" + cb;
+    document.head.appendChild(s);
+  });
+}
+const DEMO_STATIONS = [
+  { name:"東京", dist:"240m", lines:["JR山手線","JR中央線","JR京浜東北線","東京メトロ丸ノ内線"] },
+  { name:"大手町", dist:"480m", lines:["東京メトロ東西線","東京メトロ千代田線","都営三田線"] },
+  { name:"二重橋前", dist:"610m", lines:["東京メトロ千代田線"] }
+];
+async function nearStations(){
+  if(FORCE_DEMO || S.demoLoc) return { list:DEMO_STATIONS, demo:true };
+  const u = `https://express.heartrails.com/api/json?method=getStations&x=${S.lon}&y=${S.lat}`;
+  let j;
+  try{ j = await jsonp(u); }catch(e){ j = await getJSON(u, { proxy:true }); }
+  const st = j?.response?.station || [];
+  const by = new Map();
+  for(const s of st){
+    if(!by.has(s.name)) by.set(s.name, { name:s.name, dist:s.distance, d:parseInt(s.distance) || 0, lines:[] });
+    const g = by.get(s.name); if(!g.lines.includes(s.line)) g.lines.push(s.line);
   }
+  return { list:[...by.values()].sort((a,b) => a.d - b.d).slice(0,4), demo:false };
+}
+const CO_PRE = /^(JR|東京メトロ|都営|東急|京王|小田急|西武|東武|京急|京成|相鉄|名鉄|近鉄|阪急|阪神|京阪|南海|西鉄|大阪メトロ|Osaka Metro|横浜市営地下鉄|横浜市営|名古屋市営地下鉄|名古屋市営|札幌市営地下鉄|福岡市地下鉄|仙台市地下鉄|京都市営地下鉄|神戸市営地下鉄|東京モノレール|多摩モノレール)\s*/;
+function lineKey(s){ return String(s || "").replace(CO_PRE, "").replace(/[（(\[［].*?[）)\]］]/g, "").replace(/(本)?線.*$/, "").trim(); }
+function findDelay(line, list){
+  const k = lineKey(line); if(k.length < 2) return null;
+  return list.find(r => { const rk = lineKey(r.name); return rk.length >= 2 && (rk === k || rk.startsWith(k) || k.startsWith(rk)); }) || null;
+}
+
+let LAST_TRAINS = null;
+async function loadTrains(){
+  const [dl, ns] = await Promise.allSettled([getDelayList(), nearStations()]);
+  const delay = dl.status === "fulfilled" ? { list:dl.value, ok:true } : { list:demoTrains(), ok:false, err:dl.reason?.message };
+  const near = ns.status === "fulfilled" && ns.value.list.length ? ns.value : { list:DEMO_STATIONS, demo:true };
+  LAST_TRAINS = { delay, near };
+  renderTrains();
+}
+function renderTrains(){
+  if(!LAST_TRAINS) return;
+  const { delay, near } = LAST_TRAINS, list = delay.list, demo = !delay.ok, unk = !delay.ok && !near.demo;
+  const [, areaId, areaName, coRe] = trainRegion();
+  let html = "";
+
+  // 近くの駅
+  html += '<div style="font-weight:600;margin-bottom:4px">🚉 近くの駅' + (near.demo ? DEMO_TAG : "") + "</div>";
+  if(near.list.length){
+    html += '<ul class="list">' + near.list.map(st => {
+      const chips = st.lines.map(l => {
+        const hit = unk ? null : findDelay(l, list);
+        const cls = unk ? "st-unk" : hit ? "st-bad" : "st-ok";
+        const lab = unk ? "不明" : hit ? "遅延" : "平常";
+        return `<span class="chip ${cls}">${esc(l)} <b>${lab}</b></span>`;
+      }).join("");
+      return `<li><b>${esc(st.name)}</b> <span class="muted">${esc(st.dist || "")}</span><div style="margin-top:4px">${chips}</div></li>`;
+    }).join("") + "</ul>";
+  }else{
+    html += `<div class="muted">${near.err ? "近くの駅を取得できませんでした。" : "近くに駅が見つかりません。"}</div>`;
+  }
+
+  // 地域の遅延一覧
+  const own = myLines();
+  const txt = r => (r.company || "") + " " + (r.name || "");
+  const hit = own.length ? (r => own.some(w => txt(r).includes(w))) : (r => coRe.test(txt(r)));
+  const mine = list.filter(hit), other = list.filter(r => !hit(r));
+  const latest = list.reduce((m,x) => Math.max(m, x.lastupdate_gmt || 0), 0);
+  $("#trainTime").textContent = latest ? fmtTime(latest*1000) + " 更新" : "";
+  const li = x => `<li class="line-delay"><span>⚠️ <b>${esc(trainLabel(x))}</b></span><span class="co">${esc(x.company)}</span></li>`;
+  html += `<div style="font-weight:600;margin:12px 0 4px">${own.length ? "登録した路線" : esc(areaName) + "エリア"}の遅延・運転見合わせ${demo ? DEMO_TAG : ""}</div>`;
+  if(demo) html += `<div class="err" style="font-size:.8rem">遅延データを取得できなかったため、下はサンプルです（${esc(delay.err || "")}）。${unk ? "近くの駅の状況は「不明」と表示しています。" : ""}</div>`;
+  html += mine.length ? `<ul class="list">${mine.map(li).join("")}</ul>` : '<div class="okline" style="margin:6px 0">✓ 目立った遅延情報はありません</div>';
+  if(other.length) html += `<details style="margin-top:8px"><summary class="muted">その他の遅延（${other.length}件）</summary><ul class="list">${other.map(li).join("")}</ul></details>`;
+  html += `<div class="muted" style="margin-top:6px">※ 各社公式サイトに遅れが掲載された路線の一覧です。「平常」は遅延が掲載されていないという意味です。</div>`;
+  html += `<div style="margin-top:10px"><a href="https://transit.yahoo.co.jp/traininfo/area/${areaId}/" target="_blank" rel="noopener">${esc(areaName)}の運行情報をYahoo!路線情報で見る →</a></div>`;
+  $("#trains").innerHTML = html;
+  markDemo("train", "#trainH", demo || near.demo);
+}
+
+/* ====================================================================
+   星空ビュー（「浮遊島ぐらし」の物見櫓からの星空を移植。キャラ・櫓・柵は除外）
+   現在地と現在時刻の本物の空：太陽・月（満ち欠け・向き）・明るい星・星座線・天の川・雲
+   ==================================================================== */
+const Sky = (() => {
+const ENV = { lat:35.68, lon:139.77, code:null, wx:{ wind:2 } };
+const TZS = () => 0, now = () => new Date(), TAU = Math.PI*2;
+const DPR = Math.min(3, window.devicePixelRatio || 1);
+function hash(x,y,s){let h=(x*374761393+y*668265263+(s||0)*1442695041)|0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967295;}
+function GD_lg(c,x0,y0,x1,y1,st){const gr=c.createLinearGradient(x0,y0,x1,y1);for(const[o,col]of st)gr.addColorStop(o,col);return gr;}
+function moonAge(d){const jd=(d.getTime()-TZS())/86400000+2440587.5,L=29.530588853;return(((jd-2451550.1)%L)+L)%L;}
+function moonName(a){return a<1.5||a>28?'新月':a<5.5?'三日月':a<9?'上弦の月':a<13.5?'十三夜ごろ':a<16.2?'満月':a<20.5?'十六夜すぎ':a<24?'下弦の月':'有明の月';}
+function codeKind(c){if(c==null)return null;if(c<=1)return'clear';if(c<=3)return'cloudy';if(c===45||c===48)return'fog';if((c>=51&&c<=67)||(c>=80&&c<=82))return'rain';if((c>=71&&c<=77)||c===85||c===86)return'snow';if(c>=95)return'thunder';return'cloudy';}
+function wKind(){ return codeKind(ENV.code) || 'clear'; }
+function astroLoc(){ return { lat:ENV.lat, lon:ENV.lon }; }
+const SKYV = { open:true, A0:180, fov:96, lines:true, clear:false, zoom:false, zoomReady:false, ptr:null, lastTap:{t:0,x:0,y:0}, moonP:null, raf:0, flash:0, nextFlash:3, aimed:false };
+function skyvEl(){ return document.getElementById('skyv'); }
+const D2R=Math.PI/180,R2D=180/Math.PI;
+function asJd(d){return(d.getTime()-TZS())/86400000+2440587.5;}
+function gmstDeg(jd){return(((280.46061837+360.98564736629*(jd-2451545))%360)+360)%360;}
+function eqToHor(ra,dec,jd,lat,lon){const H=(gmstDeg(jd)+lon-ra)*D2R,f=lat*D2R,d=dec*D2R;
+  const sa=Math.sin(f)*Math.sin(d)+Math.cos(f)*Math.cos(d)*Math.cos(H),alt=Math.asin(Math.max(-1,Math.min(1,sa)));
+  const az=Math.atan2(-Math.cos(d)*Math.sin(H),Math.sin(d)*Math.cos(f)-Math.cos(d)*Math.sin(f)*Math.cos(H));
+  return{alt:alt*R2D,az:((az*R2D)%360+360)%360,H};}
+function sunEq(jd){const n=jd-2451545,L=(280.46+.9856474*n)%360,gm=((357.528+.9856003*n)%360)*D2R,lam=(L+1.915*Math.sin(gm)+.02*Math.sin(2*gm))*D2R,eps=(23.439-4e-7*n)*D2R;
+  return{ra:((Math.atan2(Math.cos(eps)*Math.sin(lam),Math.cos(lam))*R2D)+360)%360,dec:Math.asin(Math.sin(eps)*Math.sin(lam))*R2D,lam:((lam*R2D)%360+360)%360};}
+function moonEq(jd){const T2=(jd-2451545)/36525,s=x=>Math.sin(x*D2R),c=x=>Math.cos(x*D2R);
+  const lam=218.32+481267.881*T2+6.29*s(135+477198.87*T2)-1.27*s(259.3-413335.36*T2)+.66*s(235.7+890534.22*T2)+.21*s(269.9+954397.74*T2)-.19*s(357.5+35999.05*T2)-.11*s(186.5+966404.03*T2);
+  const bet=5.13*s(93.3+483202.02*T2)+.28*s(228.2+960400.89*T2)-.28*s(318.3+6003.15*T2)-.17*s(217.6-407332.21*T2);
+  const par=.9508+.0518*c(135+477198.87*T2)+.0095*c(259.3-413335.36*T2)+.0078*c(235.7+890534.22*T2)+.0028*c(269.9+954397.74*T2);
+  const eps=23.439*D2R,l=lam*D2R,b=bet*D2R;
+  const x=Math.cos(b)*Math.cos(l),y=Math.cos(eps)*Math.cos(b)*Math.sin(l)-Math.sin(eps)*Math.sin(b),z=Math.sin(eps)*Math.cos(b)*Math.sin(l)+Math.cos(eps)*Math.sin(b);
+  return{ra:((Math.atan2(y,x)*R2D)+360)%360,dec:Math.asin(z)*R2D,lam:((lam%360)+360)%360,par};}
+function moonAltAt(jd,lat,lon){const me=moonEq(jd),h=eqToHor(me.ra,me.dec,jd,lat,lon);return h.alt-me.par*Math.cos(h.alt*D2R);}
+function skyAt(d){const jd=asJd(d),{lat,lon}=astroLoc(),se=sunEq(jd),me=moonEq(jd);
+  const sun=eqToHor(se.ra,se.dec,jd,lat,lon),moon=eqToHor(me.ra,me.dec,jd,lat,lon);moon.alt-=me.par*Math.cos(moon.alt*D2R);
+  const a1=se.ra*D2R,d1=se.dec*D2R,a2=me.ra*D2R,d2=me.dec*D2R;
+  const cosE=Math.sin(d1)*Math.sin(d2)+Math.cos(d1)*Math.cos(d2)*Math.cos(a1-a2),elong=Math.acos(Math.max(-1,Math.min(1,cosE)));
+  const frac=(1-Math.cos(elong))/2,wax=((me.lam-se.lam)%360+360)%360<180;
+  // position angle of the bright limb (from celestial north toward east) and the parallactic angle
+  const chi=Math.atan2(Math.cos(d1)*Math.sin(a1-a2),Math.sin(d1)*Math.cos(d2)-Math.cos(d1)*Math.sin(d2)*Math.cos(a1-a2));
+  const f=lat*D2R,q=Math.atan2(Math.sin(moon.H),Math.tan(f)*Math.cos(d2)-Math.sin(d2)*Math.cos(moon.H));
+  return{d,jd,lat,lon,sun,moon,se,me,frac,wax,chi,q,elong:elong*R2D};}
+let SKY_C=null;
+function skyNow(){const d=now(),tn=performance.now();if(SKY_C&&tn-SKY_C.at<1000&&Math.abs(SKY_C.v.d-d)<90e3)return SKY_C.v;const v=skyAt(d);SKY_C={at:tn,v};return v;}
+function moonRiseSet(d){const{lat,lon}=astroLoc(),jd0=asJd(d);let rise=null,set=null,prev=moonAltAt(jd0-1,lat,lon)+.3;
+  for(let m=-1440+10;m<=1440;m+=10){const jd=jd0+m/1440,a=moonAltAt(jd,lat,lon)+.3;
+    if(prev<0&&a>=0){const tt=m-10*a/(a-prev);if(m>-720&&(!rise||Math.abs(tt)<Math.abs(rise)))rise=tt;}
+    if(prev>=0&&a<0){const tt=m-10*a/(a-prev);if(m>-720&&(!set||Math.abs(tt)<Math.abs(set)))set=tt;}prev=a;}
+  const fmt=mm=>{if(mm==null)return'—';const t2=new Date(d.getTime()+mm*60e3);return`${t2.getHours()}:${pad(t2.getMinutes())}`;};return{rise:fmt(rise),set:fmt(set)};}
+const AZ_JP=['北','北北東','北東','東北東','東','東南東','南東','南南東','南','南南西','南西','西南西','西','西北西','北西','北北西'];
+function azName(az){return AZ_JP[Math.round(((az%360)+360)%360/22.5)%16];}
+/* --- bright stars (J2000: RA hours, Dec degrees, magnitude, colour class, name) --- */
+const BSTAR={
+ bet:[5.919,7.407,.5,'r','ベテルギウス'],rig:[5.242,-8.202,.13,'b','リゲル'],bel:[5.419,6.35,1.64,'b'],sai:[5.796,-9.67,2.06,'b'],alt1:[5.679,-1.943,1.77,'b'],aln:[5.604,-1.202,1.69,'b'],min:[5.533,-.299,2.23,'b'],mei:[5.585,9.934,3.4,'b'],
+ sir:[6.752,-16.716,-1.46,'w','シリウス'],mir:[6.378,-17.956,1.98,'b'],wez:[7.14,-26.393,1.84,'y'],adh:[6.977,-28.972,1.5,'b'],alu:[7.401,-29.303,2.45,'b'],fur:[6.338,-30.064,3,'b'],
+ pro:[7.655,5.225,.34,'y','プロキオン'],gom:[7.453,8.289,2.9,'b'],
+ cas1:[7.577,31.888,1.58,'w','カストル'],pol:[7.755,28.026,1.14,'o','ポルックス'],alh:[6.629,16.399,1.93,'w'],meb:[6.732,25.131,3,'y'],tej:[6.383,22.514,2.87,'r'],was:[7.335,21.982,3.5,'w'],mek:[7.068,20.57,3.8,'y'],
+ ald:[4.599,16.509,.85,'r','アルデバラン'],eln:[5.438,28.608,1.65,'b'],tia:[5.627,21.143,3,'b'],th2:[4.478,15.871,3.4,'w'],gTa:[4.33,15.628,3.65,'y'],dTa:[4.382,17.543,3.76,'y'],eTa:[4.477,19.18,3.5,'y'],
+ alc:[3.791,24.105,2.87,'b'],atl:[3.82,24.053,3.6,'b'],ele:[3.749,24.113,3.7,'b'],maia:[3.764,24.367,3.9,'b'],mer:[3.772,23.948,4.1,'b'],tay:[3.754,24.467,4.3,'b'],
+ cap:[5.278,45.998,.08,'y','カペラ'],men:[5.992,44.948,1.9,'w'],thA:[5.995,37.213,2.6,'w'],iA:[4.95,33.166,2.7,'o'],eA:[5.033,43.823,3,'w'],
+ sch:[.675,56.537,2.24,'o'],caph:[.153,59.15,2.28,'w'],gCa:[.945,60.717,2.15,'b'],ruc:[1.43,60.235,2.66,'w'],seg:[1.907,63.67,3.35,'b'],
+ dub:[11.062,61.751,1.79,'o'],mer2:[11.031,56.382,2.37,'w'],phe:[11.897,53.695,2.44,'w'],meg:[12.257,57.033,3.31,'w'],ali:[12.9,55.96,1.77,'w'],miz:[13.399,54.925,2.27,'w'],alk:[13.792,49.313,1.86,'b'],
+ pola:[2.53,89.264,1.98,'y','北極星'],koc:[14.845,74.156,2.08,'o'],phk:[15.345,71.834,3,'w'],dUM:[17.537,86.586,4.36,'w'],eUM:[16.766,82.037,4.2,'y'],zUM:[15.734,77.795,4.3,'w'],hUM:[16.292,75.755,4.95,'w'],
+ den:[20.69,45.28,1.25,'w','デネブ'],sad:[20.37,40.257,2.23,'y'],gie:[20.77,33.97,2.48,'o'],dCy:[19.75,45.131,2.87,'b'],alb:[19.512,27.96,3.05,'o'],
+ veg:[18.616,38.784,.03,'w','ベガ'],she:[18.835,33.363,3.5,'b'],sul:[18.982,32.69,3.25,'b'],zLy:[18.746,37.605,4.3,'w'],dLy:[18.908,36.899,4.3,'r'],
+ alta:[19.846,8.868,.77,'w','アルタイル'],tar:[19.771,10.613,2.72,'o'],als:[19.922,6.407,3.7,'y'],zAq:[19.09,13.863,2.99,'w'],dAq:[19.425,3.115,3.36,'w'],lAq:[19.104,-4.882,3.4,'b'],thAq:[20.188,-.821,3.2,'b'],
+ ant:[16.49,-26.432,1.06,'r','アンタレス'],sha:[17.56,-37.104,1.62,'b'],sar:[17.622,-42.998,1.86,'y'],dsc:[16.006,-22.622,2.29,'b'],acr:[16.091,-19.806,2.6,'b'],piS:[15.981,-26.114,2.9,'b'],sgS:[16.353,-25.593,2.9,'b'],tauS:[16.598,-28.216,2.8,'b'],eS:[16.836,-34.293,2.29,'o'],mu1:[16.864,-38.047,3,'b'],ze2:[16.91,-42.362,3.6,'o'],etS:[17.203,-43.239,3.3,'w'],io1:[17.793,-40.127,3,'y'],kaS:[17.708,-39.03,2.4,'b'],
+ kau:[18.403,-34.385,1.85,'b'],nun:[18.921,-26.297,2.05,'b'],asc:[19.044,-29.88,2.6,'w'],kme:[18.35,-29.828,2.7,'o'],kbo:[18.466,-25.422,2.8,'o'],gSg:[18.097,-30.424,2.98,'o'],phS:[18.761,-26.991,3.2,'b'],taS:[19.116,-27.671,3.3,'o'],
+ reg:[10.14,11.967,1.35,'b','レグルス'],dnb:[11.818,14.572,2.14,'w'],alg:[10.333,19.842,2,'o'],zos:[11.235,20.524,2.56,'w'],che:[11.237,15.43,3.3,'w'],eLe:[10.122,16.763,3.5,'w'],adf:[10.278,23.417,3.4,'w'],muL:[9.88,26.007,3.9,'o'],epL:[9.764,23.774,3,'y'],
+ spi:[13.42,-11.161,.97,'b','スピカ'],por:[12.694,-1.449,2.74,'w'],vin:[13.036,10.959,2.8,'y'],dVi:[12.927,3.397,3.4,'r'],zVi:[13.578,-.596,3.4,'w'],bVi:[11.845,1.765,3.6,'w'],hVi:[12.332,-.667,3.9,'w'],
+ arc:[14.261,19.182,-.05,'o','アークトゥルス'],iza:[14.75,27.074,2.35,'o'],muf:[13.911,18.398,2.68,'y'],sgn:[14.535,38.308,3,'w'],nek:[15.032,40.39,3.5,'y'],dBo:[15.258,33.315,3.5,'y'],rBo:[14.53,30.371,3.6,'o'],
+ mrk:[23.079,15.205,2.48,'b'],sct:[23.063,28.083,2.42,'r'],agn:[.22,15.184,2.83,'b'],alp:[.14,29.091,2.06,'b'],enf:[21.736,9.875,2.38,'o'],hom:[22.691,10.831,3.4,'b'],thP:[22.17,6.198,3.5,'w'],
+ mra:[1.162,35.621,2.05,'r'],alm:[2.065,42.33,2.1,'o'],dAn:[.656,30.861,3.27,'o'],
+ mrf:[3.405,49.861,1.79,'y'],algo:[3.136,40.956,2.1,'b'],zPe:[3.902,31.884,2.85,'b'],ePe:[3.964,40.01,2.9,'b'],dPe:[3.715,47.788,3,'b'],gPe:[3.08,53.506,2.9,'y'],
+ acx:[12.443,-63.099,.77,'b'],mim:[12.795,-59.689,1.25,'b'],gac:[12.519,-57.113,1.6,'r'],dCr:[12.252,-58.749,2.8,'b'],
+ aCe:[14.66,-60.834,-.27,'y','ケンタウルス座α'],had:[14.064,-60.373,.61,'b'],fom:[22.961,-29.622,1.16,'w','フォーマルハウト'],can:[6.399,-52.696,-.74,'w','カノープス'],ach:[1.629,-57.237,.46,'b','アケルナル'],
+ alf:[9.46,-8.659,1.98,'o'],ras:[17.582,12.56,2.07,'w'],dip:[.727,-17.987,2.04,'o'],mnk:[3.038,4.09,2.5,'r'],
+ aCB:[15.578,26.715,2.2,'w'],bCB:[15.464,29.106,3.7,'w'],gCB:[15.712,26.296,3.8,'w'],thCB:[15.549,31.359,4.1,'b'],dCB:[15.826,26.068,4.6,'y'],eCB:[15.96,26.878,4.1,'o'],
+ ham:[2.12,23.462,2,'o'],shr:[1.911,20.808,2.64,'w'],mes:[1.892,19.294,3.9,'w']};
+const CONST=[
+ ['オリオン座',[['mei','bet'],['mei','bel'],['bet','bel'],['bet','alt1'],['bel','min'],['min','aln'],['aln','alt1'],['alt1','sai'],['min','rig']]],
+ ['おおいぬ座',[['mir','sir'],['sir','wez'],['wez','adh'],['adh','fur'],['wez','alu']]],
+ ['こいぬ座',[['pro','gom']]],
+ ['ふたご座',[['cas1','pol'],['cas1','meb'],['meb','tej'],['pol','was'],['was','mek'],['mek','alh']]],
+ ['おうし座',[['ald','th2'],['th2','gTa'],['gTa','dTa'],['dTa','eTa'],['eTa','eln'],['ald','tia']]],
+ ['ぎょしゃ座',[['cap','men'],['men','thA'],['thA','eln'],['eln','iA'],['iA','eA'],['eA','cap']]],
+ ['カシオペヤ座',[['caph','sch'],['sch','gCa'],['gCa','ruc'],['ruc','seg']]],
+ ['北斗七星',[['dub','mer2'],['mer2','phe'],['phe','meg'],['meg','dub'],['meg','ali'],['ali','miz'],['miz','alk']]],
+ ['こぐま座',[['pola','dUM'],['dUM','eUM'],['eUM','zUM'],['zUM','koc'],['koc','phk'],['phk','hUM'],['hUM','zUM']]],
+ ['はくちょう座',[['den','sad'],['sad','alb'],['dCy','sad'],['sad','gie']]],
+ ['こと座',[['veg','zLy'],['zLy','she'],['she','sul'],['sul','dLy'],['dLy','zLy']]],
+ ['わし座',[['zAq','tar'],['tar','alta'],['alta','als'],['als','thAq'],['alta','dAq'],['dAq','lAq']]],
+ ['さそり座',[['acr','dsc'],['dsc','piS'],['dsc','sgS'],['sgS','ant'],['ant','tauS'],['tauS','eS'],['eS','mu1'],['mu1','ze2'],['ze2','etS'],['etS','sar'],['sar','io1'],['io1','kaS'],['kaS','sha']]],
+ ['いて座',[['gSg','kau'],['kau','asc'],['asc','phS'],['phS','kme'],['kme','gSg'],['kme','kbo'],['kbo','phS'],['phS','nun'],['nun','taS'],['taS','asc']]],
+ ['しし座',[['reg','eLe'],['eLe','alg'],['alg','adf'],['adf','muL'],['muL','epL'],['alg','zos'],['zos','dnb'],['dnb','che'],['che','reg'],['che','zos']]],
+ ['おとめ座',[['bVi','hVi'],['hVi','por'],['por','dVi'],['dVi','vin'],['por','spi'],['spi','zVi'],['zVi','dVi']]],
+ ['うしかい座',[['arc','iza'],['iza','dBo'],['dBo','nek'],['nek','sgn'],['sgn','rBo'],['rBo','arc'],['arc','muf']]],
+ ['ペガスス座',[['mrk','sct'],['sct','alp'],['alp','agn'],['agn','mrk'],['mrk','hom'],['hom','thP'],['thP','enf']]],
+ ['アンドロメダ座',[['alp','dAn'],['dAn','mra'],['mra','alm']]],
+ ['ペルセウス座',[['gPe','mrf'],['mrf','dPe'],['dPe','ePe'],['ePe','zPe'],['mrf','algo']]],
+ ['かんむり座',[['thCB','bCB'],['bCB','aCB'],['aCB','gCB'],['gCB','dCB'],['dCB','eCB']]],
+ ['おひつじ座',[['ham','shr'],['shr','mes']]],
+ ['みなみじゅうじ座',[['acx','gac'],['mim','dCr']]]];
+const ASTERISM=[['冬の大三角',['bet','sir','pro']],['夏の大三角',['veg','den','alta']]];
+// faint background stars spread over the whole sky (fixed on the celestial sphere so they rise and set naturally)
+const FAINT=Array.from({length:420},(_,i)=>{const u=hash(i,31,7)*2-1;return[hash(i,32,7)*24,Math.asin(u)*R2D,3.6+hash(i,33,7)*2.4,hash(i,34,7)];});
+// the Milky Way: points along the galactic equator (b=0) plus scattered star clouds
+const MWAY=(()=>{const aN=192.85948*D2R,dN=27.12825*D2R,lN=122.93192*D2R,toEq=(l,b)=>{l*=D2R;b*=D2R;const sd=Math.sin(dN)*Math.sin(b)+Math.cos(dN)*Math.cos(b)*Math.cos(lN-l),d=Math.asin(sd);
+    const a=aN+Math.atan2(Math.cos(b)*Math.sin(lN-l),Math.cos(dN)*Math.sin(b)-Math.sin(dN)*Math.cos(b)*Math.cos(lN-l));return[((a*R2D)%360+360)%360/15,d*R2D];};
+  const band=[];for(let l=0;l<360;l+=4){const br=.45+.55*Math.max(Math.cos(l*D2R),0)*1+.3*Math.exp(-Math.pow(((l-80+540)%360-180)/25,2));band.push([...toEq(l,0),Math.min(1.2,br)]);}
+  const dots=[];for(let i=0;i<700;i++){const l=hash(i,41,3)*360,b=(hash(i,42,3)+hash(i,43,3)+hash(i,44,3)-1.5)*9;dots.push([...toEq(l,b),hash(i,45,3)]);}return{band,dots};})();
+function starHor(ra,dec,sk){return eqToHor(ra*15,dec,sk.jd,sk.lat,sk.lon);}
+
+/* ===== the moon's face: a procedural map of the real near side (maria, bright ray craters), north up as seen with the naked eye ===== */
+function MT_noise(x,y,s){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,h=(a,b)=>hash(a,b,s),u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  return(h(xi,yi)*(1-u)+h(xi+1,yi)*u)*(1-v)+(h(xi,yi+1)*(1-u)+h(xi+1,yi+1)*u)*v;}
+function MT_fbm(x,y,s){let a=0,f=1,w=.5;for(let i=0;i<4;i++){a+=w*MT_noise(x*f,y*f,s+i*7);f*=2.03;w*=.5;}return a;}
+// [lon, lat, half-size lon, half-size lat, albedo] (degrees)
+// [lon, lat, half-size lon, half-size lat, albedo, irregularity] (degrees) — the near side's maria, basins are round, the rest ragged
+const MT_MARIA=[[-15.6,32.8,19.5,18,.5,.12],[-31,44,7,5,.52,.15],[17.5,27.5,11,10.5,.55,.1],[59.1,17,9.5,8,.46,.08],[30,8.5,13.5,11.5,.45,.35],[22,17,7,6,.48,.3],[38,1,8,8,.47,.3],[26,-4,6,5,.5,.3],
+ [51.3,-6,8,12.5,.54,.35],[55,-16,5,6,.55,.3],[35.5,-15.2,6,6,.53,.1],[-17.3,-21.3,12.5,10.5,.54,.3],[-23,-9,7,6,.55,.3],[-39.4,-24.4,6.5,6.5,.5,.1],
+ [-52,22,20,26,.47,.3],[-62,-2,15,16,.46,.3],[-42,6,12,14,.48,.3],[-50,-15,9,7,.5,.3],[-36,34,10,10,.48,.3],[-30,8,9,7,.53,.3],[-9,11,6,4.5,.55,.3],[3.6,13.3,5,4,.55,.25],[3,2.4,3.5,3,.58,.2],
+ [-38,57,14,4.5,.57,.3],[-12,56.5,14,4,.57,.3],[14,56,14,4,.57,.3],[37,55,10,3.5,.59,.3],[29.2,38,6.5,5,.58,.3],
+ [-68.3,-5.2,4,5,.38,.06],[-9.3,51.6,3,2.4,.38,.05],[86.5,13.3,5,5,.58,.3],[87.3,1.3,5,6,.58,.3]];
+function MT_proj(lon,lat){lon*=D2R;lat*=D2R;return{u:Math.cos(lat)*Math.sin(lon),v:-Math.sin(lat),z:Math.cos(lat)*Math.cos(lon)};}
+function MT_gc(lon,lat,brg,dist){const l1=lat*D2R,b=brg*D2R,d=dist*D2R,l2=Math.asin(Math.sin(l1)*Math.cos(d)+Math.cos(l1)*Math.sin(d)*Math.cos(b));
+  return[lon+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(l1),Math.cos(d)-Math.sin(l1)*Math.sin(l2))*R2D,l2*R2D];}
+const MOONTEX={};
+function moonTexture(N){if(MOONTEX[N])return MOONTEX[N];const cv=document.createElement('canvas');cv.width=cv.height=N;const x=cv.getContext('2d'),im=x.createImageData(N,N),d=im.data,R=N/2-.5,c0=N/2;
+  for(let py=0;py<N;py++)for(let px=0;px<N;px++){const u=(px+.5-c0)/R,v=(py+.5-c0)/R,rr=u*u+v*v,i=(py*N+px)*4;if(rr>1.0001){d[i+3]=0;continue;}
+    const z=Math.sqrt(Math.max(0,1-rr)),lat=Math.asin(-v)*R2D,lon=Math.atan2(u,z)*R2D,cl=Math.cos(lat*D2R);
+    const n1=MT_fbm(lon*.09,lat*.09,11),n2=MT_fbm(lon*.35,lat*.35,23),n3=MT_noise(lon*1.6,lat*1.6,37),n4=MT_fbm(lon*.9,lat*.9,41),n5=MT_noise(lon*4.2,lat*4.2,53);
+    let alb=.8+(n1-.5)*.14+(n2-.5)*.1+(n3-.5)*.06+(n4-.5)*.06+(n5>.86?(n5-.86)*1.1:0)-(n5<.12?(.12-n5)*.6:0),mar=0;
+    const wl=lon+(MT_fbm(lon*.045,lat*.045,61)-.5)*16,wb=lat+(MT_fbm(lon*.045,lat*.045,67)-.5)*12;
+    for(const[m0,m1,rx,ry,ma,ir]of MT_MARIA){const w2=ir>.2?1:.25,dl=((lon+(wl-lon)*w2-m0+540)%360-180)*cl,db=lat+(wb-lat)*w2-m1,dist=Math.sqrt((dl/rx)*(dl/rx)+(db/ry)*(db/ry))+((n2-.5)*.22+(n4-.5)*.12)*ir;
+      if(dist<1.3){const t2=dist<.8?1:dist>1.12?0:1-(dist-.8)/.32;const tt=t2*t2*(3-2*t2);const mv=ma*(.9+n1*.2)+(n2-.5)*.09+(n4-.5)*.07+(n3-.5)*.02+(dist>.6?(dist-.6)*.08:0);if(tt>0){alb=alb*(1-tt)+mv*tt;mar=Math.max(mar,tt);}}}
+    // the southern highlands are brighter and rougher
+    {const sl=Math.max(0,Math.min(1,(-lat-10)/30));alb+=(1-mar)*.05*sl*sl*(3-2*sl);}alb+=(MT_fbm(lon*2.4,lat*2.4,71)-.5)*.16*(1-mar)+(MT_noise(lon*7,lat*7,79)-.5)*.07*(1-mar*.6);
+    const ld=.9+.1*Math.pow(z,.35);alb*=ld;
+    const r=alb*(242-mar*14),gr=alb*(238-mar*12),b=alb*(228-mar*4);
+    d[i]=Math.min(255,r);d[i+1]=Math.min(255,gr);d[i+2]=Math.min(255,b);d[i+3]=rr>.985?Math.max(0,Math.min(255,(1-rr)/.015*255)):255;}
+  x.putImageData(im,0,0);
+  const P=(lon,lat)=>{const p=MT_proj(lon,lat);return{x:c0+p.u*R,y:c0+p.v*R,z:p.z,a:Math.atan2(p.v,p.u)};};
+  x.save();x.beginPath();x.arc(c0,c0,R,0,TAU);x.clip();
+  // small craters everywhere (fainter on the maria)
+  for(let i=0;i<Math.round(N*.9);i++){const lon=(hash(i,51,9)*2-1)*88,lat=Math.asin(hash(i,52,9)*2-1)*R2D,cr=(.35+Math.pow(hash(i,53,9),3.2)*4.2)*D2R*R,p=P(lon,lat);if(p.z<.05||cr<.35)continue;
+    const rx=cr*.7,ry=rx*Math.max(.12,p.z);x.save();x.translate(p.x,p.y);x.rotate(p.a+Math.PI/2);const al=.035+hash(i,54,9)*.05,br=hash(i,55,9)>.6;
+    x.fillStyle=br?`rgba(255,252,240,${al*2.2})`:`rgba(60,55,48,${al})`;x.beginPath();x.ellipse(0,0,rx,ry,0,0,TAU);x.fill();x.restore();}
+  // bright ray craters: Tycho, Copernicus, Kepler, Aristarchus, Proclus
+  {const rc=document.createElement('canvas');rc.width=rc.height=N;const X0=x;const xr=rc.getContext('2d');
+  for(const[cl,cb,n,len,al]of[[-11.4,-43.3,34,62,.06],[-20,9.6,30,22,.07],[-38,8.1,18,14,.06],[-47.5,23.7,10,9,.05],[47,16.2,10,14,.05]]){
+    for(let j=0;j<n;j++){const brg=hash(j,61,cl|0)*360,L=len*(.35+hash(j,62,cl|0)*.75);let prev=null;x.lineCap='round';
+      for(let s=1;s<=10;s++){const[ql,qb]=MT_gc(cl,cb,brg,L*s/10),p=P(ql,qb);if(p.z<0){prev=null;continue;}
+        if(prev){xr.lineCap='round';xr.strokeStyle=`rgba(255,255,248,${al*.8*(1-s/11)*(.5+hash(j,63,s)*.8)})`;xr.lineWidth=Math.max(.8,R*.02*(1.3-s/10)*(.5+hash(j,64,7)));xr.beginPath();xr.moveTo(prev.x,prev.y);xr.lineTo(p.x,p.y);xr.stroke();}prev=p;}}}
+  X0.globalCompositeOperation='lighter';X0.filter=`blur(${Math.max(.6,R*.006)}px)`;X0.drawImage(rc,0,0);X0.globalCompositeOperation='source-over';X0.filter='none';rc.width=rc.height=1;}
+  for(const[cl,cb,cr,br,dark]of[[-11.4,-43.3,2.4,.95,1],[-20,9.6,2.5,.75,1],[-38,8.1,1.1,.7,0],[-47.5,23.7,1,1,0],[47,16.2,.8,.7,0],[-14,-58,6,.1,1],[-1.9,-9.2,5,.08,1],[61,-9,4,.18,1],[60,-25,5.5,.15,1],[26,-11,3.5,.25,1],[-60,-20,2,.4,0],[-4,-12,1.6,.35,0],[17,-5,1.2,.4,0]]){
+    const p=P(cl,cb);if(p.z<.05)continue;const rx=cr*D2R*R,ry=rx*p.z;x.save();x.translate(p.x,p.y);x.rotate(p.a+Math.PI/2);
+    const hg=x.createRadialGradient(0,0,0,0,0,rx*2.6);hg.addColorStop(0,`rgba(255,255,250,${br*.55})`);hg.addColorStop(1,'rgba(255,255,250,0)');x.fillStyle=hg;x.scale(1,Math.max(.12,p.z));x.beginPath();x.arc(0,0,rx*2.6,0,TAU);x.fill();x.restore();
+    x.save();x.translate(p.x,p.y);x.rotate(p.a+Math.PI/2);x.fillStyle=`rgba(255,255,252,${br*.75})`;x.beginPath();x.ellipse(0,0,rx,ry,0,0,TAU);x.fill();
+    if(dark){x.fillStyle='rgba(120,112,100,.28)';x.beginPath();x.ellipse(0,0,rx*.62,ry*.62,0,0,TAU);x.fill();}x.restore();}
+  x.restore();MOONTEX[N]=cv;return cv;}
+/* draw the moon: o={tex size, frac (lit fraction), limb: screen angle (clockwise from up) toward the bright limb, rot: clockwise rotation of the face, day: sky colour shows through the dark part, glow, alpha} */
+const MOONR={};
+function moonSprite(r,o){const ts=o.ts||(r>60?512:r>18?192:96),key=[r|0,ts,Math.round(o.frac*200),Math.round(o.limb*R2D),Math.round(o.rot*R2D),o.day?1:0,o.pxs||0].join(',');
+  let e=MOONR[key];if(e)return e;for(const k in MOONR)if(MOONR[k].r===(r|0)&&MOONR[k].ts===ts)delete MOONR[k];
+  const pad2=Math.ceil(r*.06)+3,S2=Math.ceil(r*2+pad2*2),sc=o.pxs||Math.min(2,(typeof DPR!=='undefined'?DPR:1)),cv=document.createElement('canvas');cv.width=cv.height=Math.ceil(S2*sc);const x=cv.getContext('2d');x.scale(sc,sc);const c=S2/2;
+  x.save();x.translate(c,c);x.rotate(o.rot);x.drawImage(moonTexture(ts),-r,-r,r*2,r*2);x.restore();
+  // dark side: light each pixel from the sun direction (cheap, no blur filters)
+  {const Wp=cv.width,cc=c*sc,rp=r*sc,im=x.getImageData(0,0,Wp,Wp),d=im.data,fr=Math.max(0,Math.min(1,o.frac)),sz=2*fr-1,mg=Math.sqrt(Math.max(0,1-sz*sz)),sx=Math.sin(o.limb)*mg,sy=-Math.cos(o.limb)*mg,ew=Math.max(.03,Math.min(.1,3/rp));
+   for(let py=0;py<Wp;py++){const v=(py+.5-cc)/rp;if(v<-1.02||v>1.02)continue;for(let px=0;px<Wp;px++){const u=(px+.5-cc)/rp,q=u*u+v*v;if(q>1.04)continue;const i=(py*Wp+px)*4;if(!d[i+3])continue;
+     const z=Math.sqrt(Math.max(0,1-q)),dt=u*sx+v*sy+z*sz;let l=(dt+ew)/(2*ew);l=l<0?0:l>1?1:l*l*(3-2*l);if(l>=1)continue;
+     if(o.day)d[i+3]=d[i+3]*l;else{const k2=(1-l)*.9;d[i]=d[i]*(1-k2)+8*k2;d[i+1]=d[i+1]*(1-k2)+11*k2;d[i+2]=d[i+2]*(1-k2)+24*k2;}}}
+   x.putImageData(im,0,0);}
+  e={cv,S2,r:r|0,ts};MOONR[key]=e;return e;}
+function moonDraw(ctx,cx,cy,r,o){const e=moonSprite(r,o);
+  if(o.glow){const hr=r*(2+o.frac*2.2),hg=ctx.createRadialGradient(cx,cy,r*.9,cx,cy,hr);hg.addColorStop(0,`rgba(255,248,225,${o.glow*(.1+.32*o.frac)})`);hg.addColorStop(1,'rgba(255,248,225,0)');ctx.fillStyle=hg;ctx.beginPath();ctx.arc(cx,cy,hr,0,TAU);ctx.fill();}
+  ctx.save();ctx.globalAlpha=o.alpha==null?1:o.alpha;ctx.drawImage(e.cv,cx-e.S2/2,cy-e.S2/2,e.S2,e.S2);ctx.restore();}
+/* the sun: white-hot core, soft corona and a faint star-shaped glare */
+function sunDraw(ctx,x,y,r,a,warm,t){warm=warm||0;ctx.save();ctx.globalCompositeOperation='lighter';
+  const c1=warm>0?`255,${Math.round(214-warm*70)},${Math.round(150-warm*90)}`:'255,236,190';
+  let gr=ctx.createRadialGradient(x,y,0,x,y,r*9);gr.addColorStop(0,`rgba(${c1},${.5*a})`);gr.addColorStop(.25,`rgba(${c1},${.18*a})`);gr.addColorStop(1,`rgba(${c1},0)`);ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y,r*9,0,TAU);ctx.fill();
+  ctx.translate(x,y);ctx.rotate((t||0)*.02);for(let i=0;i<8;i++){ctx.rotate(Math.PI/4);const L=r*(i%2?3.2:5.4);const lg=ctx.createLinearGradient(0,0,L,0);lg.addColorStop(0,`rgba(${c1},${.28*a})`);lg.addColorStop(1,`rgba(${c1},0)`);ctx.fillStyle=lg;ctx.beginPath();ctx.moveTo(0,-r*.16);ctx.lineTo(L,0);ctx.lineTo(0,r*.16);ctx.closePath();ctx.fill();}
+  ctx.restore();ctx.save();
+  gr=ctx.createRadialGradient(x,y,0,x,y,r*1.15);gr.addColorStop(0,`rgba(255,255,252,${a})`);gr.addColorStop(.7,`rgba(255,${Math.round(250-warm*40)},${Math.round(225-warm*80)},${a})`);gr.addColorStop(1,`rgba(255,${Math.round(220-warm*60)},${Math.round(150-warm*90)},0)`);ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y,r*1.15,0,TAU);ctx.fill();ctx.restore();}
+
+const STARCOL={w:'#ffffff',b:'#d4e2ff',y:'#fff3d6',o:'#ffe2bd',r:'#ffcfae'};
+/* --- colours --- */
+function hexRgb(h){const n=parseInt(h.slice(1),16);return[(n>>16)&255,(n>>8)&255,n&255];}
+function mixRgb(a,b,t){return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];}
+const rgbS=(c,a)=>`rgba(${c[0]|0},${c[1]|0},${c[2]|0},${a==null?1:a})`;
+const SKY_KF=[[-90,'#010208','#04071a'],[-18,'#01030c','#070c26'],[-12,'#050a26','#18204c'],[-6,'#18286a','#6a5a92'],[-2,'#2c4688','#e3876a'],[2,'#4674bc','#ffc48c'],[8,'#3a78d0','#cde3f3'],[90,'#2a68cf','#d2e8f8']];
+function skyCols(sa,k){let i=0;while(i<SKY_KF.length-2&&sa>SKY_KF[i+1][0])i++;const a=SKY_KF[i],b=SKY_KF[i+1],t2=Math.max(0,Math.min(1,(sa-a[0])/(b[0]-a[0])));
+  let top=mixRgb(hexRgb(a[1]),hexRgb(b[1]),t2),hor=mixRgb(hexRgb(a[2]),hexRgb(b[2]),t2);
+  const ov=k==='cloudy'?.35:k==='rain'||k==='thunder'?.78:k==='snow'?.65:k==='fog'?.7:0;
+  if(ov){const gy=c=>{const l=c[0]*.3+c[1]*.55+c[2]*.15;return[l*1.02,l*1.04,l*1.1];};top=mixRgb(top,gy(top),ov);hor=mixRgb(hor,gy(hor),ov);if(k==='fog'){top=mixRgb(top,[200,206,214].map(v=>v*Math.max(.15,Math.min(1,(sa+8)/16))),.5);hor=mixRgb(hor,[215,220,226].map(v=>v*Math.max(.15,Math.min(1,(sa+8)/16))),.6);}}
+  return{top,hor};}
+function cloudTint(sk,k){const sa=sk.sun.alt,moonlit=sk.moon.alt>0?sk.frac:0;let c;
+  if(sa>8)c=[255,255,255];else if(sa>-2)c=mixRgb([255,170,140],[255,236,214],Math.max(0,(sa+2)/10));else if(sa>-10)c=mixRgb([70,70,120],[230,140,130],Math.max(0,(sa+10)/8));else c=mixRgb([28,32,58],[92,104,140],moonlit);
+  if(k==='rain'||k==='thunder')c=c.map(v=>v*.62);else if(k==='snow'||k==='cloudy')c=c.map(v=>v*.86);return c.map(v=>Math.round(v/12)*12);}
+/* --- cloud sprites (soft, lit from above, shaded underneath), tinted per sky colour --- */
+const CLOUDSPR=[],CLOUDTINT={};
+function cloudSprite(i){if(CLOUDSPR[i])return CLOUDSPR[i];const w=300,h=120,cv2=document.createElement('canvas');cv2.width=w;cv2.height=h;const x=cv2.getContext('2d');
+  const n=30+((hash(i,1,5)*14)|0);for(let j=0;j<n;j++){const u=hash(j,i,7),v=hash(j,i,8),cx=w*(.12+.76*u),bulge=Math.sin(u*Math.PI),r=12+bulge*(22+hash(j,i,9)*16),cy=h*.72-bulge*h*.32*v-r*.25;
+    const gr=x.createRadialGradient(cx-r*.25,cy-r*.3,r*.1,cx,cy,r);gr.addColorStop(0,'rgba(255,255,255,.95)');gr.addColorStop(.55,'rgba(250,250,252,.7)');gr.addColorStop(1,'rgba(240,242,248,0)');x.fillStyle=gr;x.beginPath();x.arc(cx,cy,r,0,TAU);x.fill();}
+  x.globalCompositeOperation='source-atop';const sh=x.createLinearGradient(0,h*.2,0,h);sh.addColorStop(0,'rgba(0,0,0,0)');sh.addColorStop(.6,'rgba(40,50,80,.22)');sh.addColorStop(1,'rgba(40,50,80,.45)');x.fillStyle=sh;x.fillRect(0,0,w,h);
+  CLOUDSPR[i]=cv2;return cv2;}
+function cloudTinted(i,c){const key=i+'|'+c.join(',');if(CLOUDTINT[key])return CLOUDTINT[key];for(const k2 in CLOUDTINT)if(k2.startsWith(i+'|'))delete CLOUDTINT[k2];
+  const s=cloudSprite(i),cv2=document.createElement('canvas');cv2.width=s.width;cv2.height=s.height;const x=cv2.getContext('2d');x.drawImage(s,0,0);x.globalCompositeOperation='multiply';x.fillStyle=rgbS(c);x.fillRect(0,0,cv2.width,cv2.height);x.globalCompositeOperation='destination-in';x.drawImage(s,0,0);CLOUDTINT[key]=cv2;return cv2;}
+/* --- sea of clouds below the horizon --- */
+const SEA={};
+function seaStrip(c,layer){const key=layer+'|'+c.join(',');if(SEA[key])return SEA[key];for(const k2 in SEA)if(k2.startsWith(layer+'|'))delete SEA[k2];
+  const w=1440,h=layer===1?70:layer===2?120:170,cv2=document.createElement('canvas');cv2.width=w;cv2.height=h;const x=cv2.getContext('2d');
+  const n=layer===1?80:layer===2?42:26,base=layer===1?13:layer===2?30:50;
+  const puff=(X,Y,r)=>{const gr=x.createRadialGradient(X-r*.3,Y-r*.5,r*.05,X,Y,r);gr.addColorStop(0,rgbS(mixRgb(c,[255,255,255],.4),1));gr.addColorStop(.5,rgbS(c,.97));gr.addColorStop(.85,rgbS(c.map(v=>v*.86),.75));gr.addColorStop(1,rgbS(c.map(v=>v*.8),0));x.fillStyle=gr;x.beginPath();x.arc(X,Y,r,0,TAU);x.fill();};
+  for(let j=0;j<n;j++){const cx=(j+hash(j,layer,2)*.9)/n*w,r=base*(.55+hash(j,layer,3)*.95),cy=h*.62+hash(j,layer,4)*h*.18-r*.2;
+    for(const dx of[-w,0,w]){const X=cx+dx;if(X+r*1.6<0||X-r*1.6>w)continue;puff(X,cy+r*.35,r*1.15);for(let q=0;q<3;q++){const a=hash(j,q,layer+5)*Math.PI,rr=r*(.35+hash(j,q,layer+6)*.35);puff(X+Math.cos(Math.PI+a)*r*.55,cy-Math.sin(a)*r*.45,rr);}puff(X,cy,r*.8);}}
+  x.globalCompositeOperation='destination-out';const fd=x.createLinearGradient(0,h*.6,0,h);fd.addColorStop(0,'rgba(0,0,0,0)');fd.addColorStop(1,'rgba(0,0,0,1)');x.fillStyle=fd;x.fillRect(0,h*.6,w,h*.4);
+  SEA[key]=cv2;return cv2;}
+/* --- main drawing --- */
+function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
+  const Wc=c.clientWidth||360,Hc=c.clientHeight||420,dpr=Math.min(2,DPR||1);if(c.width!==Math.round(Wc*dpr)||c.height!==Math.round(Hc*dpr)){c.width=Math.round(Wc*dpr);c.height=Math.round(Hc*dpr);}
+  const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';
+  const sk=skyNow(),k=SKYV.clear?'clear':wKind(),sa=sk.sun.alt,hy=Hc*.74,kk=Wc/SKYV.fov,wind=((ENV.wx&&ENV.wx.wind)||2);
+  const P=(az,alt)=>{const d=((az-SKYV.A0+540)%360)-180;return{x:Wc/2+d*kk,y:hy-alt*kk,d};};
+  const clr=k==='clear',cld=k==='cloudy',wet=k==='rain'||k==='thunder'||k==='snow';
+  // sky
+  const sc2=skyCols(sa,k),gr=x.createLinearGradient(0,0,0,hy);gr.addColorStop(0,rgbS(sc2.top));gr.addColorStop(.75,rgbS(mixRgb(sc2.top,sc2.hor,.55)));gr.addColorStop(1,rgbS(sc2.hor));x.fillStyle=gr;x.fillRect(0,0,Wc,hy+2);
+  if(sa>-16&&sa<14&&!wet){const ps=P(sk.sun.az,Math.max(sa,-4)),a=(1-Math.abs(sa-1)/15)*(cld?.5:1),rg=x.createRadialGradient(ps.x,hy,0,ps.x,hy,Wc*1.1);rg.addColorStop(0,`rgba(255,${sa>0?190:140},${sa>0?120:110},${.55*a})`);rg.addColorStop(.4,`rgba(255,150,120,${.18*a})`);rg.addColorStop(1,'rgba(255,150,120,0)');x.fillStyle=rg;x.fillRect(0,0,Wc,hy+2);}
+  if(sk.moon.alt>0&&sa<-6&&!wet){x.fillStyle=`rgba(70,90,150,${.08*sk.frac})`;x.fillRect(0,0,Wc,hy);}
+  // the Milky Way and stars
+  const starA=Math.max(0,Math.min(1,(-4-sa)/9))*(clr?1:cld?.35:0);
+  if(starA>0){const moonW=sk.moon.alt>0?sk.frac:0;
+    if(sa<-11){const mwA=starA*(1-moonW*.75);if(mwA>.03){x.save();x.globalCompositeOperation='lighter';
+      for(const b of MWAY.band){const h=starHor(b[0],b[1],sk);if(h.alt<-8)continue;const p=P(h.az,h.alt);if(Math.abs(p.d)>SKYV.fov/2+25)continue;const r=kk*(9+b[2]*7),rg=x.createRadialGradient(p.x,p.y,0,p.x,p.y,r);rg.addColorStop(0,`rgba(190,200,235,${.075*b[2]*mwA})`);rg.addColorStop(1,'rgba(190,200,235,0)');x.fillStyle=rg;x.fillRect(p.x-r,p.y-r,r*2,r*2);}
+      x.fillStyle=`rgba(225,230,255,${.55*mwA})`;for(const d of MWAY.dots){const h=starHor(d[0],d[1],sk);if(h.alt<0)continue;const p=P(h.az,h.alt);if(Math.abs(p.d)>SKYV.fov/2+2)continue;x.globalAlpha=.25+d[2]*.6;x.fillRect(p.x,p.y,.8,.8);}
+      x.restore();}}
+    const magLim=6.2-moonW*1.8-(sa>-10?(sa+10)*.25:0);
+    for(const f of FAINT){if(f[2]>magLim)continue;const h=starHor(f[0],f[1],sk);if(h.alt<0)continue;const p=P(h.az,h.alt);if(Math.abs(p.d)>SKYV.fov/2+2)continue;const tw=.7+.3*Math.sin(t*(1.4+f[3]*2)+f[3]*50);x.globalAlpha=starA*tw*Math.max(.15,(magLim-f[2])/2.4);x.fillStyle='#fff';x.beginPath();x.arc(p.x,p.y,Math.max(.45,(5.6-f[2])*.42),0,TAU);x.fill();}
+    x.globalAlpha=1;
+    const SP={};for(const key in BSTAR){const s=BSTAR[key],h=starHor(s[0],s[1],sk);SP[key]={...P(h.az,h.alt),alt:h.alt,s};}
+    if(SKYV.lines&&starA>.15){x.lineWidth=1;x.strokeStyle=`rgba(150,190,255,${.38*starA})`;x.beginPath();
+      for(const[,ls]of CONST)for(const[a1,b1]of ls){const A1=SP[a1],B1=SP[b1];if(A1.alt<-3||B1.alt<-3||Math.abs(A1.d)>100||Math.abs(B1.d)>100||Math.abs(A1.x-B1.x)>Wc*.8)continue;x.moveTo(A1.x,A1.y);x.lineTo(B1.x,B1.y);}x.stroke();
+      x.setLineDash([3,4]);x.strokeStyle=`rgba(255,215,140,${.4*starA})`;x.beginPath();for(const[,ks]of ASTERISM){for(let i=0;i<3;i++){const A1=SP[ks[i]],B1=SP[ks[(i+1)%3]];if(A1.alt<0||B1.alt<0||Math.abs(A1.x-B1.x)>Wc*.9)continue;x.moveTo(A1.x,A1.y);x.lineTo(B1.x,B1.y);}}x.stroke();x.setLineDash([]);
+      x.font='600 10.5px "Zen Maru Gothic",sans-serif';x.textAlign='center';x.fillStyle=`rgba(195,215,255,${.82*starA})`;
+      for(const[n,ls]of CONST){const ks=[...new Set(ls.flat())],pts=ks.map(q=>SP[q]);if(pts.some(p=>p.alt<0))continue;const mx=pts.reduce((a,p)=>a+p.x,0)/pts.length,my=Math.max(...pts.map(p=>p.y))+14;if(mx<-20||mx>Wc+20||Math.max(...pts.map(p=>p.x))-Math.min(...pts.map(p=>p.x))>Wc*.8)continue;x.fillText(n,mx,my);}
+      x.fillStyle=`rgba(255,225,160,${.75*starA})`;x.font='600 10px "Zen Maru Gothic",sans-serif';for(const[n,ks]of ASTERISM){const pts=ks.map(q=>SP[q]);if(pts.some(p=>p.alt<3))continue;const mx=pts.reduce((a,p)=>a+p.x,0)/3,my=pts.reduce((a,p)=>a+p.y,0)/3;if(mx<0||mx>Wc||Math.max(...pts.map(p=>p.x))-Math.min(...pts.map(p=>p.x))>Wc*.9)continue;x.fillText(n,mx,my);}}
+    for(const key in SP){const p=SP[key],s=p.s;if(p.alt<0||Math.abs(p.d)>SKYV.fov/2+3||s[2]>magLim+.5)continue;const r=Math.max(.6,(5.4-s[2])*.55),tw=.72+.28*Math.sin(t*(1.6+(key.charCodeAt(0)%7)*.3)+key.length*7),col=STARCOL[s[3]]||'#fff';
+      if(s[2]<2.2){const rg=x.createRadialGradient(p.x,p.y,0,p.x,p.y,r*5);rg.addColorStop(0,col);rg.addColorStop(.2,col.replace('#','#'));rg.addColorStop(1,'rgba(255,255,255,0)');x.globalAlpha=starA*.32*tw;x.fillStyle=rg;x.beginPath();x.arc(p.x,p.y,r*5,0,TAU);x.fill();}
+      x.globalAlpha=starA*tw;x.fillStyle=col;x.beginPath();x.arc(p.x,p.y,r,0,TAU);x.fill();
+      if(s[2]<1.2){x.globalAlpha=starA*tw*.55;x.strokeStyle=col;x.lineWidth=.6;x.beginPath();x.moveTo(p.x-r*5,p.y);x.lineTo(p.x+r*5,p.y);x.moveTo(p.x,p.y-r*5);x.lineTo(p.x,p.y+r*5);x.stroke();}
+      if(s[4]&&SKYV.lines&&p.alt>1){x.globalAlpha=starA*.85;x.fillStyle='rgba(255,240,200,.9)';x.font='10px "Zen Maru Gothic",sans-serif';x.textAlign='left';x.fillText(s[4],p.x+r+4,p.y-r-2);}}
+    x.globalAlpha=1;}
+  // sun
+  if(sa>-3&&!wet){const p=P(sk.sun.az,sa);if(Math.abs(p.d)<SKYV.fov/2+40)sunDraw(x,p.x,p.y,11,cld?.55:1,sa<14?(14-Math.max(0,sa))/14:0,t);}
+  // moon (drawn a few times larger than life so its face can be seen)
+  SKYV.moonP=null;if(sk.moon.alt>-3&&!wet){const p=P(sk.moon.az,sk.moon.alt);if(Math.abs(p.d)<SKYV.fov/2+30){const day=sa>-4,r=16;
+    moonDraw(x,p.x,p.y,r,{frac:sk.frac,limb:sk.q-sk.chi,rot:sk.q,day,glow:day?.3:1,alpha:(day?Math.max(.35,.85-sa/60):1)*(cld?.75:1),ts:192,pxs:dpr});SKYV.moonP={x:p.x,y:p.y,r};}}
+  // clouds
+  const ct=cloudTint(sk,k),nC=SKYV.clear?0:clr?4:cld?16:wet?24:k==='fog'?8:6;
+  for(let i=0;i<nC;i++){const sp=cloudTinted(i%6,ct),az0=hash(i,71,3)*360+t*(.15+wind*.06)*(.6+hash(i,72,3)*.8),alt=(clr?18:5)+Math.pow(hash(i,73,3),1.3)*(wet?50:38),p=P(az0,alt);
+    const w=(wet?2.1:1.35)*sp.width*(.45+alt/70)*(.7+hash(i,74,3)*.6)*(Wc/400),h=w*sp.height/sp.width*(.75+alt/120);if(p.x+w/2<0||p.x-w/2>Wc)continue;x.globalAlpha=(clr?.75:.92);x.drawImage(sp,p.x-w/2,p.y-h*.6,w,h);}
+  x.globalAlpha=1;
+  // horizon: sea of clouds
+  const seaC=mixRgb(ct,sc2.hor,.35),s1=seaStrip(seaC,1),s2=seaStrip(mixRgb(seaC,[255,255,255],sa>0?.15:.05),2);
+  x.fillStyle=GD_lg(x,0,hy-6,0,Hc,[[0,rgbS(mixRgb(sc2.hor,seaC,.6))],[.35,rgbS(seaC)],[1,rgbS(seaC.map(v=>v*.7))]]);x.fillRect(0,hy-4,Wc,Hc-hy+4);
+  const drawStrip=(img,y,h,par)=>{const w=img.width*(h/img.height);const off=SKYV.A0/360*w*par+t*1.5*par;let sx=-(((off%w)+w)%w);for(;sx<Wc;sx+=w)x.drawImage(img,sx,y,w+.5,h);};
+  const s3=seaStrip(mixRgb(seaC,[255,255,255],sa>0?.25:.08),3);drawStrip(s1,hy-12,26,1);drawStrip(s2,hy+2,48,1.5);drawStrip(s3,hy+30,80,2.3);
+  if(sk.moon.alt>0&&sa<-4&&!wet){const p=P(sk.moon.az,sk.moon.alt);if(Math.abs(p.d)<SKYV.fov){const rg=x.createRadialGradient(p.x,hy+20,0,p.x,hy+20,120);rg.addColorStop(0,`rgba(255,250,220,${.25*sk.frac})`);rg.addColorStop(1,'rgba(255,250,220,0)');x.fillStyle=rg;x.fillRect(p.x-120,hy-10,240,140);}}
+  // compass on the horizon
+  x.font='600 11px "Zen Maru Gothic",sans-serif';x.textAlign='center';for(let a=0;a<360;a+=45){const p=P(a,0);if(p.x<-20||p.x>Wc+20)continue;x.fillStyle=a===0?'rgba(255,140,120,.95)':'rgba(255,255,255,.85)';x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=3;x.strokeText(AZ_JP[a/22.5],p.x,hy-14);x.fillText(AZ_JP[a/22.5],p.x,hy-14);x.fillRect(p.x-.5,hy-9,1,5);}
+  ov.querySelector('#svDir').textContent=`${azName(SKYV.A0)}の空を見ています`;
+  // weather in the air
+  if(k==='rain'||k==='thunder'){x.strokeStyle='rgba(210,225,245,.5)';x.lineWidth=1;x.beginPath();for(let i=0;i<140;i++){const y=((hash(i,1,5)*Hc+t*520*(.8+hash(i,3,5)*.4))%(Hc+30))-15,xx=((hash(i,2,5)*Wc*1.2-y*.18)%Wc+Wc)%Wc;x.moveTo(xx,y);x.lineTo(xx-2.2,y+12);}x.stroke();}
+  if(k==='snow'){x.fillStyle='rgba(255,255,255,.92)';for(let i=0;i<110;i++){const s2=.5+hash(i,3,6),y=((hash(i,1,6)*Hc+t*30*s2)%(Hc+10))-5,xx=(hash(i,2,6)*Wc+Math.sin(t*.8+i)*12+Wc)%Wc;x.beginPath();x.arc(xx,y,.8+s2*1.1,0,TAU);x.fill();}}
+  if(k==='fog'){const fg=x.createLinearGradient(0,0,0,Hc);fg.addColorStop(0,'rgba(220,226,232,.25)');fg.addColorStop(.6,'rgba(225,230,236,.55)');fg.addColorStop(1,'rgba(225,230,236,.3)');x.fillStyle=fg;x.fillRect(0,0,Wc,Hc);}
+  if(k==='thunder'){SKYV.nextFlash-=1/60;if(SKYV.nextFlash<=0){SKYV.flash=.22;SKYV.nextFlash=4+Math.random()*9;}if(SKYV.flash>0){x.fillStyle=`rgba(255,255,255,${SKYV.flash*2.6})`;x.fillRect(0,0,Wc,Hc);SKYV.flash-=1/60;}}
+  if(SKYV.zoom)skyvZoom(x,Wc,Hc,sk,t);}
+function skyvZoom(x,Wc,Hc,sk,t){x.fillStyle='rgba(2,3,10,.95)';x.fillRect(0,0,Wc,Hc);
+  const r=Math.min(Wc,Hc)*.36,cx=Wc/2,cy=Hc*.4;
+  if(!SKYV.zoomReady){x.fillStyle='rgba(255,255,255,.8)';x.font='13px "Zen Maru Gothic",sans-serif';x.textAlign='center';x.fillText('月をのぞいています…',cx,cy);SKYV.zoomReady=1;return;}
+  if(SKYV.zoomReady===1){moonTexture(512);SKYV.zoomReady=2;}
+  for(let i=0;i<40;i++){x.globalAlpha=.25+hash(i,9,2)*.5;x.fillStyle='#fff';x.fillRect(hash(i,7,2)*Wc,hash(i,8,2)*Hc*.8,1,1);}x.globalAlpha=1;
+  moonDraw(x,cx,cy,r,{frac:sk.frac,limb:moonAge(now())<14.765?Math.PI/2:-Math.PI/2,rot:0,day:false,glow:.18,ts:512,pxs:Math.min(2,DPR||1)});
+  const age=moonAge(now()),rs=moonRiseSet(now());x.textAlign='center';x.fillStyle='#fff';x.font='700 16px "Zen Maru Gothic",sans-serif';x.fillText(`月齢 ${age.toFixed(1)}（${moonName(age)}）`,cx,cy+r+40);
+  x.font='13px "Zen Maru Gothic",sans-serif';x.fillStyle='#d6dcf2';x.fillText(`光っている部分 ${Math.round(sk.frac*100)}%　${sk.wax?'満ちていく月':'欠けていく月'}`,cx,cy+r+64);
+  x.fillText(sk.moon.alt>0?`高さ ${Math.round(sk.moon.alt)}°・${azName(sk.moon.az)}の空`:'いまは地平線の下',cx,cy+r+86);x.fillText(`月の出 ${rs.rise}　月の入り ${rs.set}`,cx,cy+r+108);
+  x.fillStyle='rgba(255,255,255,.55)';x.font='11px "Zen Maru Gothic",sans-serif';x.fillText('タップでもどる',cx,Hc-24);}
+
+/* --- 操作・表示ループ --- */
+let visible = false, running = false;
+function setupUI(){
+  const ov = skyvEl(), c = ov.querySelector('#skyc');
+  c.addEventListener('pointerdown', e => { SKYV.ptr = { id:e.pointerId, x:e.clientX, a0:SKYV.A0, moved:false }; try{ c.setPointerCapture(e.pointerId); }catch(_){} });
+  c.addEventListener('pointermove', e => { const p = SKYV.ptr; if(!p || p.id !== e.pointerId || SKYV.zoom) return; const dx = e.clientX - p.x; if(Math.abs(dx) > 6) p.moved = true; if(p.moved) SKYV.A0 = ((p.a0 - dx*SKYV.fov/c.clientWidth) % 360 + 360) % 360; });
+  c.addEventListener('pointerup', e => { const p = SKYV.ptr; SKYV.ptr = null; if(!p || p.moved) return;
+    const r = c.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+    if(SKYV.zoom){ SKYV.zoom = false; return; }
+    const m = SKYV.moonP; if(m && Math.hypot(x-m.x, y-m.y) < m.r + 26){ SKYV.zoom = true; SKYV.zoomReady = false; } });
+  c.addEventListener('pointercancel', () => { SKYV.ptr = null; });
+  ov.querySelector('#svClr').onclick = e => { SKYV.clear = !SKYV.clear; e.currentTarget.setAttribute('aria-pressed', SKYV.clear); e.currentTarget.textContent = SKYV.clear ? '雲をもどす' : '雲を消す'; };
+  ov.querySelector('#svLines').onclick = e => { SKYV.lines = !SKYV.lines; e.currentTarget.setAttribute('aria-pressed', SKYV.lines); };
+  ov.querySelector('#svFull').onclick = () => {
+    const d = document;
+    if(d.fullscreenElement || d.webkitFullscreenElement){ (d.exitFullscreen || d.webkitExitFullscreen).call(d); }
+    else if(ov.requestFullscreen) ov.requestFullscreen(); else if(ov.webkitRequestFullscreen) ov.webkitRequestFullscreen(); else ov.classList.toggle('pseudo-full');
+  };
+  ov.querySelector('#svMoon').onclick = () => { const sk = skyNow(); SKYV.A0 = sk.moon.az; };
+  const h = ov.querySelector('#svHint'); setTimeout(() => { h.style.opacity = '0'; }, 6000);
+  new IntersectionObserver(es => { visible = es[0].isIntersecting; loop(); }, { threshold:0.05 }).observe(ov);
+  document.addEventListener('visibilitychange', loop);
+}
+function loop(){
+  const want = visible && document.visibilityState === 'visible';
+  if(want && !running){ running = true; const step = () => { if(!running) return; try{ skyvDraw(performance.now()/1000); updateInfo(); }catch(e){ console.error(e); } SKYV.raf = requestAnimationFrame(step); }; step(); }
+  else if(!want && running){ running = false; cancelAnimationFrame(SKYV.raf); }
+}
+let infoAt = 0;
+function updateInfo(){
+  const tn = performance.now(); if(tn - infoAt < 1000) return; infoAt = tn;
+  const ov = skyvEl(), sk = skyNow();
+  ov.querySelector('#svDir').textContent = `${azName(SKYV.A0)}の空を見ています`;
+  const age = moonAge(now()), sa = sk.sun.alt;
+  const phase = sa > 0 ? '昼' : sa > -6 ? '薄明' : sa > -18 ? '夕暮れ・明け方' : '夜';
+  document.getElementById('skyInfo').textContent =
+    `${phase}・月齢${age.toFixed(1)}（${moonName(age)}）・月は${sk.moon.alt > 0 ? `${azName(sk.moon.az)}の空 高さ${Math.round(sk.moon.alt)}°` : '地平線の下'}`;
+}
+function aimDefault(){
+  if(SKYV.aimed) return; SKYV.aimed = true;
+  const sk = skyNow(), k = wKind(), clear = k === 'clear' || k === 'cloudy';
+  SKYV.A0 = clear && sk.moon.alt > 3 ? sk.moon.az : clear && sk.sun.alt > -4 ? sk.sun.az : 180;
+}
+return {
+  init(){ setupUI(); },
+  setLoc(lat, lon){ if(lat != null){ ENV.lat = lat; ENV.lon = lon; SKY_C = null; } aimDefault(); },
+  setWeather(code, wind){ ENV.code = code; if(wind != null) ENV.wx.wind = wind; }
+};
+})();
+
+
+/* ---------- 暦（浮遊島ぐらしから移植：祝日・何の日・旧暦・六曜） ---------- */
+const Cal = (() => {
+const ANNIV=('0101初日の出|0102書き初め|0103ひとみの日|0104石の日|0105囲碁の日|0106色の日|0107七草|0108勝負事の日|0109とんちの日|0110 110番の日|0111鏡開き|0112スキー記念日|0113咸臨丸出航記念日|0114愛と希望と勇気の日|0115いちごの日|0116囲炉裏の日|0117防災とボランティアの日|0118都バスの日|0119のど自慢の日|0120二十日正月|0121ライバルが手を結ぶ日|0122カレーの日|0123電子メールの日|0124ゴールドラッシュデー|0125日本最低気温の日|0126文化財防火デー|0127国旗制定記念日|0128衣類乾燥機の日|0129タウン情報の日|0130 3分間電話の日|0131愛妻の日|'+
+'0201テレビ放送記念日|0202頭痛の日|0203節分のころ|0204西の日|0205プロ野球の日|0206海苔の日|0207北方領土の日|0208郵便マークの日|0209ふくの日|0210ニットの日|0211万歳三唱の日|0212ペニシリン記念日|0213苗字制定記念日|0214バレンタインデー|0215涅槃会|0216天気図記念日|0217天使の日|0218エアメールの日|0219プロレスの日|0220歌舞伎の日|0221漱石の日|0222猫の日|0223富士山の日|0224月光仮面登場の日|0225夕刊紙の日|0226包むの日|0227新撰組の日|0228ビスケットの日|0229うるう日|'+
+'0301ビキニデー|0302ミニの日|0303ひな祭り|0304バウムクーヘンの日|0305珊瑚の日|0306弟の日|0307消防記念日|0308ミツバチの日|0309ありがとうの日|0310砂糖の日|0311パンダ発見の日|0312サイフの日|0313サンドイッチデー|0314ホワイトデー|0315靴の記念日|0316国立公園指定記念日|0317漫画週刊誌の日|0318精霊の日|0319ミュージックの日|0320電卓の日|0321ランドセルの日|0322放送記念日|0323世界気象デー|0324マネキン記念日|0325電気記念日|0326カチューシャの歌の日|0327さくらの日|0328三ツ矢サイダーの日|0329マリモの日|0330マフィアの日|0331エッフェル塔の日|'+
+'0401エイプリルフール|0402国際子どもの本の日|0403シーサーの日|0404あんぱんの日|0405ヘアカットの日|0406白の日|0407世界保健デー|0408花祭り|0409大仏の日|0410駅弁の日|0411メートル法公布記念日|0412世界宇宙飛行の日|0413決闘の日|0414オレンジデー|0415遺言の日|0416ボーイズビーアンビシャスデー|0417恐竜の日|0418発明の日|0419地図の日|0420郵政記念日|0421民放の日|0422アースデー|0423サン・ジョルディの日|0424植物学の日|0425世界ペンギンの日|0426よい風呂の日|0427哲学の日|0428象の日|0429羊肉の日|0430図書館記念日|'+
+'0501メーデー|0502緑茶の日|0503ゴミの日|0504ラムネの日|0505端午の節句|0506ゴムの日|0507粉の日|0508世界赤十字デー|0509アイスクリームの日|0510コットンの日|0511長良川鵜飼開き|0512看護の日|0513カクテルの日|0514温度計の日|0515沖縄本土復帰記念日|0516旅の日|0517世界電気通信記念日|0518国際親善デー|0519ボクシング記念日|0520ローマ字の日|0521小学校開校の日|0522ガールスカウトの日|0523キスの日|0524ゴルフ場記念日|0525広辞苑記念日|0526ル・マンの日|0527百人一首の日|0528ゴルフ記念日|0529こんにゃくの日|0530ごみゼロの日|0531世界禁煙デー|'+
+'0601写真の日|0602横浜開港記念日|0603測量の日|0604虫の日|0605世界環境デー|0606楽器の日|0607計量記念日|0608大鳴門橋開通記念日|0609ロックの日|0610時の記念日|0611傘の日|0612恋人の日|0613はやぶさの日|0614日記の日|0615暑中見舞いの日|0616和菓子の日|0617砂漠化と干ばつと闘う日|0618海外移住の日|0619朗読の日|0620ペパーミントデー|0621冷蔵庫の日|0622ボウリングの日|0623オリンピックデー|0624 UFOの日|0625住宅デー|0626露天風呂の日|0627ちらし寿司の日|0628貿易記念日|0629ビートルズ記念日|0630夏越の祓|'+
+'0701国民安全の日|0702うどんの日|0703波の日|0704梨の日|0705穴子の日|0706サラダ記念日|0707七夕|0708質屋の日|0709ジェットコースターの日|0710納豆の日|0711真珠記念日|0712ラジオ本放送の日|0713オカルト記念日|0714パリ祭|0715ファミコンの日|0716虹の日|0717漫画の日|0718光化学スモッグの日|0719女性大臣の日|0720ハンバーガーの日|0721日本三景の日|0722ナッツの日|0723ふみの日|0724劇画の日|0725かき氷の日|0726幽霊の日|0727スイカの日|0728菜っ葉の日|0729白だしの日|0730梅干の日|0731パラグライダー記念日|'+
+'0801水の日|0802学制発布記念日|0803はちみつの日|0804箸の日|0805タクシーの日|0806広島平和記念日|0807鼻の日|0808そろばんの日|0809長崎原爆の日|0810道の日|0811山に親しむ日|0812君が代記念日|0813左利きの日|0814専売特許の日|0815終戦の日|0816五山送り火|0817パイナップルの日|0818米の日|0819俳句の日|0820交通信号設置記念日|0821献血の日|0822チンチン電車の日|0823白虎隊の日|0824ポンペイ最後の日|0825即席ラーメン記念日|0826人権宣言記念日|0827宮沢賢治の誕生日|0828民放テレビスタートの日|0829焼肉の日|0830冒険家の日|0831野菜の日|'+
+'0901防災の日|0902宝くじの日|0903ホームラン記念日|0904くしの日|0905石炭の日|0906黒の日|0907クリーナーの日|0908国際識字デー|0909重陽の節句|0910牛タンの日|0911公衆電話の日|0912宇宙の日|0913世界の法の日|0914コスモスの日|0915老人の日|0916マッチの日|0917モノレール開業記念日|0918かいわれ大根の日|0919苗字の日|0920空の日|0921ファッションショーの日|0922カーフリーデー|0923不動産の日|0924清掃の日|0925藤ノ木古墳記念日|0926ワープロの日|0927世界観光の日|0928プライバシーデー|0929招き猫の日|0930くるみの日|'+
+'1001コーヒーの日|1002豆腐の日|1003登山の日|1004イワシの日|1005時刻表記念日|1006国際協力の日|1007ミステリー記念日|1008木の日|1009道具の日|1010目の愛護デー|1011ウインクの日|1012豆乳の日|1013さつまいもの日|1014鉄道の日|1015きのこの日|1016世界食料デー|1017貯蓄の日|1018統計の日|1019海外旅行の日|1020新聞広告の日|1021あかりの日|1022平安遷都の日|1023電信電話記念日|1024国連デー|1025民間航空記念日|1026原子力の日|1027読書の日|1028速記記念日|1029てぶくろの日|1030たまごかけごはんの日|1031ハロウィン|'+
+'1101紅茶の日|1102キッチン・バスの日|1103まんがの日|1104ユネスコ憲章記念日|1105津波防災の日|1106アパート記念日|1107鍋の日|1108いい歯の日|1109 119番の日|1110トイレの日|1111鮭の日|1112洋服記念日|1113うるしの日|1114いい石の日|1115七五三|1116幼稚園記念日|1117将棋の日|1118土木の日|1119農協記念日|1120ピザの日|1121インターネット記念日|1122いい夫婦の日|1123いいふみの日|1124オペラ記念日|1125ハイビジョンの日|1126いい風呂の日|1127ノーベル賞制定記念日|1128税関記念日|1129いい肉の日|1130鏡の日|'+
+'1201映画の日|1202日本人宇宙飛行記念日|1203カレンダーの日|1204血清療法の日|1205アルバムの日|1206音の日|1207クリスマスツリーの日|1208事始め|1209障害者の日|1210世界人権デー|1211胃腸の日|1212漢字の日|1213正月事始め|1214忠臣蔵の日|1215年賀はがき受付開始|1216電話創業の日|1217飛行機の日|1218東京駅完成記念日|1219日本人初飛行の日|1220霧笛記念日|1221回文の日|1222冬至のころ・ゆず湯|1223テレホンカードの日|1224クリスマス・イブ|1225クリスマス|1226プロ野球誕生の日|1227浅草仲見世記念日|1228身体検査の日|1229シャンソンの日|1230地下鉄記念日|1231大晦日').split('|').reduce((o,s)=>{o[s.slice(0,4)]=s.slice(4).trim();return o;},{});
+const _holC={};
+function holidaysOf(y){if(_holC[y])return _holC[y];const H={},k=(m,d)=>`${m}/${d}`,set=(m,d,n)=>{H[k(m,d)]=n;};
+  const nthMon=(m,n)=>{const f=new Date(y,m-1,1).getDay();return 1+((8-f)%7)+(n-1)*7;};
+  set(1,1,'元日');set(1,nthMon(1,2),'成人の日');set(2,11,'建国記念の日');set(2,23,'天皇誕生日');
+  set(3,Math.floor(20.8431+.242194*(y-1980)-Math.floor((y-1980)/4)),'春分の日');set(4,29,'昭和の日');set(5,3,'憲法記念日');set(5,4,'みどりの日');set(5,5,'こどもの日');
+  set(7,nthMon(7,3),'海の日');set(8,11,'山の日');set(9,nthMon(9,3),'敬老の日');set(9,Math.floor(23.2488+.242194*(y-1980)-Math.floor((y-1980)/4)),'秋分の日');
+  set(10,nthMon(10,2),'スポーツの日');set(11,3,'文化の日');set(11,23,'勤労感謝の日');
+  const base=Object.keys(H).map(s=>{const[m,d]=s.split('/').map(Number);return new Date(y,m-1,d);});
+  for(const d of base)if(d.getDay()===0){const t=new Date(d);do t.setDate(t.getDate()+1);while(H[k(t.getMonth()+1,t.getDate())]);if(t.getFullYear()===y)H[k(t.getMonth()+1,t.getDate())]='振替休日';}
+  for(let m=1;m<=12;m++)for(let d=2;d<=30;d++){const t=new Date(y,m-1,d);if(t.getMonth()!==m-1||H[k(m,d)]||t.getDay()===0)continue;const a=new Date(y,m-1,d-1),b=new Date(y,m-1,d+1);if(H[k(a.getMonth()+1,a.getDate())]&&H[k(b.getMonth()+1,b.getDate())])H[k(m,d)]='国民の休日';}
+  return(_holC[y]=H);}
+function holidayOf(d){return holidaysOf(d.getFullYear())[`${d.getMonth()+1}/${d.getDate()}`]||null;}
+function annivOf(d){return ANNIV[pad(d.getMonth()+1)+pad(d.getDate())]||null;}
+const RAD=Math.PI/180;
+function jdOf(d){return d.getTime()/86400000+2440587.5;}
+function sunLon(jd){const T=(jd-2451545)/36525,M=(357.52911+35999.05029*T)*RAD,L0=280.46646+36000.76983*T,C=(1.914602-.004817*T)*Math.sin(M)+.019993*Math.sin(2*M)+.000289*Math.sin(3*M),om=(125.04-1934.136*T)*RAD;return(((L0+C-.00569-.00478*Math.sin(om))%360)+360)%360;}
+function newMoonJD(k){const T=k/1236.85,E=1-.002516*T,M=(2.5534+29.1053567*k)*RAD,Mp=(201.5643+385.81693528*k+.0107582*T*T)*RAD,F=(160.7108+390.67050284*k)*RAD,Om=(124.7746-1.56375588*k)*RAD;
+  let jd=2451550.09766+29.530588861*k+.00015437*T*T;
+  jd+=-.4072*Math.sin(Mp)+.17241*E*Math.sin(M)+.01608*Math.sin(2*Mp)+.01039*Math.sin(2*F)+.00739*E*Math.sin(Mp-M)-.00514*E*Math.sin(Mp+M)+.00208*E*E*Math.sin(2*M)-.00111*Math.sin(Mp-2*F)-.00057*Math.sin(Mp+2*F)+.00056*E*Math.sin(2*Mp+M)-.00042*Math.sin(3*Mp)+.00042*E*Math.sin(M+2*F)+.00038*E*Math.sin(M-2*F)-.00024*E*Math.sin(2*Mp-M)-.00017*Math.sin(Om)-.00007*Math.sin(Mp+2*M);
+  return jd-69/86400;}
+const jstDay=jd=>Math.floor(jd+.5+9/24); // integer day number in JST
+function nmDayK(k){return jstDay(newMoonJD(k));}
+function chuMonth(d0,d1){// lunar month number from the 中気 (multiple of 30°) inside [d0,d1)
+  for(let dn=d0;dn<d1;dn++){const a=sunLon(dn-.5-9/24),b=sunLon(dn+.5-9/24);const ka=Math.floor(a/30),kb=Math.floor(b/30);if(ka!==kb){return(((kb+2)%12)+12)%12||12;}}return 0;}
+const _lunC={};
+function lunarOf(d){const key=d.toDateString();if(_lunC[key])return _lunC[key];const dn=jstDay(jdOf(new Date(d.getFullYear(),d.getMonth(),d.getDate(),12)));
+  let k=Math.floor((jdOf(d)-2451550.09766)/29.530588861)+1;while(nmDayK(k)>dn)k--;while(nmDayK(k+1)<=dn)k++;
+  let m=chuMonth(nmDayK(k),nmDayK(k+1)),kk=k,leap=false;if(!m){leap=true;for(let i=1;i<3&&!m;i++){kk=k-i;m=chuMonth(nmDayK(kk),nmDayK(kk+1));}}
+  const r={m:m||1,d:dn-nmDayK(k)+1,leap};_lunC[key]=r;return r;}
+const ROKU=['大安','赤口','先勝','友引','先負','仏滅'];
+function rokuyoOf(d){const l=lunarOf(d);return ROKU[(l.m+l.d)%6];}
+return { rokuyoOf, holidayOf, annivOf, lunarOf };
+})();
+
+/* ---------- 日付・時刻・六輝・何の日・誕生日 ---------- */
+function wareki(d){
+  const y = d.getFullYear(), t = d.getTime();
+  if(t >= new Date(2019,4,1).getTime()){ const n = y - 2018; return `令和${n === 1 ? "元" : n}年`; }
+  if(t >= new Date(1989,0,8).getTime()){ const n = y - 1988; return `平成${n === 1 ? "元" : n}年`; }
+  return `昭和${y - 1925}年`;
+}
+let CAL_DAY = "";
+function tickClock(){
+  const d = new Date();
+  $("#calClock").textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  if(d.toDateString() !== CAL_DAY){ CAL_DAY = d.toDateString(); renderCal(d); }
+}
+function renderCal(d){
+  const wd = d.getDay(), hol = Cal.holidayOf(d), l = Cal.lunarOf(d);
+  const cls = hol || wd === 0 ? "sun" : wd === 6 ? "sat" : "";
+  $("#calDate").innerHTML = `${d.getFullYear()}年（${wareki(d)}）${d.getMonth()+1}月${d.getDate()}日<span class="${cls}">(${WD[wd]})</span>` + (hol ? ` <span class="hol">${esc(hol)}</span>` : "");
+  $("#calRoku").innerHTML = `六輝 <b>${Cal.rokuyoOf(d)}</b> <span class="muted">旧暦 ${l.leap ? "閏" : ""}${l.m}月${l.d}日</span>`;
+  $("#calAnniv").innerHTML = `<b>${esc(Cal.annivOf(d) || "—")}</b><div id="calAnnivMore"></div>`;
+  $("#calBirth").innerHTML = '<span class="muted">読み込み中…</span>';
+  loadWikiDay(d);
+}
+async function wikiSection(page, re){
+  const base = "https://ja.wikipedia.org/w/api.php?action=parse&format=json&formatversion=2&origin=*&page=" + encodeURIComponent(page);
+  const s = await getJSON(base + "&prop=sections");
+  const sec = (s.parse?.sections || []).find(x => re.test(x.line));
+  if(!sec) return null;
+  const t = await getJSON(base + "&prop=text&section=" + sec.index);
+  const doc = new DOMParser().parseFromString(t.parse.text, "text/html");
+  doc.querySelectorAll("sup,style,.mw-editsection,.reference").forEach(e => e.remove());
+  return doc;
+}
+function leafItems(doc){ return [...doc.querySelectorAll("li")].filter(li => !li.querySelector("li")); }
+function parseBirths(doc){
+  const out = [];
+  for(const li of leafItems(doc)){
+    const t = li.textContent.replace(/\s+/g, " ").trim();
+    const m = t.match(/^(\d{3,4})年(?:\s*[（(][^）)]*[）)])?\s*[-‐–―]\s*(.+)$/);
+    if(!m) continue;
+    let rest = m[2];
+    const dead = /[（(]\s*[+＋†]/.test(rest);
+    rest = rest.replace(/\s*[（(]\s*[+＋†][^）)]*[）)]\s*$/, "");
+    const i = rest.indexOf("、"), name = (i > 0 ? rest.slice(0, i) : rest).trim(), job = i > 0 ? rest.slice(i+1).trim() : "";
+    const a = [...li.querySelectorAll("a")].find(a => name.includes(a.textContent.trim()) && a.textContent.trim().length > 1);
+    const href = a && a.getAttribute("href") && a.getAttribute("href").startsWith("/wiki/") ? "https://ja.wikipedia.org" + a.getAttribute("href") : null;
+    out.push({ y:+m[1], name, job, dead, jp:/[一-鿿぀-ゟ]/.test(name), href });
+  }
+  return out;
+}
+function pickFamous(all, n = 10){
+  // 存命の日本人（名前が漢字・かな）を優先し、年代が偏らないように選ぶ
+  let c = all.filter(p => p.jp && !p.dead && p.y >= 1935);
+  if(c.length < n) c = c.concat(all.filter(p => !c.includes(p) && !p.dead && p.y >= 1935));
+  c.sort((a,b) => a.y - b.y);
+  if(c.length <= n) return c;
+  return Array.from({ length:n }, (_, i) => c[Math.round(i*(c.length-1)/(n-1))]);
+}
+const DEMO_BIRTHS = [
+  { y:1958, name:"（サンプル）山田 太郎", job:"俳優" }, { y:1972, name:"（サンプル）佐藤 花子", job:"歌手" },
+  { y:1985, name:"（サンプル）鈴木 一郎", job:"プロ野球選手" }, { y:1996, name:"（サンプル）高橋 美咲", job:"タレント" }
+];
+async function loadWikiDay(d){
+  const page = `${d.getMonth()+1}月${d.getDate()}日`, link = "https://ja.wikipedia.org/wiki/" + encodeURIComponent(page);
+  const age = p => d.getFullYear() - p.y;
+  const person = p => `<li>${p.href ? `<a href="${p.href}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)} <span class="muted">${age(p)}歳${p.job ? "・" + esc(p.job) : ""}</span></li>`;
+  // 誕生日
+  try{
+    const doc = await wikiSection(page, /^誕生日$/);
+    if(!doc) throw new Error("節なし");
+    const all = parseBirths(doc), top = pickFamous(all);
+    $("#bdTag").innerHTML = "";
+    $("#calBirth").innerHTML = (top.length ? `<ul class="plist">${top.map(person).join("")}</ul>` : '<span class="muted">見つかりませんでした</span>')
+      + `<details style="margin-top:4px"><summary class="muted">${page}生まれの人をすべて見る（${all.length}人）</summary><ul class="plist">${all.slice().reverse().map(p => `<li>${p.y}年 ${p.href ? `<a href="${p.href}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)} <span class="muted">${esc(p.job)}${p.dead ? "（故人）" : ""}</span></li>`).join("")}</ul></details>`
+      + `<div class="muted" style="font-size:.75rem;margin-top:4px">出典：<a href="${link}" target="_blank" rel="noopener">ウィキペディア「${page}」</a></div>`;
+  }catch(e){
+    $("#bdTag").innerHTML = DEMO_TAG;
+    $("#calBirth").innerHTML = `<ul class="plist">${DEMO_BIRTHS.map(person).join("")}</ul>`;
+  }
+  // ほかの記念日
+  try{
+    const doc = await wikiSection(page, /記念日|年中行事/);
+    if(!doc) return;
+    const items = leafItems(doc).map(li => li.textContent.replace(/\s+/g, " ").trim().split(/\s*[-‐–―]\s*/)[0]).filter(t => t && t.length <= 40);
+    const jp = items.filter(t => /日本/.test(t)), rest = items.filter(t => !/日本/.test(t));
+    const show = [...jp, ...rest].slice(0, 30);
+    if(show.length) $("#calAnnivMore").innerHTML = `<details style="margin-top:4px"><summary class="muted">ほかの記念日・行事（${items.length}件）</summary><div style="font-size:.85rem;margin-top:4px">${show.map(esc).join("、")}</div></details>`;
+  }catch(e){}
 }
 
 /* ---------- 全体 ---------- */
@@ -417,10 +1147,17 @@ let loading = false;
 async function loadAll(){
   if(loading) return; loading = true;
   $("#refresh").disabled = true;
-  renderPlace();
-  const pPlace = resolvePlace().then(renderPlace).catch(e => {
-    $("#place").innerHTML += ` <span class="err">（地名の特定に失敗：${esc(e.message)}）</span>`;
-  });
+  renderPlace(false);
+  Sky.setLoc(S.lat, S.lon);
+  const pPlace = (async () => {
+    let placeDemo = false;
+    if(S.demoLoc){ applyDemoPlace(); }
+    else{
+      try{ await resolvePlace(); }
+      catch(e){ applyDemoPlace(); placeDemo = true; S.locMsg = (S.locMsg || "") + "地名を特定できなかったため、地域情報はサンプル（東京都千代田区）で表示しています。"; }
+    }
+    renderPlace(placeDemo);
+  })();
   await Promise.allSettled([
     loadWeather(),
     pPlace.then(() => Promise.allSettled([loadWarnings(), loadTrains(), loadQuakes()]))
@@ -429,9 +1166,15 @@ async function loadAll(){
   $("#refresh").disabled = false;
 }
 
-$("#refresh").onclick = () => locate();
-// 10分ごとに自動更新（画面表示中のみ）
+try{ $("#myLines").value = localStorage.getItem("myLines") || ""; }catch(e){}
+$("#myLines").addEventListener("input", () => {
+  try{ localStorage.setItem("myLines", $("#myLines").value); }catch(e){}
+  renderTrains();
+});
+$("#refresh").onclick = () => { S.locMsg = ""; locate(); };
 setInterval(() => { if(document.visibilityState === "visible" && S.lat != null) loadAll(); }, 10*60*1000);
+Sky.init();
+tickClock(); setInterval(tickClock, 1000);
 locate();
 </script>
 </body>
