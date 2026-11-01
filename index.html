@@ -75,7 +75,15 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 #mapSheet[hidden]{display:none}
 #mapSheet .map-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px}
 #mapBox{flex:1;min-height:0;background:#aad3df}
-#mapNote{padding:8px 16px 16px;font-size:.8rem}
+#mapNote{padding:8px 16px 16px;font-size:.8rem;text-shadow:none}
+#mapSheet{background:#0f172a;color:#e5e7eb;text-shadow:none}#mapSheet .muted{color:#cbd5e1}
+#mapSheet button{background:#1e293b;color:#fff;border-color:#334155}
+#mapBox{background:#0b1a2e}
+.pin-ico{position:relative}.pin-ico svg{position:absolute;left:0;top:0}
+.pin-ico .pulse{position:absolute;left:6px;top:28px;width:20px;height:20px;border-radius:50%;background:rgba(229,57,53,.45);animation:pin-pulse 2s ease-out infinite}
+@keyframes pin-pulse{0%{transform:scale(.4);opacity:.9}100%{transform:scale(2.6);opacity:0}}
+.sun-ico div{width:26px;height:26px;border-radius:50%;background:radial-gradient(circle,#fff7c2 0 28%,#ffcf4a 30% 45%,rgba(255,200,60,.35) 50%,rgba(255,200,60,0) 70%)}
+.leaflet-container{font:inherit}
 #calCard .cal-date{font-size:1.05rem;font-weight:700}
 #calCard .cal-clock{font-size:2.4rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em;line-height:1.2}
 #calCard .hol{display:inline-block;background:#fee2e2;color:#b91c1c;border-radius:6px;padding:0 6px;font-size:.8rem;margin-left:4px;vertical-align:middle}
@@ -143,7 +151,7 @@ footer{background:none!important}
 </header>
 
 <div id="mapSheet" hidden>
-  <div class="map-head"><b>現在位置と昼夜</b><button id="mapClose">閉じる</button></div>
+  <div class="map-head"><b>現在位置と昼夜</b><span style="display:flex;gap:6px"><button id="mapNear">周辺</button><button id="mapWorld">世界</button><button id="mapClose">閉じる</button></span></div>
   <div id="mapBox"></div>
   <div id="mapNote" class="muted"></div>
 </div>
@@ -1311,34 +1319,66 @@ function nightPolygon(d, h){
 }
 function drawDayNight(){
   if(!MAP.map) return;
-  const d = new Date();
+  const d = new Date(), m = MAP.map;
   MAP.layers.forEach(l => l.remove()); MAP.layers = [];
-  for(const [h, op] of [[0, .16], [-6, .14], [-12, .12], [-18, .14]])
-    MAP.layers.push(L.polygon(nightPolygon(d, h), { stroke:false, fillColor:"#0b1840", fillOpacity:op, interactive:false }).addTo(MAP.map));
+  // 夜の濃さ：日没〜薄明〜夜の4段階を重ねてなめらかに
+  for(const [h, op] of [[0, .12], [-4, .1], [-8, .1], [-12, .1], [-18, .12]])
+    MAP.layers.push(L.polygon(nightPolygon(d, h), { pane:"nightTint", stroke:false, fillColor:"#020824", fillOpacity:op, interactive:false }).addTo(m));
+  // 昼夜の境界線
+  const line = nightPolygon(d, -0.833).slice(1, -1);
+  MAP.layers.push(L.polyline(line, { pane:"nightTint", color:"#ffd27a", weight:1.2, opacity:.75, dashArray:"4 5", interactive:false }).addTo(m));
   const s = subsolar(d);
   if(MAP.sunMk) MAP.sunMk.remove();
-  MAP.sunMk = L.marker([s.lat, s.lon], { icon:L.divIcon({ className:"", html:'<div style="font-size:22px;line-height:22px">☀️</div>', iconSize:[22,22], iconAnchor:[11,11] }), interactive:false }).addTo(MAP.map);
-  $("#mapNote").textContent = `${fmtTime(d)} 時点の昼と夜（濃い部分ほど暗い：日没・薄明・夜）。☀️は太陽が真上にある地点です。`;
+  MAP.sunMk = L.marker([s.lat, s.lon], { icon:L.divIcon({ className:"sun-ico", html:'<div></div>', iconSize:[26,26], iconAnchor:[13,13] }), interactive:false, keyboard:false }).addTo(m);
+  MAP.clipLat = d; clipNight();
+  $("#mapNote").textContent = `${fmtTime(d)} 時点。暗い部分が夜（夜側には街の明かりを表示）、点線が昼夜の境目、☀は太陽が真上にある地点です。`;
 }
-const PIN_SVG = '<svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2C7.6 2 4 5.5 4 9.9c0 5.6 6.6 11.3 7.3 11.9.4.3 1 .3 1.4 0 .7-.6 7.3-6.3 7.3-11.9C20 5.5 16.4 2 12 2z" fill="#e53935" stroke="#fff" stroke-width="1.2"/><circle cx="12" cy="9.8" r="3.2" fill="#fff"/></svg>';
+// 夜側だけに街明かりの地図を見せる（夜の範囲で切り抜く）
+function clipNight(){
+  const m = MAP.map, pane = m && m.getPane("lights"); if(!pane) return;
+  const pts = nightPolygon(MAP.clipLat || new Date(), -3).map(([la, lo]) => m.latLngToLayerPoint([la, lo]));
+  pane.style.clipPath = pane.style.webkitClipPath = `polygon(${pts.map(p => `${p.x.toFixed(1)}px ${p.y.toFixed(1)}px`).join(",")})`;
+}
+const PIN_SVG = '<svg viewBox="0 0 32 40" width="32" height="40"><defs><filter id="ps" x="-30%" y="-20%" width="160%" height="150%"><feDropShadow dx="0" dy="1.5" stdDeviation="1.6" flood-opacity=".35"/></filter></defs><path filter="url(#ps)" d="M16 2C8.8 2 3 7.7 3 14.8 3 24 14.6 36.3 15.1 36.8c.5.5 1.3.5 1.8 0C17.4 36.3 29 24 29 14.8 29 7.7 23.2 2 16 2z" fill="#e53935" stroke="#fff" stroke-width="2"/><circle cx="16" cy="14.6" r="5" fill="#fff"/></svg>';
+const BASES = {
+  std:{ name:"標準", url:"https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", opt:{ subdomains:"abcd", maxZoom:19, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>' } },
+  pale:{ name:"地理院 淡色", url:"https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png", opt:{ maxZoom:18, attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>' } },
+  sat:{ name:"衛星写真", url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", opt:{ maxZoom:19, attribution:'Tiles &copy; Esri &mdash; Maxar, Earthstar Geographics' } }
+};
 async function openMap(){
   $("#mapSheet").hidden = false;
   const lat = S.lat ?? DEMO_PLACE.lat, lon = S.lon ?? DEMO_PLACE.lon;
   try{
     await ensureLeaflet();
     if(!MAP.map){
-      MAP.map = L.map("mapBox", { worldCopyJump:true, minZoom:1, zoomControl:true }).setView([lat, lon], 2);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:18, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(MAP.map);
+      const m = MAP.map = L.map("mapBox", { worldCopyJump:true, minZoom:1, zoomControl:false, attributionControl:true }).setView([lat, lon], 3);
+      L.control.zoom({ position:"bottomright" }).addTo(m);
+      m.createPane("lights").style.zIndex = 250;
+      m.createPane("nightTint").style.zIndex = 300;
+      const bases = {}; for(const k in BASES) bases[BASES[k].name] = L.tileLayer(BASES[k].url, { ...BASES[k].opt, detectRetina:false });
+      let pick = "std"; try{ pick = localStorage.getItem("mapBase") || "std"; }catch(_){}
+      (bases[(BASES[pick] || BASES.std).name]).addTo(m);
+      L.control.layers(bases, null, { position:"topright" }).addTo(m);
+      m.on("baselayerchange", e => { const k = Object.keys(BASES).find(k => BASES[k].name === e.name); try{ localStorage.setItem("mapBase", k); }catch(_){} });
+      // 夜側の街明かり（NASA Black Marble）
+      MAP.lights = L.tileLayer("https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png",
+        { pane:"lights", maxNativeZoom:8, maxZoom:19, opacity:.95, attribution:'夜の明かり: NASA Earth Observatory' }).addTo(m);
+      m.on("zoom move zoomend moveend viewreset", clipNight);
+      // 拡大したら街明かりを消し、夜の影も薄くして道や地名を読めるようにする
+      const fade = () => { const z = m.getZoom(); MAP.lights.setOpacity(z <= 4 ? .95 : z >= 7 ? 0 : .95*(7 - z)/3); m.getPane("nightTint").style.opacity = z >= 9 ? .4 : z >= 6 ? .7 : 1; };
+      m.on("zoomend", fade); fade();
     }
-    MAP.map.invalidateSize();
-    if(MAP.marker) MAP.marker.remove();
-    MAP.marker = L.marker([lat, lon], { icon:L.divIcon({ className:"", html:PIN_SVG, iconSize:[30,30], iconAnchor:[15,28] }) }).addTo(MAP.map)
-      .bindTooltip("現在位置", { direction:"top", offset:[0,-26] });
-    MAP.map.setView([lat, lon], MAP.map.getZoom());
+    const m = MAP.map; m.invalidateSize();
+    if(MAP.marker) MAP.marker.remove(); if(MAP.acc) MAP.acc.remove();
+    if(S.acc && S.acc < 5000) MAP.acc = L.circle([lat, lon], { radius:S.acc, color:"#e53935", weight:1, fillColor:"#e53935", fillOpacity:.08, interactive:false }).addTo(m);
+    MAP.marker = L.marker([lat, lon], { icon:L.divIcon({ className:"pin-ico", html:'<span class="pulse"></span>' + PIN_SVG, iconSize:[32,40], iconAnchor:[16,38] }) })
+      .addTo(m).bindTooltip("現在位置", { direction:"top", offset:[0,-36] });
+    m.setView([lat, lon], m.getZoom());
     drawDayNight();
     clearInterval(MAP.timer); MAP.timer = setInterval(drawDayNight, 60000);
   }catch(e){ drawMapFallback(lat, lon); }
 }
+function mapZoom(z){ if(!MAP.map) return; const lat = S.lat ?? DEMO_PLACE.lat, lon = S.lon ?? DEMO_PLACE.lon; MAP.map.flyTo([lat, lon], z, { duration:.8 }); }
 function closeMap(){ $("#mapSheet").hidden = true; clearInterval(MAP.timer); }
 // 地図ライブラリが読めないとき：経緯線だけのメルカトル図に昼夜と現在地を描く
 function drawMapFallback(lat, lon){
@@ -1536,6 +1576,7 @@ updateBg();
 bgInit();
 setupOdptUI();
 $("#mapBtn").onclick = openMap; $("#mapClose").onclick = closeMap;
+$("#mapNear").onclick = () => mapZoom(14); $("#mapWorld").onclick = () => mapZoom(2);
 tickClock(); setInterval(tickClock, 1000);
 locate();
 </script>
