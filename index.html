@@ -99,7 +99,11 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 #skyCard h2{padding:14px 16px 0}
 #skyInfo{padding:0 16px 8px;font-size:.8rem;color:var(--muted)}
 #skyv{position:relative;height:440px;background:#000;overflow:hidden;touch-action:pan-y;-webkit-user-select:none;user-select:none}
-#skyv:fullscreen{height:100%}#skyv:-webkit-full-screen{height:100%}
+#skyv:fullscreen{height:100%;border-radius:0}
+#skyv:fullscreen .sv-top,#skyv.pseudo-full .sv-top{top:calc(env(safe-area-inset-top,0px) + 44px);font-size:14px}
+#skyv:-webkit-full-screen .sv-top{top:calc(env(safe-area-inset-top,0px) + 44px);font-size:14px}
+#skyv:fullscreen .sv-bar,#skyv.pseudo-full .sv-bar{bottom:calc(env(safe-area-inset-bottom,0px) + 20px)}
+#skyv:fullscreen .sv-hint,#skyv.pseudo-full .sv-hint{bottom:calc(env(safe-area-inset-bottom,0px) + 66px)}#skyv:-webkit-full-screen{height:100%}
 #skyv.pseudo-full{position:fixed;inset:0;height:auto;z-index:50}
 #skyv canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none}
 #skyv .sv-top{position:absolute;top:8px;left:0;right:0;text-align:center;color:#fff;font-size:12px;font-weight:600;letter-spacing:.06em;text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:none}
@@ -133,6 +137,8 @@ footer{background:none!important}
 .card h2,.cal-h{font-size:1.15rem;font-weight:700;color:var(--title);margin:0 0 8px;letter-spacing:.02em}
 .card h2 small{font-size:.75rem;font-weight:normal;color:var(--muted)}
 .cal-sec{margin-top:16px;padding-top:0;border-top:none}
+.sub-h{font-weight:700;color:var(--title);margin:14px 0 0;font-size:.95rem}
+.stat .k+.v+.k{margin-top:1px}
 #skyCard{padding:4px 2px}
 #skyCard h2{padding:0}
 #skyInfo{padding:0 0 8px}
@@ -174,6 +180,11 @@ footer{background:none!important}
   <section class="card wide">
     <h2 id="hourlyH">24時間の予報</h2>
     <div id="hourly" class="hours"><span class="muted">読み込み中…</span></div>
+  </section>
+
+  <section class="card wide">
+    <h2><span id="popH">降水確率（気象庁）</span> <small id="popTime"></small></h2>
+    <div id="pops"><span class="muted">読み込み中…</span></div>
   </section>
 
   <section class="card wide">
@@ -348,9 +359,9 @@ function demoWeather(){
   const i = now.getHours();
   return {
     current:{ time:localISO(now), temperature_2m:h.temperature_2m[i], apparent_temperature:h.temperature_2m[i]-1.5,
-      relative_humidity_2m:62, precipitation:0, weather_code:h.weather_code[i], pressure_msl:1016.4,
+      relative_humidity_2m:62, precipitation:0, cloud_cover:25, dew_point_2m:9.8, visibility:24000, uv_index:Math.max(0, +(4*Math.sin((i-6)/12*Math.PI)).toFixed(1)), weather_code:h.weather_code[i], pressure_msl:1016.4,
       wind_speed_10m:h.wind_speed_10m[i], wind_direction_10m:h.wind_direction_10m[i], wind_gusts_10m:+(h.wind_speed_10m[i]*1.8).toFixed(1) },
-    hourly:h, daily
+    hourly:h, daily:{ ...daily, uv_index_max:[4,3,2,1,1,3,4] }
   };
 }
 function demoWarnings(){
@@ -459,9 +470,9 @@ function renderPlace(placeDemo){
 /* ---------- 気象 (Open-Meteo) ---------- */
 async function loadWeather(){
   const url = "https://api.open-meteo.com/v1/forecast?latitude=" + S.lat + "&longitude=" + S.lon
-    + "&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
+    + "&current=cloud_cover,dew_point_2m,visibility,uv_index,temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
     + "&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m"
-    + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset,wind_speed_10m_max,wind_direction_10m_dominant"
+    + "&daily=uv_index_max,weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset,wind_speed_10m_max,wind_direction_10m_dominant"
     + "&timezone=Asia%2FTokyo&forecast_days=7&wind_speed_unit=ms";
   let w, demo = false;
   try{ w = await getJSON(url); }catch(e){ w = demoWeather(); demo = true; }
@@ -487,7 +498,11 @@ function renderWeather(w, demo){
       <div class="stat"><div class="k">気圧(海面)</div><div class="v">${Math.round(c.pressure_msl)} hPa</div></div>
       <div class="stat"><div class="k">日の出</div><div class="v">🌅 ${hm(d.sunrise[0])}</div></div>
       <div class="stat"><div class="k">日の入</div><div class="v">🌇 ${hm(d.sunset[0])}</div></div>
-    </div>`;
+      ${extraStats(c, d)}
+    </div>
+    <div class="sub-h">大気の状態</div>
+    <div class="grid" id="aqGrid"><div class="muted">読み込み中…</div></div>`;
+  loadAir(demo);
 
   let i0 = h.time.findIndex(t => t >= c.time.slice(0,13));
   if(i0 < 0) i0 = 0;
@@ -516,6 +531,69 @@ function renderWeather(w, demo){
   $("#daily").innerHTML = `<table><thead><tr><th style="text-align:left">日付</th><th>天気</th><th>最高/最低℃</th><th>降水確率</th><th>雨量mm</th><th>風 m/s</th></tr></thead><tbody>${rows}</tbody></table>`;
   Sky.setWeather(c.weather_code, c.wind_speed_10m);
   markDemo("weather", "#hourlyH", demo); markDemo("weather", "#dailyH", demo);
+}
+
+/* ---------- 気象庁の降水確率（6時間ごと、1mm以上の雨が降る確率） ---------- */
+function demoPops(){
+  const now = new Date(), t0 = new Date(now); t0.setMinutes(0,0,0); t0.setHours(Math.floor(now.getHours()/6)*6);
+  const v = ["10","20","40","30","10","0","0","10"];
+  return { area:"東京地方", at:new Date().toISOString(), list:v.map((p, i) => ({ t:new Date(t0.getTime() + i*6*3600e3), p })) };
+}
+async function loadPops(){
+  let data, demo = false;
+  try{
+    if(!S.office || !S.class10) throw new Error("地域コードなし");
+    const j = await getJSON(`https://www.jma.go.jp/bosai/forecast/data/forecast/${S.office}.json`, { proxy:true });
+    const ts = (j[0]?.timeSeries || []).find(t => t.areas?.some(a => a.pops));
+    if(!ts) throw new Error("降水確率なし");
+    const ar = ts.areas.find(a => a.area?.code === S.class10) || ts.areas[0];
+    data = { area:ar.area?.name || "", at:j[0].reportDatetime, list:ts.timeDefines.map((t, i) => ({ t:new Date(t), p:ar.pops[i] })).filter(x => x.p !== "" && x.p != null) };
+  }catch(e){ data = demoPops(); demo = true; }
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dayName = t => { const n = Math.round((new Date(t).setHours(0,0,0,0) - today)/86400e3); return n === 0 ? "今日" : n === 1 ? "明日" : n === 2 ? "明後日" : `${t.getMonth()+1}/${t.getDate()}`; };
+  const col = p => p >= 70 ? "#2563eb" : p >= 50 ? "#3b82f6" : p >= 30 ? "#60a5fa" : "transparent";
+  $("#popTime").textContent = data.at ? fmtTime(data.at) + " 発表" : "";
+  $("#pops").innerHTML = `<div class="hours">${data.list.map(x => { const p = +x.p, h = x.t.getHours();
+      return `<div class="hour" style="flex-basis:78px"><div>${dayName(x.t)}</div><div class="muted">${h}–${h+6}時</div>
+        <div style="font-size:1.25rem;font-weight:700;margin-top:2px">☂ ${p}%</div>
+        <div style="height:4px;border-radius:2px;margin:4px 6px 0;background:linear-gradient(90deg,${col(p) === "transparent" ? "rgba(96,165,250,.35)" : col(p)} ${p}%,rgba(127,127,127,.18) ${p}%)"></div></div>`; }).join("")}</div>`
+    + `<div class="muted" style="margin-top:6px;font-size:.8rem">対象：${esc(data.area)}。6時間のうちに1mm以上の雨か雪が降る確率です。</div>`;
+  markDemo("pops", "#popH", demo);
+}
+
+/* ---------- 不快指数・紫外線・大気汚染 ---------- */
+function discomfort(t, h){ return 0.81*t + 0.01*h*(0.99*t - 14.3) + 46.3; }
+function diLabel(v){ return v < 55 ? "寒い" : v < 60 ? "肌寒い" : v < 65 ? "何も感じない" : v < 70 ? "快い" : v < 75 ? "暑くない" : v < 80 ? "やや暑い" : v < 85 ? "暑くて汗が出る" : "暑くてたまらない"; }
+function uvLabel(v){ return v < 3 ? "弱い" : v < 6 ? "中程度" : v < 8 ? "強い" : v < 11 ? "非常に強い" : "極端に強い"; }
+const stat = (k, v, note) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${note ? `<div class="k">${note}</div>` : ""}</div>`;
+function extraStats(c, d){
+  const di = discomfort(c.temperature_2m, c.relative_humidity_2m);
+  let h = stat("不快指数", Math.round(di), diLabel(di));
+  if(c.uv_index != null) h += stat("紫外線(UV指数)", `${(+c.uv_index).toFixed(1)}`, `${uvLabel(c.uv_index)}${d.uv_index_max ? `・今日最大${Math.round(d.uv_index_max[0])}` : ""}`);
+  if(c.cloud_cover != null) h += stat("雲量", `${c.cloud_cover}%`);
+  if(c.dew_point_2m != null) h += stat("露点", `${(+c.dew_point_2m).toFixed(1)}℃`);
+  if(c.visibility != null) h += stat("視程", c.visibility >= 10000 ? `${Math.round(c.visibility/1000)} km` : `${(c.visibility/1000).toFixed(1)} km`);
+  return h;
+}
+function pm25Label(v){ return v <= 15 ? "良い" : v <= 35 ? "普通" : v <= 50 ? "やや多い" : v <= 70 ? "多い" : "非常に多い"; }
+function aqiLabel(v){ return v <= 50 ? "良好" : v <= 100 ? "普通" : v <= 150 ? "敏感な人は注意" : v <= 200 ? "健康に悪い" : v <= 300 ? "非常に悪い" : "危険"; }
+function dustLabel(v){ return v < 20 ? "ほぼなし" : v < 50 ? "少し" : v < 100 ? "多い" : "非常に多い"; }
+async function loadAir(demoW){
+  let a, demo = false;
+  try{
+    if(demoW) throw new Error("demo");
+    const j = await getJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${S.lat}&longitude=${S.lon}&current=pm2_5,pm10,us_aqi,dust,ozone,nitrogen_dioxide&timezone=Asia%2FTokyo`);
+    a = j.current; if(!a) throw new Error("no data");
+  }catch(e){ a = { pm2_5:9.8, pm10:16.2, us_aqi:41, dust:3, ozone:62, nitrogen_dioxide:11 }; demo = true; }
+  const g = $("#aqGrid"); if(!g) return;
+  let h = "";
+  if(a.pm2_5 != null) h += stat("PM2.5", `${Math.round(a.pm2_5)} μg/m³`, pm25Label(a.pm2_5));
+  if(a.pm10 != null) h += stat("PM10", `${Math.round(a.pm10)} μg/m³`);
+  if(a.us_aqi != null) h += stat("大気質指数(AQI)", Math.round(a.us_aqi), aqiLabel(a.us_aqi));
+  if(a.dust != null) h += stat("黄砂など(ダスト)", `${Math.round(a.dust)} μg/m³`, dustLabel(a.dust));
+  if(a.ozone != null) h += stat("オゾン", `${Math.round(a.ozone)} μg/m³`);
+  if(a.nitrogen_dioxide != null) h += stat("二酸化窒素", `${Math.round(a.nitrogen_dioxide)} μg/m³`);
+  g.innerHTML = h + (demo ? `<div class="k" style="grid-column:1/-1">${DEMO_TAG} 大気のデータを取得できなかったため仮の値です</div>` : "");
 }
 
 /* ---------- 警報・注意報 (気象庁) ---------- */
@@ -1249,7 +1327,9 @@ async function loadWikiDay(d){
     const all = parseBirths(doc);
     let alive = all.filter(p => !p.dead && p.y >= 1915 && p.jp);
     if(!alive.length) alive = all.filter(p => !p.dead && p.y >= 1915);
-    alive.sort((a,b) => a.y - b.y);
+    // 40歳前後の日本人を優先
+    const near40 = p => Math.abs(d.getFullYear() - p.y - 40);
+    alive.sort((a,b) => near40(a) - near40(b) || a.y - b.y);
     const oldest = alive[0], others = all.filter(p => p !== oldest && !p.dead && p.y >= 1915).sort((a,b) => a.y - b.y);
     const line = p => `<li>${p.y}年 ${p.href ? `<a href="${p.href}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)} <span class="muted">${age(p)}歳${p.job ? "・" + esc(p.job) : ""}</span></li>`;
     $("#bdTag").innerHTML = "";
@@ -1258,7 +1338,8 @@ async function loadWikiDay(d){
       + `<div class="muted" style="font-size:.75rem;margin-top:4px">出典：<a href="${link}" target="_blank" rel="noopener">ウィキペディア「${page}」</a></div>`;
   }catch(e){
     $("#bdTag").innerHTML = DEMO_TAG;
-    const [o, ...rest] = DEMO_BIRTHS;
+    const pickD = DEMO_BIRTHS.slice().sort((a,b) => Math.abs(d.getFullYear()-a.y-40) - Math.abs(d.getFullYear()-b.y-40));
+    const [o, ...rest] = pickD;
     $("#calBirth").innerHTML = `<ul class="plist">${person(o)}</ul><details style="margin-top:4px"><summary class="muted">ほかの人（${rest.length}人）</summary><ul class="plist">${rest.map(person).join("")}</ul></details>`;
   }
   // ほかの記念日
@@ -1567,7 +1648,7 @@ async function loadAll(){
   })();
   await Promise.allSettled([
     loadWeather(),
-    pPlace.then(() => Promise.allSettled([loadWarnings(), loadTrains(), loadQuakes()]))
+    pPlace.then(() => Promise.allSettled([loadWarnings(), loadPops(), loadTrains(), loadQuakes()]))
   ]);
   loading = false;
   $("#refresh").disabled = false;
