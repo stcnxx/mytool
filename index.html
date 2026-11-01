@@ -1506,11 +1506,41 @@ async function rainFrames(){
   const fut = n2.filter(has).filter(t => t.validtime > last.validtime).sort(by);
   return [...pastSel.map(t => ({ ...t, fc:false })), ...fut.map(t => ({ ...t, fc:true }))];
 }
+// 気象庁の雨雲画像は一部の拡大率（4・6・8・10）にしか用意されていないため、
+// それ以外の拡大率では近い拡大率の画像を拡大・縮小して描く
+const RAIN_Z = [4, 6, 8, 10];
+function rainGrid(url){
+  const G = L.GridLayer.extend({
+    createTile(c, done){
+      const cv = document.createElement("canvas"), sz = this.getTileSize(); cv.width = sz.x; cv.height = sz.y;
+      const g = cv.getContext("2d"); g.imageSmoothingEnabled = false;
+      const z = c.z, levels = RAIN_Z.filter(n => n <= z), tryLevels = (levels.length ? levels.reverse() : [RAIN_Z[0]]);
+      let k = 0;
+      const attempt = () => {
+        const nz = tryLevels[k];
+        if(nz == null){ done(null, cv); return; }
+        const load = (x, y) => new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = url.replace("{z}", nz).replace("{x}", x).replace("{y}", y); });
+        let jobs;
+        if(nz <= z){
+          const f = 2 ** (z - nz), px = Math.floor(c.x/f), py = Math.floor(c.y/f), sub = 256/f, ox = (c.x - px*f)*sub, oy = (c.y - py*f)*sub;
+          jobs = [load(px, py).then(im => g.drawImage(im, ox, oy, sub, sub, 0, 0, sz.x, sz.y))];
+        }else{
+          const f = 2 ** (nz - z), w = sz.x/f; jobs = [];
+          for(let dx=0; dx<f; dx++) for(let dy=0; dy<f; dy++)
+            jobs.push(load(c.x*f + dx, c.y*f + dy).then(im => g.drawImage(im, dx*w, dy*w, w, w)).catch(() => {}));
+        }
+        Promise.all(jobs).then(() => done(null, cv)).catch(() => { k++; attempt(); });
+      };
+      attempt();
+      return cv;
+    }
+  });
+  return new G({ pane:"rain", opacity:0, maxZoom:19, bounds:JP_BOUNDS, updateWhenZooming:false, attribution:'雨雲: <a href="https://www.jma.go.jp/bosai/nowc/">気象庁</a>' });
+}
 function rainLayer(i){
   if(RAIN.layers[i]) return RAIN.layers[i];
   const f = RAIN.frames[i];
-  return (RAIN.layers[i] = L.tileLayer(`${NOWC}${f.basetime}/none/${f.validtime}/surf/hrpns/{z}/{x}/{y}.png`,
-    { pane:"rain", opacity:0, minNativeZoom:3, maxNativeZoom:10, maxZoom:19, bounds:JP_BOUNDS, attribution:'雨雲: <a href="https://www.jma.go.jp/bosai/nowc/">気象庁</a>' }).addTo(MAP.map));
+  return (RAIN.layers[i] = rainGrid(`${NOWC}${f.basetime}/none/${f.validtime}/surf/hrpns/{z}/{x}/{y}.png`).addTo(MAP.map));
 }
 function rainShow(i){
   const n = RAIN.frames.length; if(!n) return;
