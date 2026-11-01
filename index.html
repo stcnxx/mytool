@@ -66,6 +66,12 @@ td.d{text-align:left}
 .okline{color:var(--ok);font-weight:600}
 .line-delay{display:flex;justify-content:space-between;gap:8px}
 .line-delay .co{color:var(--muted);font-size:.8rem}
+button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
+#mapSheet{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column}
+#mapSheet[hidden]{display:none}
+#mapSheet .map-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px}
+#mapBox{flex:1;min-height:0;background:#aad3df}
+#mapNote{padding:8px 16px 16px;font-size:.8rem}
 #calCard .cal-date{font-size:1.05rem;font-weight:700}
 #calCard .cal-clock{font-size:2.4rem;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em;line-height:1.2}
 #calCard .hol{display:inline-block;background:#fee2e2;color:#b91c1c;border-radius:6px;padding:0 6px;font-size:.8rem;margin-left:4px;vertical-align:middle}
@@ -98,8 +104,14 @@ footer{max-width:960px;margin:0 auto;padding:0 16px 30px;font-size:.75rem;color:
     <button id="refresh" class="primary">更新</button>
   </div>
   <div id="place">位置情報を取得しています…</div>
+  <button id="mapBtn" class="mapbtn">🗺️ 地図を見る</button>
 </header>
 
+<div id="mapSheet" hidden>
+  <div class="map-head"><b>現在位置と昼夜</b><button id="mapClose">閉じる</button></div>
+  <div id="mapBox"></div>
+  <div id="mapNote" class="muted"></div>
+</div>
 <main>
   <section class="card wide" id="calCard">
     <div id="calDate" class="cal-date"></div>
@@ -139,11 +151,6 @@ footer{max-width:960px;margin:0 auto;padding:0 16px 30px;font-size:.75rem;color:
   <section class="card wide">
     <h2><span id="trainH">鉄道運行情報</span> <small id="trainTime"></small></h2>
     <div id="trains"><span class="muted">読み込み中…</span></div>
-    <details style="margin-top:10px">
-      <summary class="muted">よく使う路線を登録</summary>
-      <div class="muted" style="margin:6px 0">路線名や会社名をカンマ区切りで入力すると、それだけを表示します（例：山手線, 東急, 京王線）。空欄なら地域で自動判定します。</div>
-      <input type="text" id="myLines" placeholder="山手線, 東急">
-    </details>
   </section>
 
   <section class="card wide" id="skyCard">
@@ -168,7 +175,7 @@ footer{max-width:960px;margin:0 auto;padding:0 16px 30px;font-size:.75rem;color:
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
   <a href="https://www.p2pquake.net/" target="_blank" rel="noopener">P2P地震情報</a>／
   <a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>／
-  <a href="https://express.heartrails.com/" target="_blank" rel="noopener">HeartRails Express</a>（最寄り駅）／
+  <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>（地図）／
   <a href="https://ja.wikipedia.org/" target="_blank" rel="noopener">ウィキペディア</a>（誕生日・記念日）。天体は現在地と時刻から計算し、山並みは<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院の標高タイル</a>から描いています。
   情報は参考用です。避難等の判断は自治体・気象庁の発表に従ってください。<br>
   URLの末尾に <code>?demo</code> を付けると、通信せずにサンプルデータだけで表示します。
@@ -554,7 +561,6 @@ const TR_AREA = [
   [/福岡|佐賀|長崎|熊本|大分|宮崎|鹿児島|沖縄/, 7, "九州・沖縄", /JR九州|西鉄|西日本鉄道|福岡市|北九州|筑豊|平成筑豊|甘木|松浦|島原|熊本|肥薩|くま川|長崎電気|鹿児島市|ゆいレール|沖縄都市/]
 ];
 function trainRegion(){ const p = S.prefName || "東京都"; return TR_AREA.find(r => r[0].test(p)) || TR_AREA[0]; }
-function myLines(){ return ($("#myLines").value || "").split(/[,、\s]+/).map(x => x.trim()).filter(Boolean); }
 function trainLabel(r){ return (r.name || "").trim(); }
 
 /* 遅延データ：直接＋複数の中継サーバーを同時に試し、最初に取れたものを使う */
@@ -580,89 +586,27 @@ async function getDelayList(){
   });
 }
 
-/* 最寄り駅（HeartRails Express。JSONPで読むので CORS の影響を受けない） */
-function jsonp(url, ms = 10000){
-  return new Promise((res, rej) => {
-    const cb = "__jp" + Math.random().toString(36).slice(2), s = document.createElement("script");
-    const done = () => { clearTimeout(t); try{ delete window[cb]; }catch(_){ window[cb] = undefined; } s.remove(); };
-    const t = setTimeout(() => { done(); rej(new Error("timeout")); }, ms);
-    window[cb] = d => { done(); res(d); };
-    s.onerror = () => { done(); rej(new Error("jsonp")); };
-    s.src = url + (url.includes("?") ? "&" : "?") + "jsonp=" + cb;
-    document.head.appendChild(s);
-  });
-}
-const DEMO_STATIONS = [
-  { name:"東京", dist:"240m", lines:["JR山手線","JR中央線","JR京浜東北線","東京メトロ丸ノ内線"] },
-  { name:"大手町", dist:"480m", lines:["東京メトロ東西線","東京メトロ千代田線","都営三田線"] },
-  { name:"二重橋前", dist:"610m", lines:["東京メトロ千代田線"] }
-];
-async function nearStations(){
-  if(FORCE_DEMO || S.demoLoc) return { list:DEMO_STATIONS, demo:true };
-  const u = `https://express.heartrails.com/api/json?method=getStations&x=${S.lon}&y=${S.lat}`;
-  let j;
-  try{ j = await jsonp(u); }catch(e){ j = await getJSON(u, { proxy:true }); }
-  const st = j?.response?.station || [];
-  const by = new Map();
-  for(const s of st){
-    if(!by.has(s.name)) by.set(s.name, { name:s.name, dist:s.distance, d:parseInt(s.distance) || 0, lines:[] });
-    const g = by.get(s.name); if(!g.lines.includes(s.line)) g.lines.push(s.line);
-  }
-  return { list:[...by.values()].sort((a,b) => a.d - b.d).slice(0,4), demo:false };
-}
-const CO_PRE = /^(JR|東京メトロ|都営|東急|京王|小田急|西武|東武|京急|京成|相鉄|名鉄|近鉄|阪急|阪神|京阪|南海|西鉄|大阪メトロ|Osaka Metro|横浜市営地下鉄|横浜市営|名古屋市営地下鉄|名古屋市営|札幌市営地下鉄|福岡市地下鉄|仙台市地下鉄|京都市営地下鉄|神戸市営地下鉄|東京モノレール|多摩モノレール)\s*/;
-function lineKey(s){ return String(s || "").replace(CO_PRE, "").replace(/[（(\[［].*?[）)\]］]/g, "").replace(/(本)?線.*$/, "").trim(); }
-function findDelay(line, list){
-  const k = lineKey(line); if(k.length < 2) return null;
-  return list.find(r => { const rk = lineKey(r.name); return rk.length >= 2 && (rk === k || rk.startsWith(k) || k.startsWith(rk)); }) || null;
-}
-
 let LAST_TRAINS = null;
 async function loadTrains(){
-  const [dl, ns] = await Promise.allSettled([getDelayList(), nearStations()]);
+  const [dl] = await Promise.allSettled([getDelayList()]);
   const delay = dl.status === "fulfilled" ? { list:dl.value, ok:true } : { list:demoTrains(), ok:false, err:dl.reason?.message };
-  const near = ns.status === "fulfilled" && ns.value.list.length ? ns.value : { list:DEMO_STATIONS, demo:true };
-  LAST_TRAINS = { delay, near };
+  LAST_TRAINS = { delay };
   renderTrains();
 }
 function renderTrains(){
   if(!LAST_TRAINS) return;
-  const { delay, near } = LAST_TRAINS, list = delay.list, demo = !delay.ok, unk = !delay.ok && !near.demo;
-  const [, areaId, areaName, coRe] = trainRegion();
-  let html = "";
-
-  // 近くの駅
-  html += '<div style="font-weight:600;margin-bottom:4px">🚉 近くの駅' + (near.demo ? DEMO_TAG : "") + "</div>";
-  if(near.list.length){
-    html += '<ul class="list">' + near.list.map(st => {
-      const chips = st.lines.map(l => {
-        const hit = unk ? null : findDelay(l, list);
-        const cls = unk ? "st-unk" : hit ? "st-bad" : "st-ok";
-        const lab = unk ? "不明" : hit ? "遅延" : "平常";
-        return `<span class="chip ${cls}">${esc(l)} <b>${lab}</b></span>`;
-      }).join("");
-      return `<li><b>${esc(st.name)}</b> <span class="muted">${esc(st.dist || "")}</span><div style="margin-top:4px">${chips}</div></li>`;
-    }).join("") + "</ul>";
-  }else{
-    html += `<div class="muted">${near.err ? "近くの駅を取得できませんでした。" : "近くに駅が見つかりません。"}</div>`;
-  }
-
-  // 地域の遅延一覧
-  const own = myLines();
-  const txt = r => (r.company || "") + " " + (r.name || "");
-  const hit = own.length ? (r => own.some(w => txt(r).includes(w))) : (r => coRe.test(txt(r)));
-  const mine = list.filter(hit), other = list.filter(r => !hit(r));
+  const { delay } = LAST_TRAINS, list = delay.list, demo = !delay.ok;
+  const [, , areaName, coRe] = trainRegion();
+  const mine = list.filter(r => coRe.test((r.company || "") + " " + (r.name || "")));
   const latest = list.reduce((m,x) => Math.max(m, x.lastupdate_gmt || 0), 0);
   $("#trainTime").textContent = latest ? fmtTime(latest*1000) + " 更新" : "";
-  const li = x => `<li class="line-delay"><span>⚠️ <b>${esc(trainLabel(x))}</b></span><span class="co">${esc(x.company)}</span></li>`;
-  html += `<div style="font-weight:600;margin:12px 0 4px">${own.length ? "登録した路線" : esc(areaName) + "エリア"}の遅延・運転見合わせ${demo ? DEMO_TAG : ""}</div>`;
-  if(demo) html += `<div class="err" style="font-size:.8rem">遅延データを取得できなかったため、下はサンプルです（${esc(delay.err || "")}）。${unk ? "近くの駅の状況は「不明」と表示しています。" : ""}</div>`;
-  html += mine.length ? `<ul class="list">${mine.map(li).join("")}</ul>` : '<div class="okline" style="margin:6px 0">✓ 目立った遅延情報はありません</div>';
-  if(other.length) html += `<details style="margin-top:8px"><summary class="muted">その他の遅延（${other.length}件）</summary><ul class="list">${other.map(li).join("")}</ul></details>`;
-  html += `<div class="muted" style="margin-top:6px">※ 各社公式サイトに遅れが掲載された路線の一覧です。「平常」は遅延が掲載されていないという意味です。</div>`;
-  html += `<div style="margin-top:10px"><a href="https://transit.yahoo.co.jp/traininfo/area/${areaId}/" target="_blank" rel="noopener">${esc(areaName)}の運行情報をYahoo!路線情報で見る →</a></div>`;
+  let html = `<div style="font-weight:600;margin-bottom:4px">現在運行情報がある路線 <span class="muted" style="font-weight:normal">（${esc(areaName)}）</span></div>`;
+  if(demo) html += `<div class="err" style="font-size:.8rem">運行情報を取得できなかったため、サンプルを表示しています。</div>`;
+  html += mine.length
+    ? `<ul class="list">${mine.map(x => `<li class="line-delay"><span>⚠️ <b>${esc(trainLabel(x))}</b></span><span class="co">${esc(x.company)}</span></li>`).join("")}</ul>`
+    : '<div class="okline" style="margin:6px 0">✓ 現在、運行情報のある路線はありません</div>';
   $("#trains").innerHTML = html;
-  markDemo("train", "#trainH", demo || near.demo);
+  markDemo("train", "#trainH", demo);
 }
 
 /* ====================================================================
@@ -1174,14 +1118,20 @@ async function loadWikiDay(d){
   try{
     const doc = await wikiSection(page, /^誕生日$/);
     if(!doc) throw new Error("節なし");
-    const all = parseBirths(doc), top = pickFamous(all);
+    const all = parseBirths(doc);
+    let alive = all.filter(p => !p.dead && p.y >= 1915 && p.jp);
+    if(!alive.length) alive = all.filter(p => !p.dead && p.y >= 1915);
+    alive.sort((a,b) => a.y - b.y);
+    const oldest = alive[0], others = all.filter(p => p !== oldest).sort((a,b) => (a.dead - b.dead) || (a.y - b.y));
+    const line = p => `<li>${p.y}年 ${p.href ? `<a href="${p.href}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)} <span class="muted">${p.dead ? "故人" : age(p) + "歳"}${p.job ? "・" + esc(p.job) : ""}</span></li>`;
     $("#bdTag").innerHTML = "";
-    $("#calBirth").innerHTML = (top.length ? `<ul class="plist">${top.map(person).join("")}</ul>` : '<span class="muted">見つかりませんでした</span>')
-      + `<details style="margin-top:4px"><summary class="muted">${page}生まれの人をすべて見る（${all.length}人）</summary><ul class="plist">${all.slice().reverse().map(p => `<li>${p.y}年 ${p.href ? `<a href="${p.href}" target="_blank" rel="noopener">${esc(p.name)}</a>` : esc(p.name)} <span class="muted">${esc(p.job)}${p.dead ? "（故人）" : ""}</span></li>`).join("")}</ul></details>`
+    $("#calBirth").innerHTML = (oldest ? `<ul class="plist">${person(oldest)}</ul>` : '<span class="muted">見つかりませんでした</span>')
+      + (others.length ? `<details style="margin-top:4px"><summary class="muted">ほかの人（${others.length}人）</summary><ul class="plist">${others.map(line).join("")}</ul></details>` : "")
       + `<div class="muted" style="font-size:.75rem;margin-top:4px">出典：<a href="${link}" target="_blank" rel="noopener">ウィキペディア「${page}」</a></div>`;
   }catch(e){
     $("#bdTag").innerHTML = DEMO_TAG;
-    $("#calBirth").innerHTML = `<ul class="plist">${DEMO_BIRTHS.map(person).join("")}</ul>`;
+    const [o, ...rest] = DEMO_BIRTHS;
+    $("#calBirth").innerHTML = `<ul class="plist">${person(o)}</ul><details style="margin-top:4px"><summary class="muted">ほかの人（${rest.length}人）</summary><ul class="plist">${rest.map(person).join("")}</ul></details>`;
   }
   // ほかの記念日
   try{
@@ -1190,8 +1140,102 @@ async function loadWikiDay(d){
     const items = leafItems(doc).map(li => li.textContent.replace(/\s+/g, " ").trim().split(/\s*[-‐–―]\s*/)[0]).filter(t => t && t.length <= 40);
     const jp = items.filter(t => /日本/.test(t)), rest = items.filter(t => !/日本/.test(t));
     const show = [...jp, ...rest].slice(0, 30);
-    if(show.length) $("#calAnnivMore").innerHTML = `<details style="margin-top:4px"><summary class="muted">ほかの記念日・行事（${items.length}件）</summary><div style="font-size:.85rem;margin-top:4px">${show.map(esc).join("、")}</div></details>`;
+    if(show.length) $("#calAnnivMore").innerHTML = `<details style="margin-top:4px"><summary class="muted">ほかの記念日・行事（${items.length}件）</summary><ul class="plist" style="margin-top:4px">${show.map(t => `<li>${esc(t)}</li>`).join("")}</ul></details>`;
   }catch(e){}
+}
+
+
+/* ---------- 地図（メルカトル図法＋昼夜の境界） ---------- */
+const MAP = { map:null, marker:null, layers:[], sunMk:null, timer:0, failed:false };
+function loadAsset(tag, attrs){
+  return new Promise((res, rej) => { const el = document.createElement(tag); Object.assign(el, attrs); el.onload = res; el.onerror = rej; document.head.appendChild(el); });
+}
+async function ensureLeaflet(){
+  if(window.L) return;
+  if(FORCE_DEMO) throw new Error("デモ");
+  await loadAsset("link", { rel:"stylesheet", href:"https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" });
+  await loadAsset("script", { src:"https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" });
+}
+// 太陽直下点（緯度＝赤緯、経度＝時角から）
+function subsolar(d){
+  const jd = d.getTime()/86400000 + 2440587.5, n = jd - 2451545;
+  const L = (280.46 + .9856474*n) % 360, g = ((357.528 + .9856003*n) % 360)*Math.PI/180;
+  const lam = (L + 1.915*Math.sin(g) + .02*Math.sin(2*g))*Math.PI/180, eps = (23.439 - 4e-7*n)*Math.PI/180;
+  const ra = Math.atan2(Math.cos(eps)*Math.sin(lam), Math.cos(lam))*180/Math.PI, dec = Math.asin(Math.sin(eps)*Math.sin(lam))*180/Math.PI;
+  const gmst = ((280.46061837 + 360.98564736629*n) % 360 + 360) % 360;
+  let lon = ra - gmst; lon = ((lon + 540) % 360) - 180;
+  return { lat:dec, lon };
+}
+// 太陽高度が h 度になる線（経度ごとの緯度）と、その夜側の極までの多角形
+function nightPolygon(d, h){
+  const s = subsolar(d), dec = s.lat*Math.PI/180, sh = Math.sin(h*Math.PI/180), pts = [];
+  const pole = s.lat >= 0 ? -85 : 85;
+  for(let lon=-540; lon<=540; lon+=2){
+    const H = (lon - s.lon)*Math.PI/180, a = Math.sin(dec), b = Math.cos(dec)*Math.cos(H), R = Math.hypot(a, b);
+    let lat;
+    if(Math.abs(sh) >= R) lat = (sh > 0) === (s.lat >= 0) ? 85 : -85;
+    else{
+      const psi = Math.atan2(a, b);
+      // a sinφ + b cosφ = R cos(φ - psi)  →  φ = psi ± acos(sh/R)
+      const c = Math.acos(sh/R), cand = [psi + c, psi - c].map(x => x*180/Math.PI).filter(x => x >= -90 && x <= 90);
+      lat = cand.length ? cand.reduce((p, q) => Math.abs(q) < Math.abs(p) ? q : p) : pole;
+    }
+    pts.push([Math.max(-85, Math.min(85, lat)), lon]);
+  }
+  return [[pole, -540], ...pts, [pole, 540]];
+}
+function drawDayNight(){
+  if(!MAP.map) return;
+  const d = new Date();
+  MAP.layers.forEach(l => l.remove()); MAP.layers = [];
+  for(const [h, op] of [[0, .16], [-6, .14], [-12, .12], [-18, .14]])
+    MAP.layers.push(L.polygon(nightPolygon(d, h), { stroke:false, fillColor:"#0b1840", fillOpacity:op, interactive:false }).addTo(MAP.map));
+  const s = subsolar(d);
+  if(MAP.sunMk) MAP.sunMk.remove();
+  MAP.sunMk = L.marker([s.lat, s.lon], { icon:L.divIcon({ className:"", html:'<div style="font-size:22px;line-height:22px">☀️</div>', iconSize:[22,22], iconAnchor:[11,11] }), interactive:false }).addTo(MAP.map);
+  $("#mapNote").textContent = `${fmtTime(d)} 時点の昼と夜（濃い部分ほど暗い：日没・薄明・夜）。☀️は太陽が真上にある地点です。`;
+}
+const PIN_SVG = '<svg viewBox="0 0 24 24" width="30" height="30"><path d="M12 2C7.6 2 4 5.5 4 9.9c0 5.6 6.6 11.3 7.3 11.9.4.3 1 .3 1.4 0 .7-.6 7.3-6.3 7.3-11.9C20 5.5 16.4 2 12 2z" fill="#e53935" stroke="#fff" stroke-width="1.2"/><circle cx="12" cy="9.8" r="3.2" fill="#fff"/></svg>';
+async function openMap(){
+  $("#mapSheet").hidden = false;
+  const lat = S.lat ?? DEMO_PLACE.lat, lon = S.lon ?? DEMO_PLACE.lon;
+  try{
+    await ensureLeaflet();
+    if(!MAP.map){
+      MAP.map = L.map("mapBox", { worldCopyJump:true, minZoom:1, zoomControl:true }).setView([lat, lon], 2);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom:18, attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(MAP.map);
+    }
+    MAP.map.invalidateSize();
+    if(MAP.marker) MAP.marker.remove();
+    MAP.marker = L.marker([lat, lon], { icon:L.divIcon({ className:"", html:PIN_SVG, iconSize:[30,30], iconAnchor:[15,28] }) }).addTo(MAP.map)
+      .bindTooltip("現在位置", { direction:"top", offset:[0,-26] });
+    MAP.map.setView([lat, lon], MAP.map.getZoom());
+    drawDayNight();
+    clearInterval(MAP.timer); MAP.timer = setInterval(drawDayNight, 60000);
+  }catch(e){ drawMapFallback(lat, lon); }
+}
+function closeMap(){ $("#mapSheet").hidden = true; clearInterval(MAP.timer); }
+// 地図ライブラリが読めないとき：経緯線だけのメルカトル図に昼夜と現在地を描く
+function drawMapFallback(lat, lon){
+  const box = $("#mapBox"); box.innerHTML = '<canvas style="width:100%;height:100%;display:block"></canvas>';
+  const c = box.firstChild, W = box.clientWidth, H = box.clientHeight, dpr = Math.min(2, devicePixelRatio || 1);
+  c.width = W*dpr; c.height = H*dpr; const x = c.getContext("2d"); x.scale(dpr, dpr);
+  const size = Math.min(W, H*1.0), ox = (W - size)/2, oy = (H - size)/2;
+  const P = (la, lo) => { const s = Math.sin(Math.max(-85, Math.min(85, la))*Math.PI/180); return [ox + (lo+180)/360*size, oy + (.5 - Math.log((1+s)/(1-s))/(4*Math.PI))*size]; };
+  x.fillStyle = "#9cc3e6"; x.fillRect(ox, oy, size, size);
+  x.strokeStyle = "rgba(255,255,255,.6)"; x.lineWidth = .7;
+  for(let lo=-180; lo<=180; lo+=30){ const [a] = P(0, lo); x.beginPath(); x.moveTo(a, oy); x.lineTo(a, oy+size); x.stroke(); }
+  for(let la=-60; la<=60; la+=30){ const [, b] = P(la, 0); x.beginPath(); x.moveTo(ox, b); x.lineTo(ox+size, b); x.stroke(); }
+  const d = new Date();
+  for(const [h, op] of [[0,.16],[-6,.14],[-12,.12],[-18,.14]]){
+    const pg = nightPolygon(d, h).slice(1, -1).filter(p => p[1] >= -180 && p[1] <= 180), pole = subsolar(d).lat >= 0 ? -85 : 85;
+    x.beginPath(); const [sx, sy] = P(pole, -180); x.moveTo(sx, sy);
+    for(const [la, lo] of pg){ const [px, py] = P(la, lo); x.lineTo(px, py); }
+    const [ex, ey] = P(pole, 180); x.lineTo(ex, ey); x.closePath(); x.fillStyle = `rgba(11,24,64,${op})`; x.fill();
+  }
+  const s = subsolar(d), [sx2, sy2] = P(s.lat, s.lon); x.font = "18px sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("☀️", sx2, sy2);
+  const [mx, my] = P(lat, lon); x.fillStyle = "#e53935"; x.beginPath(); x.arc(mx, my, 6, 0, Math.PI*2); x.fill(); x.strokeStyle = "#fff"; x.lineWidth = 2; x.stroke();
+  $("#mapNote").textContent = "地図画像を読み込めなかったため、経緯線だけの簡易表示です（赤い点が現在位置、影が夜の部分）。";
 }
 
 /* ---------- 標高 ---------- */
@@ -1233,14 +1277,10 @@ async function loadAll(){
   $("#refresh").disabled = false;
 }
 
-try{ $("#myLines").value = localStorage.getItem("myLines") || ""; }catch(e){}
-$("#myLines").addEventListener("input", () => {
-  try{ localStorage.setItem("myLines", $("#myLines").value); }catch(e){}
-  renderTrains();
-});
 $("#refresh").onclick = () => { S.locMsg = ""; locate(); };
 setInterval(() => { if(document.visibilityState === "visible" && S.lat != null) loadAll(); }, 10*60*1000);
 Sky.init();
+$("#mapBtn").onclick = openMap; $("#mapClose").onclick = closeMap;
 tickClock(); setInterval(tickClock, 1000);
 locate();
 </script>
