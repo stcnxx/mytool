@@ -19,8 +19,7 @@
 html,body{margin:0;background:var(--bg);color:var(--text);
   font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;line-height:1.5}
 header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--card) 82%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:12px 16px 8px;border-bottom:1px solid var(--line)}
-#bg{position:fixed;inset:0;z-index:-1;transition:background 2s}
-main>.sky-strip{height:110px;margin:-12px -16px -4px}
+#bg{position:fixed;top:0;left:0;width:100%;height:100vh;height:100lvh;z-index:-1;transition:background 2s}
 .card{background:color-mix(in srgb,var(--card) 90%,transparent)}
 #bgc{position:absolute;inset:0;width:100%;height:100%;display:block}
 body{background:transparent}
@@ -105,8 +104,8 @@ footer{max-width:928px;margin:0 auto 30px;padding:12px 16px;font-size:.75rem;col
 .spin{display:inline-block;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 /* ===== 枠なし・背景が見えるレイアウト（背景の明るさで文字色を切り替え） ===== */
-html.light-bg{--text:#0b1324;--muted:#334155;--line:rgba(15,23,42,.16);--chip:rgba(255,255,255,.38);--card:#ffffff}
-html.dark-bg{--text:#f1f5f9;--muted:#cbd5e1;--line:rgba(255,255,255,.18);--chip:rgba(255,255,255,.1);--card:#111827;--ok:#86efac}
+html.light-bg{--title:#1e3a8a;--text:#0b1324;--muted:#334155;--line:rgba(15,23,42,.16);--chip:rgba(255,255,255,.38);--card:#ffffff}
+html.dark-bg{--title:#fcd34d;--text:#f1f5f9;--muted:#cbd5e1;--line:rgba(255,255,255,.18);--chip:rgba(255,255,255,.1);--card:#111827;--ok:#86efac}
 html.light-bg body{text-shadow:0 1px 1px rgba(255,255,255,.55)}
 html.dark-bg body{text-shadow:0 1px 2px rgba(0,0,0,.55)}
 html.dark-bg a{color:#9cc9ff}
@@ -123,8 +122,8 @@ main{gap:28px}
 footer{background:none!important}
 .badge,.chip,.scale,.demo,.hol,button,#demoBar,.banner{text-shadow:none}
 /* 情報のタイトルを統一 */
-.card h2,.cal-h{font-size:1.15rem;font-weight:700;color:var(--text);margin:0 0 8px;letter-spacing:.02em}
-.card h2 small{font-size:.75rem;font-weight:normal}
+.card h2,.cal-h{font-size:1.15rem;font-weight:700;color:var(--title);margin:0 0 8px;letter-spacing:.02em}
+.card h2 small{font-size:.75rem;font-weight:normal;color:var(--muted)}
 .cal-sec{margin-top:16px;padding-top:0;border-top:none}
 #skyCard{padding:4px 2px}
 #skyCard h2{padding:0}
@@ -149,7 +148,6 @@ footer{background:none!important}
   <div id="mapNote" class="muted"></div>
 </div>
 <main>
-  <div class="sky-strip wide" aria-hidden="true"></div>
   <section class="card wide" id="calCard">
     <div id="calDate" class="cal-date"></div>
     <div id="calClock" class="cal-clock"></div>
@@ -1187,7 +1185,7 @@ function tickClock(){
 function renderCal(d){
   const wd = d.getDay(), hol = Cal.holidayOf(d), l = Cal.lunarOf(d);
   const cls = hol || wd === 0 ? "sun" : wd === 6 ? "sat" : "";
-  $("#calDate").innerHTML = `${d.getFullYear()}年（${wareki(d)}）${d.getMonth()+1}月${d.getDate()}日<span class="${cls}">(${WD[wd]})</span>` + (hol ? ` <span class="hol">${esc(hol)}</span>` : "");
+  $("#calDate").innerHTML = `${d.getFullYear()}年（${wareki(d)}）${d.getMonth()+1}月${d.getDate()}日(${WD[wd]})` + (hol ? ` <span class="hol">${esc(hol)}</span>` : "");
   $("#calRoku").innerHTML = `六輝 <b>${Cal.rokuyoOf(d)}</b> <span class="muted">旧暦 ${l.leap ? "閏" : ""}${l.m}月${l.d}日</span>`;
   $("#calAnniv").innerHTML = `<b>${esc(Cal.annivOf(d) || "—")}</b><div id="calAnnivMore"></div>`;
   $("#calBirth").innerHTML = '<span class="muted">読み込み中…</span>';
@@ -1410,8 +1408,11 @@ function bgCloudSprite(col){
 }
 function bgResize(){
   const c = BGA.c, dpr = BGA.dpr = Math.min(1.5, devicePixelRatio || 1);
-  BGA.W = innerWidth; BGA.H = innerHeight; c.width = BGA.W*dpr; c.height = BGA.H*dpr;
-  BGA.x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const W = c.clientWidth || innerWidth, H = Math.max(c.clientHeight || innerHeight, innerHeight);
+  // スクロールでアドレスバーが出入りしたときなどは、幅が変わらない限り雲や星を作り直さない
+  const rebuild = !BGA.clouds.length || Math.abs(W - BGA.W) > 40;
+  if(rebuild || H > BGA.H){ BGA.W = W; BGA.H = H; c.width = W*dpr; c.height = H*dpr; BGA.x.setTransform(dpr, 0, 0, dpr, 0, 0); }
+  if(!rebuild) return;
   const area = BGA.W*BGA.H;
   BGA.stars = Array.from({ length:Math.round(area/2600) }, () => ({ x:Math.random(), y:Math.pow(Math.random(), 1.4)*.85, r:Math.random()*1.1 + .3, p:Math.random()*6, s:.8 + Math.random()*2 }));
   BGA.drops = Array.from({ length:Math.round(area/2400) }, () => ({ x:Math.random()*BGA.W*1.2, y:Math.random()*BGA.H, v:.8 + Math.random()*.5, l:10 + Math.random()*10 }));
@@ -1437,7 +1438,7 @@ function bgFrame(t){
     x.globalAlpha = 1;
   }
   // 月（月が地平線より上のとき。昼は薄く）
-  if(clearish){ try{ const m = Sky.moonInfo(); if(m.alt > 0){ const r = Math.min(30, W*.065); Sky.bgMoon(x, W*.78, (document.querySelector('header')?.offsetHeight || 90) + 55, r, (kind === "cloudy" ? .6 : 1)*(dark > 0 ? 1 : .7), dark < .3); } }catch(_){} }
+  if(clearish){ try{ const m = Sky.moonInfo(); if(m.alt > 0){ const r = Math.min(30, W*.065); Sky.bgMoon(x, W*.82, (document.querySelector('header')?.offsetHeight || 90) + 92, r, (kind === "cloudy" ? .6 : 1)*(dark > 0 ? 1 : .7), dark < .3); } }catch(_){} }
   // 雲
   const nC = { clear:dark > 0 ? 2 : 4, cloudy:10, rain:12, thunder:12, snow:9, fog:0 }[kind] ?? 4;
   const col = wet ? (dark > .5 ? "#2a3040" : "#6b7480") : kind === "snow" ? "#e6eaef" : dark > .5 ? "#3a4466" : kind === "cloudy" ? "#e9edf2" : "#ffffff";
