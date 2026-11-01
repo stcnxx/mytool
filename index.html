@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>いまここ情報</title>
+<title>情報ツール</title>
 <meta name="description" content="現在地の天気・災害情報・鉄道運行情報">
 <meta name="theme-color" content="#0f172a">
 <style>
@@ -20,7 +20,8 @@ html,body{margin:0;background:var(--bg);color:var(--text);
   font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;line-height:1.5}
 header{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 16px 8px;border-bottom:1px solid var(--line)}
 .hrow{display:flex;align-items:center;gap:8px;justify-content:space-between}
-h1{font-size:1.15rem;margin:0}
+h1{font-size:1.15rem;margin:0;display:flex;align-items:center;gap:6px}
+h1 .pin{width:22px;height:22px;flex:none}
 #place{font-size:.85rem;color:var(--muted)}
 button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);
   border-radius:10px;padding:6px 12px;cursor:pointer}
@@ -83,7 +84,7 @@ td.d{text-align:left}
 #skyv .sv-top{position:absolute;top:8px;left:0;right:0;text-align:center;color:#fff;font-size:12px;font-weight:600;letter-spacing:.06em;text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:none}
 #skyv .sv-bar{position:absolute;left:8px;right:8px;bottom:12px;display:flex;gap:6px}
 #skyv .sv-bar button{flex:1 1 0;min-width:0;white-space:nowrap;background:rgba(24,22,44,.6);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:17px;padding:7px 4px;font-size:12px;font-weight:600;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
-#skyv #svLines[aria-pressed=false]{opacity:.6}#skyv #svClr[aria-pressed=true]{background:rgba(120,170,255,.55)}
+#skyv #svLines[aria-pressed=false]{opacity:.6}
 #skyv .sv-hint{position:absolute;bottom:56px;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:11px;text-shadow:0 1px 3px #000;transition:opacity 1.2s;pointer-events:none}
 footer{max-width:960px;margin:0 auto;padding:0 16px 30px;font-size:.75rem;color:var(--muted)}
 .spin{display:inline-block;animation:sp 1s linear infinite}
@@ -93,7 +94,7 @@ footer{max-width:960px;margin:0 auto;padding:0 16px 30px;font-size:.75rem;color:
 <body>
 <header>
   <div class="hrow">
-    <h1>📍 いまここ情報</h1>
+    <h1><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.6 2 4 5.5 4 9.9c0 5.6 6.6 11.3 7.3 11.9.4.3 1 .3 1.4 0 .7-.6 7.3-6.3 7.3-11.9C20 5.5 16.4 2 12 2z" fill="#e53935"/><circle cx="12" cy="9.8" r="3.2" fill="#fff"/></svg>現在位置</h1>
     <button id="refresh" class="primary">更新</button>
   </div>
   <div id="place">位置情報を取得しています…</div>
@@ -125,22 +126,6 @@ footer{max-width:960px;margin:0 auto;padding:0 16px 30px;font-size:.75rem;color:
     <div id="daily"><span class="muted">読み込み中…</span></div>
   </section>
 
-  <section class="card wide" id="skyCard">
-    <h2>星空 <small>現在地・現在時刻の空</small></h2>
-    <div id="skyInfo"></div>
-    <div id="skyv">
-      <canvas id="skyc"></canvas>
-      <div class="sv-top" id="svDir"></div>
-      <div class="sv-hint" id="svHint">左右にドラッグで見回す・月をタップで拡大</div>
-      <div class="sv-bar">
-        <button type="button" id="svMoon">月の方へ</button>
-        <button type="button" id="svClr" aria-pressed="false">雲を消す</button>
-        <button type="button" id="svLines" aria-pressed="true">星座線</button>
-        <button type="button" id="svFull">全画面</button>
-      </div>
-    </div>
-  </section>
-
   <section class="card">
     <h2><span id="warnH">警報・注意報</span> <small id="warnTime"></small></h2>
     <div id="warnings"><span class="muted">読み込み中…</span></div>
@@ -160,6 +145,21 @@ footer{max-width:960px;margin:0 auto;padding:0 16px 30px;font-size:.75rem;color:
       <input type="text" id="myLines" placeholder="山手線, 東急">
     </details>
   </section>
+
+  <section class="card wide" id="skyCard">
+    <h2>天体 <small>現在地・現在時刻の空</small></h2>
+    <div id="skyInfo"></div>
+    <div id="skyv">
+      <canvas id="skyc"></canvas>
+      <div class="sv-top" id="svDir"></div>
+      <div class="sv-hint" id="svHint">左右にドラッグで見回す・月をタップで拡大</div>
+      <div class="sv-bar">
+        <button type="button" id="svMoon">月の方へ</button>
+        <button type="button" id="svLines" aria-pressed="true">星座線</button>
+        <button type="button" id="svFull">全画面</button>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>
@@ -169,7 +169,7 @@ footer{max-width:960px;margin:0 auto;padding:0 16px 30px;font-size:.75rem;color:
   <a href="https://www.p2pquake.net/" target="_blank" rel="noopener">P2P地震情報</a>／
   <a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>／
   <a href="https://express.heartrails.com/" target="_blank" rel="noopener">HeartRails Express</a>（最寄り駅）／
-  <a href="https://ja.wikipedia.org/" target="_blank" rel="noopener">ウィキペディア</a>（誕生日・記念日）。星空は現在地と時刻から計算しています（明るい星・星座線・天の川・月の満ち欠け）。
+  <a href="https://ja.wikipedia.org/" target="_blank" rel="noopener">ウィキペディア</a>（誕生日・記念日）。天体は現在地と時刻から計算し、山並みは<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院の標高タイル</a>から描いています。
   情報は参考用です。避難等の判断は自治体・気象庁の発表に従ってください。<br>
   URLの末尾に <code>?demo</code> を付けると、通信せずにサンプルデータだけで表示します。
 </footer>
@@ -331,7 +331,7 @@ function locate(){
   $("#place").innerHTML = '<span class="spin">⏳</span> 位置情報を取得しています…';
   if(!("geolocation" in navigator)) return locFail("このブラウザは位置情報に対応していません。");
   navigator.geolocation.getCurrentPosition(p => {
-    S.lat = +p.coords.latitude.toFixed(4); S.lon = +p.coords.longitude.toFixed(4); S.acc = Math.round(p.coords.accuracy);
+    S.lat = +p.coords.latitude.toFixed(4); S.lon = +p.coords.longitude.toFixed(4); S.acc = Math.round(p.coords.accuracy); S.gpsAlt = p.coords.altitude;
     S.demoLoc = false;
     store("lastLoc", { lat:S.lat, lon:S.lon });
     loadAll();
@@ -393,7 +393,7 @@ function applyDemoPlace(){ Object.assign(S, { prefCode:DEMO_PLACE.prefCode, pref
 
 function renderPlace(placeDemo){
   const name = [S.prefName, S.city, S.town].filter(Boolean).join(" ");
-  let html = `${esc(name || "現在地")} <span class="muted">(${S.lat}, ${S.lon}${S.acc ? ` ±${S.acc}m` : ""})</span>`;
+  let html = `${esc(name || "現在地")}${S.elevText ? ` <b>標高 ${esc(S.elevText)}</b>` : ""} <span class="muted">(${S.lat}, ${S.lon}${S.acc ? ` ±${S.acc}m` : ""})</span>`;
   if(placeDemo || S.demoLoc) html += DEMO_TAG;
   if(S.locMsg) html += `<div class="err" style="font-size:.8rem">${esc(S.locMsg)} <button id="retryLoc" style="padding:2px 8px">再取得</button></div>`;
   $("#place").innerHTML = html;
@@ -888,11 +888,11 @@ function seaStrip(c,layer){const key=layer+'|'+c.join(',');if(SEA[key])return SE
 function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
   const Wc=c.clientWidth||360,Hc=c.clientHeight||420,dpr=Math.min(2,DPR||1);if(c.width!==Math.round(Wc*dpr)||c.height!==Math.round(Hc*dpr)){c.width=Math.round(Wc*dpr);c.height=Math.round(Hc*dpr);}
   const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';
-  const sk=skyNow(),k=SKYV.clear?'clear':wKind(),sa=sk.sun.alt,hy=Hc*.74,kk=Wc/SKYV.fov,wind=((ENV.wx&&ENV.wx.wind)||2);
+  const sk=skyNow(),k='clear',sa=sk.sun.alt,hy=Hc*(TERR.prof?.8:.86),kk=Wc/SKYV.fov;
   const P=(az,alt)=>{const d=((az-SKYV.A0+540)%360)-180;return{x:Wc/2+d*kk,y:hy-alt*kk,d};};
   const clr=k==='clear',cld=k==='cloudy',wet=k==='rain'||k==='thunder'||k==='snow';
   // sky
-  const sc2=skyCols(sa,k),gr=x.createLinearGradient(0,0,0,hy);gr.addColorStop(0,rgbS(sc2.top));gr.addColorStop(.75,rgbS(mixRgb(sc2.top,sc2.hor,.55)));gr.addColorStop(1,rgbS(sc2.hor));x.fillStyle=gr;x.fillRect(0,0,Wc,hy+2);
+  const sc2=skyCols(sa,k),gr=x.createLinearGradient(0,0,0,hy);gr.addColorStop(0,rgbS(sc2.top));gr.addColorStop(.75,rgbS(mixRgb(sc2.top,sc2.hor,.55)));gr.addColorStop(1,rgbS(sc2.hor));x.fillStyle=gr;x.fillRect(0,0,Wc,Hc);
   if(sa>-16&&sa<14&&!wet){const ps=P(sk.sun.az,Math.max(sa,-4)),a=(1-Math.abs(sa-1)/15)*(cld?.5:1),rg=x.createRadialGradient(ps.x,hy,0,ps.x,hy,Wc*1.1);rg.addColorStop(0,`rgba(255,${sa>0?190:140},${sa>0?120:110},${.55*a})`);rg.addColorStop(.4,`rgba(255,150,120,${.18*a})`);rg.addColorStop(1,'rgba(255,150,120,0)');x.fillStyle=rg;x.fillRect(0,0,Wc,hy+2);}
   if(sk.moon.alt>0&&sa<-6&&!wet){x.fillStyle=`rgba(70,90,150,${.08*sk.frac})`;x.fillRect(0,0,Wc,hy);}
   // the Milky Way and stars
@@ -923,25 +923,11 @@ function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
   // moon (drawn a few times larger than life so its face can be seen)
   SKYV.moonP=null;if(sk.moon.alt>-3&&!wet){const p=P(sk.moon.az,sk.moon.alt);if(Math.abs(p.d)<SKYV.fov/2+30){const day=sa>-4,r=16;
     moonDraw(x,p.x,p.y,r,{frac:sk.frac,limb:sk.q-sk.chi,rot:sk.q,day,glow:day?.3:1,alpha:(day?Math.max(.35,.85-sa/60):1)*(cld?.75:1),ts:192,pxs:dpr});SKYV.moonP={x:p.x,y:p.y,r};}}
-  // clouds
-  const ct=cloudTint(sk,k),nC=SKYV.clear?0:clr?4:cld?16:wet?24:k==='fog'?8:6;
-  for(let i=0;i<nC;i++){const sp=cloudTinted(i%6,ct),az0=hash(i,71,3)*360+t*(.15+wind*.06)*(.6+hash(i,72,3)*.8),alt=(clr?18:5)+Math.pow(hash(i,73,3),1.3)*(wet?50:38),p=P(az0,alt);
-    const w=(wet?2.1:1.35)*sp.width*(.45+alt/70)*(.7+hash(i,74,3)*.6)*(Wc/400),h=w*sp.height/sp.width*(.75+alt/120);if(p.x+w/2<0||p.x-w/2>Wc)continue;x.globalAlpha=(clr?.75:.92);x.drawImage(sp,p.x-w/2,p.y-h*.6,w,h);}
-  x.globalAlpha=1;
-  // horizon: sea of clouds
-  const seaC=mixRgb(ct,sc2.hor,.35),s1=seaStrip(seaC,1),s2=seaStrip(mixRgb(seaC,[255,255,255],sa>0?.15:.05),2);
-  x.fillStyle=GD_lg(x,0,hy-6,0,Hc,[[0,rgbS(mixRgb(sc2.hor,seaC,.6))],[.35,rgbS(seaC)],[1,rgbS(seaC.map(v=>v*.7))]]);x.fillRect(0,hy-4,Wc,Hc-hy+4);
-  const drawStrip=(img,y,h,par)=>{const w=img.width*(h/img.height);const off=SKYV.A0/360*w*par+t*1.5*par;let sx=-(((off%w)+w)%w);for(;sx<Wc;sx+=w)x.drawImage(img,sx,y,w+.5,h);};
-  const s3=seaStrip(mixRgb(seaC,[255,255,255],sa>0?.25:.08),3);drawStrip(s1,hy-12,26,1);drawStrip(s2,hy+2,48,1.5);drawStrip(s3,hy+30,80,2.3);
-  if(sk.moon.alt>0&&sa<-4&&!wet){const p=P(sk.moon.az,sk.moon.alt);if(Math.abs(p.d)<SKYV.fov){const rg=x.createRadialGradient(p.x,hy+20,0,p.x,hy+20,120);rg.addColorStop(0,`rgba(255,250,220,${.25*sk.frac})`);rg.addColorStop(1,'rgba(255,250,220,0)');x.fillStyle=rg;x.fillRect(p.x-120,hy-10,240,140);}}
+  // 周囲の地形（取れたときだけ。取れなければ地平線は描かない）
+  drawTerrain(x,Wc,Hc,hy,kk,sc2,sa);
   // compass on the horizon
   x.font='600 11px "Zen Maru Gothic",sans-serif';x.textAlign='center';for(let a=0;a<360;a+=45){const p=P(a,0);if(p.x<-20||p.x>Wc+20)continue;x.fillStyle=a===0?'rgba(255,140,120,.95)':'rgba(255,255,255,.85)';x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=3;x.strokeText(AZ_JP[a/22.5],p.x,hy-14);x.fillText(AZ_JP[a/22.5],p.x,hy-14);x.fillRect(p.x-.5,hy-9,1,5);}
   ov.querySelector('#svDir').textContent=`${azName(SKYV.A0)}の空を見ています`;
-  // weather in the air
-  if(k==='rain'||k==='thunder'){x.strokeStyle='rgba(210,225,245,.5)';x.lineWidth=1;x.beginPath();for(let i=0;i<140;i++){const y=((hash(i,1,5)*Hc+t*520*(.8+hash(i,3,5)*.4))%(Hc+30))-15,xx=((hash(i,2,5)*Wc*1.2-y*.18)%Wc+Wc)%Wc;x.moveTo(xx,y);x.lineTo(xx-2.2,y+12);}x.stroke();}
-  if(k==='snow'){x.fillStyle='rgba(255,255,255,.92)';for(let i=0;i<110;i++){const s2=.5+hash(i,3,6),y=((hash(i,1,6)*Hc+t*30*s2)%(Hc+10))-5,xx=(hash(i,2,6)*Wc+Math.sin(t*.8+i)*12+Wc)%Wc;x.beginPath();x.arc(xx,y,.8+s2*1.1,0,TAU);x.fill();}}
-  if(k==='fog'){const fg=x.createLinearGradient(0,0,0,Hc);fg.addColorStop(0,'rgba(220,226,232,.25)');fg.addColorStop(.6,'rgba(225,230,236,.55)');fg.addColorStop(1,'rgba(225,230,236,.3)');x.fillStyle=fg;x.fillRect(0,0,Wc,Hc);}
-  if(k==='thunder'){SKYV.nextFlash-=1/60;if(SKYV.nextFlash<=0){SKYV.flash=.22;SKYV.nextFlash=4+Math.random()*9;}if(SKYV.flash>0){x.fillStyle=`rgba(255,255,255,${SKYV.flash*2.6})`;x.fillRect(0,0,Wc,Hc);SKYV.flash-=1/60;}}
   if(SKYV.zoom)skyvZoom(x,Wc,Hc,sk,t);}
 function skyvZoom(x,Wc,Hc,sk,t){x.fillStyle='rgba(2,3,10,.95)';x.fillRect(0,0,Wc,Hc);
   const r=Math.min(Wc,Hc)*.36,cx=Wc/2,cy=Hc*.4;
@@ -954,6 +940,72 @@ function skyvZoom(x,Wc,Hc,sk,t){x.fillStyle='rgba(2,3,10,.95)';x.fillRect(0,0,Wc
   x.fillText(sk.moon.alt>0?`高さ ${Math.round(sk.moon.alt)}°・${azName(sk.moon.az)}の空`:'いまは地平線の下',cx,cy+r+86);x.fillText(`月の出 ${rs.rise}　月の入り ${rs.set}`,cx,cy+r+108);
   x.fillStyle='rgba(255,255,255,.55)';x.font='11px "Zen Maru Gothic",sans-serif';x.fillText('タップでもどる',cx,Hc-24);}
 
+/* --- 周囲の地形（国土地理院 標高タイル dem_png から地平線の山並みを計算） --- */
+const TERR = { key:"", prof:null, elev:null, ready:null };
+function demTile(z, X, Y){
+  return new Promise((res, rej) => {
+    const img = new Image(); img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = c.height = 256;
+      const g = c.getContext("2d"); g.drawImage(img, 0, 0);
+      let d; try{ d = g.getImageData(0, 0, 256, 256).data; }catch(e){ return rej(e); }
+      const a = new Float32Array(65536);
+      for(let i=0;i<65536;i++){ const v = d[i*4]*65536 + d[i*4+1]*256 + d[i*4+2]; a[i] = v === 8388608 ? NaN : v < 8388608 ? v*0.01 : (v-16777216)*0.01; }
+      res(a);
+    };
+    img.onerror = () => rej(new Error("tile"));
+    img.src = `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${z}/${X}/${Y}.png`;
+  });
+}
+async function computeTerrain(lat, lon){
+  const z = 11, R = 25000, n = 2**z, Re = 6371000;
+  const tx = (lon+180)/360*n, ty = (1 - Math.log(Math.tan(lat*D2R) + 1/Math.cos(lat*D2R))/Math.PI)/2*n;
+  const mPerTile = 40075016.686*Math.cos(lat*D2R)/n, mpp = mPerTile/256, span = Math.ceil(R/mPerTile);
+  const tiles = new Map(), jobs = [];
+  for(let dx=-span; dx<=span; dx++) for(let dy=-span; dy<=span; dy++){
+    const X = Math.floor(tx)+dx, Y = Math.floor(ty)+dy, k = X+"/"+Y;
+    jobs.push(demTile(z, X, Y).then(a => tiles.set(k, a), () => tiles.set(k, null)));
+  }
+  await Promise.all(jobs);
+  const got = [...tiles.values()].filter(Boolean).length;
+  if(!got) throw new Error("標高タイルを取得できません");
+  const cx = tx*256, cy = ty*256;
+  const elevAt = (px, py) => { const X = Math.floor(px/256), Y = Math.floor(py/256), a = tiles.get(X+"/"+Y); if(!a) return null;
+    const v = a[Math.min(255, Math.floor(py - Y*256))*256 + Math.min(255, Math.floor(px - X*256))]; return Number.isNaN(v) ? null : v; };
+  const h0 = elevAt(cx, cy) ?? 0, eye = h0 + 1.6;
+  const dip = -Math.sqrt(2*Math.max(eye, 0.5)/Re)*R2D;        // 海の水平線（地球の丸み）
+  const prof = new Float32Array(360);
+  for(let az=0; az<360; az++){
+    const sx = Math.sin(az*D2R), sy = -Math.cos(az*D2R);
+    let best = dip;
+    for(let d=60; d<=R; d += Math.max(30, d*0.015)){
+      const e = elevAt(cx + sx*d/mpp, cy + sy*d/mpp); if(e == null) continue;
+      const ang = Math.atan2(e - d*d/(2*Re)*0.87 - eye, d)*R2D;
+      if(ang > best) best = ang;
+    }
+    prof[az] = best;
+  }
+  return { prof, elev:h0 };
+}
+function loadTerrain(lat, lon){
+  const key = lat.toFixed(3) + "," + lon.toFixed(3);
+  if(TERR.key === key && TERR.ready) return TERR.ready;
+  TERR.key = key; TERR.prof = null; TERR.elev = null;
+  TERR.ready = computeTerrain(lat, lon).then(r => { if(TERR.key === key){ TERR.prof = r.prof; TERR.elev = r.elev; } return r; });
+  return TERR.ready;
+}
+function drawTerrain(x, Wc, Hc, hy, kk, sc2, sa){
+  const pr = TERR.prof; if(!pr) return;
+  const altAt = az => { az = ((az % 360) + 360) % 360; const i = Math.floor(az), f = az - i; return pr[i % 360]*(1-f) + pr[(i+1) % 360]*f; };
+  x.beginPath(); x.moveTo(0, Hc);
+  for(let px=0; px<=Wc+2; px+=2) x.lineTo(px, hy - altAt(SKYV.A0 + (px - Wc/2)/kk)*kk);
+  x.lineTo(Wc, Hc); x.closePath();
+  const day = Math.max(0, Math.min(1, (sa + 6)/12));
+  const top = mixRgb(mixRgb(sc2.hor, [10,14,24], .78), [70,88,72], day*.6), bot = mixRgb(top, [0,0,0], .5);
+  x.fillStyle = GD_lg(x, 0, hy - 20, 0, Hc, [[0, rgbS(top)], [1, rgbS(bot)]]); x.fill();
+  x.strokeStyle = rgbS(mixRgb(sc2.hor, [255,255,255], .15), .35); x.lineWidth = 1; x.stroke();
+}
+
 /* --- 操作・表示ループ --- */
 let visible = false, running = false;
 function setupUI(){
@@ -965,7 +1017,6 @@ function setupUI(){
     if(SKYV.zoom){ SKYV.zoom = false; return; }
     const m = SKYV.moonP; if(m && Math.hypot(x-m.x, y-m.y) < m.r + 26){ SKYV.zoom = true; SKYV.zoomReady = false; } });
   c.addEventListener('pointercancel', () => { SKYV.ptr = null; });
-  ov.querySelector('#svClr').onclick = e => { SKYV.clear = !SKYV.clear; e.currentTarget.setAttribute('aria-pressed', SKYV.clear); e.currentTarget.textContent = SKYV.clear ? '雲をもどす' : '雲を消す'; };
   ov.querySelector('#svLines').onclick = e => { SKYV.lines = !SKYV.lines; e.currentTarget.setAttribute('aria-pressed', SKYV.lines); };
   ov.querySelector('#svFull').onclick = () => {
     const d = document;
@@ -988,18 +1039,19 @@ function updateInfo(){
   const ov = skyvEl(), sk = skyNow();
   ov.querySelector('#svDir').textContent = `${azName(SKYV.A0)}の空を見ています`;
   const age = moonAge(now()), sa = sk.sun.alt;
-  const phase = sa > 0 ? '昼' : sa > -6 ? '薄明' : sa > -18 ? '夕暮れ・明け方' : '夜';
+  const phase = sa > 0 ? '昼' : sa > -6 ? '薄明' : sa > -18 ? (new Date().getHours() < 12 ? '明け方' : '夕暮れ') : '夜';
   document.getElementById('skyInfo').textContent =
     `${phase}・月齢${age.toFixed(1)}（${moonName(age)}）・月は${sk.moon.alt > 0 ? `${azName(sk.moon.az)}の空 高さ${Math.round(sk.moon.alt)}°` : '地平線の下'}`;
 }
 function aimDefault(){
   if(SKYV.aimed) return; SKYV.aimed = true;
-  const sk = skyNow(), k = wKind(), clear = k === 'clear' || k === 'cloudy';
+  const sk = skyNow(), clear = true;
   SKYV.A0 = clear && sk.moon.alt > 3 ? sk.moon.az : clear && sk.sun.alt > -4 ? sk.sun.az : 180;
 }
 return {
   init(){ setupUI(); },
   setLoc(lat, lon){ if(lat != null){ ENV.lat = lat; ENV.lon = lon; SKY_C = null; } aimDefault(); },
+  terrain(lat, lon){ return loadTerrain(lat, lon); },
   setWeather(code, wind){ ENV.code = code; if(wind != null) ENV.wx.wind = wind; }
 };
 })();
@@ -1063,7 +1115,7 @@ function wareki(d){
 let CAL_DAY = "";
 function tickClock(){
   const d = new Date();
-  $("#calClock").textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  $("#calClock").textContent = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   if(d.toDateString() !== CAL_DAY){ CAL_DAY = d.toDateString(); renderCal(d); }
 }
 function renderCal(d){
@@ -1142,13 +1194,28 @@ async function loadWikiDay(d){
   }catch(e){}
 }
 
+/* ---------- 標高 ---------- */
+let PLACE_DEMO = false;
+async function loadElevation(){
+  let e = null;
+  if(!FORCE_DEMO){
+    try{ const j = await getJSON(`https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=${S.lon}&lat=${S.lat}&outtype=JSON`); if(j && j.elevation !== "-----" && !isNaN(+j.elevation)) e = +j.elevation; }catch(_){}
+    if(e == null){ try{ const r = await Sky.terrain(S.lat, S.lon); e = r.elev; }catch(_){} }
+    else Sky.terrain(S.lat, S.lon).catch(() => {});
+    if(e == null && S.gpsAlt != null && !S.demoLoc) e = S.gpsAlt;
+  }
+  S.elevText = e == null ? "" : `約${Math.round(e)}m`;
+  renderPlace(PLACE_DEMO);
+}
+
 /* ---------- 全体 ---------- */
 let loading = false;
 async function loadAll(){
   if(loading) return; loading = true;
   $("#refresh").disabled = true;
-  renderPlace(false);
+  S.elevText = ""; renderPlace(false);
   Sky.setLoc(S.lat, S.lon);
+  const pElev = loadElevation();
   const pPlace = (async () => {
     let placeDemo = false;
     if(S.demoLoc){ applyDemoPlace(); }
@@ -1156,7 +1223,7 @@ async function loadAll(){
       try{ await resolvePlace(); }
       catch(e){ applyDemoPlace(); placeDemo = true; S.locMsg = (S.locMsg || "") + "地名を特定できなかったため、地域情報はサンプル（東京都千代田区）で表示しています。"; }
     }
-    renderPlace(placeDemo);
+    PLACE_DEMO = placeDemo; renderPlace(placeDemo);
   })();
   await Promise.allSettled([
     loadWeather(),
