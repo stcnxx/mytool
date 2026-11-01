@@ -20,6 +20,9 @@ html,body{margin:0;background:var(--bg);color:var(--text);
   font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;line-height:1.5}
 header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--card) 82%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:12px 16px 8px;border-bottom:1px solid var(--line)}
 #bg{position:fixed;inset:0;z-index:-1;transition:background 2s}
+main>.sky-strip{height:110px;margin:-12px -16px -4px}
+.card{background:color-mix(in srgb,var(--card) 90%,transparent)}
+#bgc{position:absolute;inset:0;width:100%;height:100%;display:block}
 body{background:transparent}
 .hrow{display:flex;align-items:center;gap:8px;justify-content:space-between}
 h1{font-size:1.15rem;margin:0;display:flex;align-items:center;gap:6px}
@@ -61,7 +64,7 @@ td.d{text-align:left}
 .list{list-style:none;margin:0;padding:0}
 .list li{padding:8px 0;border-bottom:1px solid var(--line)}
 .list li:last-child{border-bottom:none}
-.scale{display:inline-block;min-width:2.6em;text-align:center;border-radius:6px;padding:0 6px;font-weight:700;margin-right:6px}
+.scale{display:inline-block;text-align:center;border-radius:5px;padding:1px 6px;font-size:.72rem;font-weight:700;margin-right:6px;vertical-align:2px;white-space:nowrap}
 .s1{background:#e0f2fe;color:#075985}.s3{background:#bbf7d0;color:#14532d}.s4{background:#fef08a;color:#713f12}
 .s5{background:#fb923c;color:#fff}.s6{background:#dc2626;color:#fff}.s7{background:#7e22ce;color:#fff}
 .banner{border-radius:12px;padding:12px 14px;color:#fff;background:var(--alert);font-weight:600}
@@ -80,6 +83,9 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 .cal-sec{margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
 .cal-h{font-size:.75rem;color:var(--muted);margin-bottom:2px}
 .plist{list-style:none;margin:0;padding:0;font-size:.9rem}.plist li{padding:2px 0}
+.plist li.anv{padding:6px 0;border-bottom:1px solid var(--line)}.plist li.anv:last-child{border-bottom:none}
+.anv-d{font-size:.8rem;color:#2f6f8f;margin-top:2px;line-height:1.45}
+@media (prefers-color-scheme: dark){.anv-d{color:#8cc4de}}
 .chip{display:inline-block;border-radius:8px;padding:2px 8px;margin:2px 4px 2px 0;font-size:.8rem;background:var(--chip)}
 .chip b{margin-left:4px}.st-ok b{color:var(--ok)}.st-bad{background:#fee2e2;color:#991b1b}.st-bad b{color:#dc2626}.st-unk b{color:var(--muted)}
 #skyCard{padding:0;overflow:hidden}
@@ -101,7 +107,7 @@ footer{max-width:928px;margin:0 auto 30px;padding:12px 16px;font-size:.75rem;col
 </style>
 </head>
 <body>
-<div id="bg"></div>
+<div id="bg"><canvas id="bgc"></canvas></div>
 <header>
   <div class="hrow">
     <h1><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.6 2 4 5.5 4 9.9c0 5.6 6.6 11.3 7.3 11.9.4.3 1 .3 1.4 0 .7-.6 7.3-6.3 7.3-11.9C20 5.5 16.4 2 12 2z" fill="#e53935"/><circle cx="12" cy="9.8" r="3.2" fill="#fff"/></svg>現在位置</h1>
@@ -117,6 +123,7 @@ footer{max-width:928px;margin:0 auto 30px;padding:12px 16px;font-size:.75rem;col
   <div id="mapNote" class="muted"></div>
 </div>
 <main>
+  <div class="sky-strip wide" aria-hidden="true"></div>
   <section class="card wide" id="calCard">
     <div id="calDate" class="cal-date"></div>
     <div id="calClock" class="cal-clock"></div>
@@ -534,9 +541,11 @@ async function loadQuakes(){
       const dist = (hy.latitude > -200 && S.lat != null) ? Math.round(distKm(S.lat,S.lon,hy.latitude,hy.longitude)) : null;
       const mine = S.prefName ? (q.points || []).filter(p => p.pref === S.prefName).reduce((m,p) => Math.max(m,p.scale), 0) : 0;
       const tsu = { "Checking":"津波調査中", "NonEffective":"若干の海面変動", "Watch":"津波注意報", "Warning":"津波警報" }[e.domesticTsunami] || "";
-      return `<li><span class="scale ${scaleCls(e.maxScale)}">${SCALE[e.maxScale] || "?"}</span>
+      const qd = new Date(e.time.replace(/\//g, "-").replace(" ", "T") + "+09:00");
+      const when = isNaN(qd) ? e.time.slice(5,16) : `${qd.getMonth()+1}/${qd.getDate()}(${WD[qd.getDay()]}) ${pad(qd.getHours())}:${pad(qd.getMinutes())}`;
+      return `<li><span class="scale ${scaleCls(e.maxScale)}">${hy.magnitude > 0 ? `M${hy.magnitude.toFixed(1)}` : "M不明"}/震度${SCALE[e.maxScale] || "?"}</span>
         <b>${esc(hy.name || "震源調査中")}</b>
-        <div class="muted">${esc(e.time.slice(5,16))}${hy.magnitude > 0 ? ` M${hy.magnitude}` : ""}${hy.depth > 0 ? ` 深さ${hy.depth}km` : hy.depth === 0 ? " ごく浅い" : ""}${dist != null ? ` ・ 約${dist}km` : ""}${mine ? ` ・ ${esc(S.prefName)}で震度${SCALE[mine] || "?"}` : ""}${tsu ? ` ・ <b>${tsu}</b>` : ""}</div></li>`;
+        <div class="muted">${esc(when)}${hy.depth > 0 ? ` 深さ${hy.depth}km` : hy.depth === 0 ? " ごく浅い" : ""}${dist != null ? ` ・ 約${dist}km` : ""}${mine ? ` ・ ${esc(S.prefName)}で震度${SCALE[mine] || "?"}` : ""}${tsu ? ` ・ <b>${tsu}</b>` : ""}</div></li>`;
     }).join("") + "</ul>";
   markDemo("quake", "#quakeH", demo);
 
@@ -1078,6 +1087,9 @@ function aimDefault(){
 return {
   init(){ setupUI(); },
   sunAlt(){ return skyNow().sun.alt; },
+  moonInfo(){ const sk = skyNow(); return { alt:sk.moon.alt, frac:sk.frac, wax:sk.wax }; },
+  bgMoon(ctx, cx, cy, r, a, isDay){ const sk = skyNow(), age = moonAge(now());
+    moonDraw(ctx, cx, cy, r, { frac:sk.frac, limb:age < 14.765 ? Math.PI/2 : -Math.PI/2, rot:0, day:!!isDay, glow:isDay ? .2 : .6*a, alpha:a, ts:192, pxs:Math.min(2, DPR || 1) }); },
   setLoc(lat, lon){ if(lat != null){ ENV.lat = lat; ENV.lon = lon; SKY_C = null; } aimDefault(); },
   terrain(lat, lon){ return loadTerrain(lat, lon); },
   setWeather(code, wind){ ENV.code = code; if(wind != null) ENV.wx.wind = wind; }
@@ -1221,10 +1233,15 @@ async function loadWikiDay(d){
   try{
     const doc = await wikiSection(page, /記念日|年中行事/);
     if(!doc) return;
-    const items = leafItems(doc).map(li => li.textContent.replace(/\s+/g, " ").trim().split(/\s*[-‐–―]\s*/)[0]).filter(t => t && t.length <= 40);
-    const jp = items.filter(t => /日本/.test(t)), rest = items.filter(t => !/日本/.test(t));
+    const items = [...doc.querySelectorAll("li")].filter(li => !li.parentElement.closest("li")).map(li => {
+      const c = li.cloneNode(true), dd = [...c.querySelectorAll("dl,ul")].map(e => { e.remove(); return e.textContent; }).join(" ");
+      let name = c.textContent.replace(/\s+/g, " ").trim(), desc = dd.replace(/\s+/g, " ").trim();
+      const m = name.match(/^(.+?)\s*[-‐–―：:]\s+(.+)$/); if(m && !desc){ name = m[1]; desc = m[2]; }
+      return { name, desc };
+    }).filter(t => t.name && t.name.length <= 40);
+    const jp = items.filter(t => /日本/.test(t.name)), rest = items.filter(t => !/日本/.test(t.name));
     const show = [...jp, ...rest].slice(0, 30);
-    if(show.length) $("#calAnnivMore").innerHTML = `<details style="margin-top:4px"><summary class="muted">ほかの記念日・行事（${items.length}件）</summary><ul class="plist" style="margin-top:4px">${show.map(t => `<li>${esc(t)}</li>`).join("")}</ul></details>`;
+    if(show.length) $("#calAnnivMore").innerHTML = `<details style="margin-top:4px"><summary class="muted">ほかの記念日・行事（${items.length}件）</summary><ul class="plist" style="margin-top:4px">${show.map(t => `<li class="anv"><div>${esc(t.name)}</div>${t.desc ? `<div class="anv-d">${esc(t.desc)}</div>` : ""}</li>`).join("")}</ul></details>`;
   }catch(e){}
 }
 
@@ -1324,6 +1341,7 @@ function drawMapFallback(lat, lon){
 
 /* ---------- 背景：いまの天気と日の明るさ ---------- */
 let W_CODE = null;
+const BG_STATE = { kind:"clear", sa:30 };
 const hx = h => [1,3,5].map(i => parseInt(h.slice(i, i+2), 16));
 const mx = (a, b, t) => a.map((v, i) => v + (b[i] - v)*t);
 const css = c => `rgb(${c.map(v => Math.round(Math.max(0, Math.min(255, v)))).join(",")})`;
@@ -1338,6 +1356,7 @@ function updateBg(){
   const kind = c == null ? "clear" : c <= 1 ? "clear" : c <= 3 ? "cloudy" : (c === 45 || c === 48) ? "fog"
     : ((c >= 71 && c <= 77) || c === 85 || c === 86) ? "snow" : c >= 95 ? "thunder" : "rain";
   const day = Math.max(0, Math.min(1, (sa + 6)/16));
+  BG_STATE.kind = kind; BG_STATE.sa = sa; if(BGA.reduce && BGA.x) bgFrame(performance.now());
   if(kind === "cloudy"){ top = gray(top, .5); bot = gray(bot, .45); }
   if(kind === "rain"){ top = mx(gray(top, .7), [0,0,0], .2); bot = mx(gray(bot, .65), [0,0,0], .15); }
   if(kind === "thunder"){ top = mx(gray(top, .6), [30,20,50], .45); bot = mx(gray(bot, .6), [20,15,35], .35); }
@@ -1347,6 +1366,101 @@ function updateBg(){
   document.documentElement.style.setProperty("--page-dark", lum(mx(top, bot, .5)) < 110 ? "1" : "0");
 }
 setInterval(updateBg, 60000);
+
+/* ---------- 背景アニメーション：昼の雲・雨・雪・霧・雷、夜の星と月（月齢どおりの形） ---------- */
+const BGA = { c:null, x:null, W:0, H:0, dpr:1, clouds:[], drops:[], flakes:[], stars:[], spr:{}, raf:0, last:0, flash:0, nextFlash:6, reduce:false };
+function bgCloudSprite(col){
+  if(BGA.spr[col]) return BGA.spr[col];
+  const w = 420, h = 170, cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+  const g = cv.getContext("2d"), [r, gg, b] = hx(col);
+  const puffs = [[.22,.62,.2],[.38,.48,.26],[.55,.42,.3],[.72,.52,.24],[.86,.64,.17],[.5,.66,.28],[.32,.68,.2],[.68,.68,.22]];
+  for(const [px, py, pr] of puffs){
+    const R = pr*w*.55, gr = g.createRadialGradient(px*w, py*h, R*.15, px*w, py*h, R);
+    gr.addColorStop(0, `rgba(${r},${gg},${b},.55)`); gr.addColorStop(.6, `rgba(${r},${gg},${b},.28)`); gr.addColorStop(1, `rgba(${r},${gg},${b},0)`);
+    g.fillStyle = gr; g.beginPath(); g.arc(px*w, py*h, R, 0, Math.PI*2); g.fill();
+  }
+  return (BGA.spr[col] = cv);
+}
+function bgResize(){
+  const c = BGA.c, dpr = BGA.dpr = Math.min(1.5, devicePixelRatio || 1);
+  BGA.W = innerWidth; BGA.H = innerHeight; c.width = BGA.W*dpr; c.height = BGA.H*dpr;
+  BGA.x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const area = BGA.W*BGA.H;
+  BGA.stars = Array.from({ length:Math.round(area/2600) }, () => ({ x:Math.random(), y:Math.pow(Math.random(), 1.4)*.85, r:Math.random()*1.1 + .3, p:Math.random()*6, s:.8 + Math.random()*2 }));
+  BGA.drops = Array.from({ length:Math.round(area/2400) }, () => ({ x:Math.random()*BGA.W*1.2, y:Math.random()*BGA.H, v:.8 + Math.random()*.5, l:10 + Math.random()*10 }));
+  BGA.flakes = Array.from({ length:Math.round(area/4500) }, () => ({ x:Math.random()*BGA.W, y:Math.random()*BGA.H, v:.5 + Math.random(), r:1 + Math.random()*2.2, p:Math.random()*6 }));
+  BGA.clouds = Array.from({ length:12 }, (_, i) => ({ x:Math.random()*(BGA.W + 500) - 250, y:(i < 4 ? 70 + i*22 : (i % 6)/6*BGA.H*.55) + Math.random()*30 - 15, s:.55 + Math.random()*.7, v:6 + Math.random()*10 }));
+}
+function bgFrame(t){
+  const { x, W, H } = BGA, { kind, sa } = BG_STATE, dt = Math.min(.1, (t - (BGA.last || t))/1000); BGA.last = t;
+  x.clearRect(0, 0, W, H);
+  const dark = Math.max(0, Math.min(1, (-sa - 2)/10)), day = 1 - dark;
+  const wet = kind === "rain" || kind === "thunder", clearish = kind === "clear" || kind === "cloudy";
+  // 太陽のにじみ（晴れの昼）
+  if(kind === "clear" && sa > -2){
+    const hh = (document.querySelector('header')?.offsetHeight || 90), sx = W*.22, sy = hh + 40, R = Math.max(W, H)*.55, g = x.createRadialGradient(sx, sy, 0, sx, sy, R);
+    g.addColorStop(0, `rgba(255,250,225,${.55*day})`); g.addColorStop(.12, `rgba(255,240,200,${.22*day})`); g.addColorStop(1, "rgba(255,240,200,0)");
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+  }
+  // 星
+  if(clearish && dark > 0){
+    const a = dark*(kind === "cloudy" ? .35 : 1);
+    x.fillStyle = "#fff";
+    for(const s of BGA.stars){ x.globalAlpha = a*(.45 + .55*Math.abs(Math.sin(t/1000*s.s*.6 + s.p))); x.beginPath(); x.arc(s.x*W, s.y*H, s.r, 0, Math.PI*2); x.fill(); }
+    x.globalAlpha = 1;
+  }
+  // 月（月が地平線より上のとき。昼は薄く）
+  if(clearish){ try{ const m = Sky.moonInfo(); if(m.alt > 0){ const r = Math.min(30, W*.065); Sky.bgMoon(x, W*.78, (document.querySelector('header')?.offsetHeight || 90) + 55, r, (kind === "cloudy" ? .6 : 1)*(dark > 0 ? 1 : .7), dark < .3); } }catch(_){} }
+  // 雲
+  const nC = { clear:dark > 0 ? 2 : 4, cloudy:10, rain:12, thunder:12, snow:9, fog:0 }[kind] ?? 4;
+  const col = wet ? (dark > .5 ? "#2a3040" : "#6b7480") : kind === "snow" ? "#e6eaef" : dark > .5 ? "#3a4466" : kind === "cloudy" ? "#e9edf2" : "#ffffff";
+  const spr = bgCloudSprite(col), ca = kind === "clear" ? .75 : .95;
+  for(let i=0; i<nC; i++){
+    const c = BGA.clouds[i]; c.x += c.v*(wet ? 1.8 : 1)*dt; if(c.x > W + 260) c.x = -460*c.s;
+    const w = 420*c.s*(W < 600 ? .8 : 1.1), h = w*170/420;
+    x.globalAlpha = ca; x.drawImage(spr, c.x, c.y, w, h);
+  }
+  x.globalAlpha = 1;
+  // 雨
+  if(wet){
+    x.strokeStyle = dark > .5 ? "rgba(170,190,220,.45)" : "rgba(235,242,250,.55)"; x.lineWidth = 1.1; x.beginPath();
+    for(const d of BGA.drops){ d.y += 720*d.v*dt; d.x -= 140*d.v*dt; if(d.y > H){ d.y = -20; d.x = Math.random()*W*1.2; } x.moveTo(d.x, d.y); x.lineTo(d.x - d.l*.2, d.y + d.l); }
+    x.stroke();
+  }
+  // 雪
+  if(kind === "snow"){
+    x.fillStyle = "rgba(255,255,255,.9)";
+    for(const f of BGA.flakes){ f.y += 38*f.v*dt; f.x += Math.sin(t/1000 + f.p)*12*dt; if(f.y > H){ f.y = -5; f.x = Math.random()*W; } x.beginPath(); x.arc(f.x, f.y, f.r, 0, Math.PI*2); x.fill(); }
+  }
+  // 霧
+  if(kind === "fog"){
+    for(let i=0; i<4; i++){
+      const y = H*(.25 + i*.2), off = ((t/1000*(8 + i*4)) % (W*2)) - W;
+      const g = x.createLinearGradient(0, y - 60, 0, y + 60); g.addColorStop(0, "rgba(235,238,242,0)"); g.addColorStop(.5, `rgba(235,238,242,${.35 - i*.04})`); g.addColorStop(1, "rgba(235,238,242,0)");
+      x.fillStyle = g; x.fillRect(off - W, y - 60, W*3, 120);
+    }
+  }
+  // 雷
+  if(kind === "thunder"){
+    BGA.nextFlash -= dt; if(BGA.nextFlash <= 0){ BGA.flash = .35; BGA.nextFlash = 5 + Math.random()*10; }
+    if(BGA.flash > 0){ x.fillStyle = `rgba(255,255,255,${BGA.flash})`; x.fillRect(0, 0, W, H); BGA.flash -= dt*1.6; }
+  }
+}
+function bgLoop(){
+  cancelAnimationFrame(BGA.raf);
+  if(BGA.reduce || document.visibilityState !== "visible"){ bgFrame(performance.now()); return; }
+  let prev = 0;
+  const step = t => { if(t - prev >= 33){ prev = t; try{ bgFrame(t); }catch(e){ console.error(e); } } BGA.raf = requestAnimationFrame(step); };
+  BGA.raf = requestAnimationFrame(step);
+}
+function bgInit(){
+  BGA.c = $("#bgc"); BGA.x = BGA.c.getContext("2d");
+  BGA.reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  bgResize(); addEventListener("resize", () => { bgResize(); bgFrame(performance.now()); });
+  document.addEventListener("visibilitychange", bgLoop);
+  bgLoop();
+}
+
 
 /* ---------- 標高 ---------- */
 let PLACE_DEMO = false;
@@ -1391,6 +1505,7 @@ $("#refresh").onclick = () => { S.locMsg = ""; locate(); };
 setInterval(() => { if(document.visibilityState === "visible" && S.lat != null) loadAll(); }, 10*60*1000);
 Sky.init();
 updateBg();
+bgInit();
 setupOdptUI();
 $("#mapBtn").onclick = openMap; $("#mapClose").onclick = closeMap;
 tickClock(); setInterval(tickClock, 1000);
