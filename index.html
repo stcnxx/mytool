@@ -174,7 +174,7 @@ footer{background:none!important}
 </header>
 
 <div id="mapSheet" hidden>
-  <div class="map-head"><b>現在位置と昼夜</b><span style="display:flex;gap:6px"><button id="mapNear">周辺</button><button id="mapWorld">世界</button><button id="mapClose">閉じる</button></span></div>
+  <div class="map-head"><b id="mapTitle">現在位置と昼夜</b><span style="display:flex;gap:6px"><button id="mapNear">周辺</button><button id="mapWorld">世界</button><button id="mapClose">閉じる</button></span></div>
   <div id="mapBox"></div>
   <div id="rainBar" hidden><button id="rainPlay" aria-label="再生">▶</button><input type="range" id="rainSlider" min="0" max="0" value="0"><span id="rainTime"></span></div>
   <div id="rainLegend" hidden><span>弱</span><i style="background:#f2f2ff"></i><i style="background:#a0d2ff"></i><i style="background:#218cff"></i><i style="background:#0041ff"></i><i style="background:#fff500"></i><i style="background:#ff9900"></i><i style="background:#ff2800"></i><i style="background:#b40068"></i><span>強</span><span class="muted" style="margin-left:6px">1〜80mm/h以上</span></div>
@@ -1417,7 +1417,7 @@ function nightPolygon(d, h){
   return [[pole, -540], ...pts, [pole, 540]];
 }
 function drawDayNight(){
-  if(!MAP.map) return;
+  if(!MAP.map || RAIN.on) return;
   const d = new Date(), m = MAP.map;
   MAP.layers.forEach(l => l.remove()); MAP.layers = [];
   // 夜の濃さ：日没〜薄明〜夜の4段階を重ねてなめらかに
@@ -1458,7 +1458,7 @@ async function openMap(opts){
       MAP.earth = L.tileLayer("https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/BlueMarble_ShadedRelief_Bathymetry/default/GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpeg",
         { pane:"earth", maxNativeZoom:8, maxZoom:19, attribution:'Blue Marble: NASA' }).addTo(m);
       m.createPane("nightTint").style.zIndex = 300;
-      const bases = {}; for(const k in BASES) bases[BASES[k].name] = L.tileLayer(BASES[k].url, { ...BASES[k].opt, detectRetina:false });
+      const bases = MAP.bases = {}; for(const k in BASES) bases[BASES[k].name] = L.tileLayer(BASES[k].url, { ...BASES[k].opt, detectRetina:false });
       let pick = "std"; try{ pick = localStorage.getItem("mapBase") || "std"; }catch(_){}
       (bases[(BASES[pick] || BASES.std).name]).addTo(m);
       MAP.ctl = L.control.layers(bases, null, { position:"topright", collapsed:true }).addTo(m);
@@ -1529,7 +1529,24 @@ function rainPlay(){
   const step = () => { const last = RAIN.idx >= RAIN.frames.length - 1; rainShow(RAIN.idx + 1); RAIN.timer = setTimeout(step, last ? 700 : RAIN.idx === RAIN.frames.length - 1 ? 1600 : 450); };
   step();
 }
+// 雨雲を見ている間は、昼夜の重ね合わせを消して標準の地図にする
+function rainMode(on){
+  const m = MAP.map; if(!m) return;
+  for(const p of ["earth", "lights", "nightTint"]){ const el = m.getPane(p); if(el) el.style.display = on ? "none" : ""; }
+  const sun = MAP.sunMk && MAP.sunMk.getElement(); if(sun) sun.style.display = on ? "none" : "";
+  const std = MAP.bases[BASES.std.name];
+  $("#mapTitle").textContent = on ? "雨雲の動き" : "現在位置と昼夜";
+  if(on){
+    MAP.prevBase = Object.values(MAP.bases).find(l => m.hasLayer(l));
+    if(MAP.prevBase !== std){ if(MAP.prevBase) m.removeLayer(MAP.prevBase); std.addTo(m); }
+    $("#mapNote").textContent = "気象庁の高解像度降水ナウキャストを表示しています（日本国内のみ）。";
+  }else{
+    if(MAP.prevBase && MAP.prevBase !== std && !m.hasLayer(MAP.prevBase)){ m.removeLayer(std); MAP.prevBase.addTo(m); }
+    MAP.prevBase = null; drawDayNight();
+  }
+}
 async function rainOn(){
+  rainMode(true);
   RAIN.on = true; $("#rainBar").hidden = false; $("#rainLegend").hidden = false; $("#rainTime").textContent = "読み込み中…";
   try{
     if(!RAIN.frames.length || Date.now() - (RAIN.at || 0) > 5*60e3){
@@ -1538,7 +1555,8 @@ async function rainOn(){
     }
     if(!RAIN.on) return;
     $("#rainSlider").max = RAIN.frames.length - 1;
-    const m = MAP.map; if(m.getZoom() < 5) m.setView([S.lat ?? DEMO_PLACE.lat, S.lon ?? DEMO_PLACE.lon], 7);
+    // 雨雲データが一番細かく見える拡大率（約250m単位）で現在地を表示
+    MAP.map.setView([S.lat ?? DEMO_PLACE.lat, S.lon ?? DEMO_PLACE.lon], 10);
     rainShow(RAIN.frames.filter(f => !f.fc).length - 1);   // 最新の実況から
   }catch(e){
     $("#rainTime").textContent = "雨雲のデータを取得できませんでした";
@@ -1546,6 +1564,7 @@ async function rainOn(){
 }
 function rainOff(){
   RAIN.on = false; rainStop();
+  rainMode(false);
   for(const k in RAIN.layers) RAIN.layers[k].remove(); RAIN.layers = {};
   $("#rainBar").hidden = true; $("#rainLegend").hidden = true;
 }
