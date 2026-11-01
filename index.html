@@ -75,6 +75,16 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 #mapSheet[hidden]{display:none}
 #mapSheet .map-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px}
 #mapBox{flex:1;min-height:0;background:#aad3df}
+#rainBar{display:flex;align-items:center;gap:10px;padding:8px 16px 0}
+#rainBar[hidden],#rainLegend[hidden]{display:none}
+#rainBar input{flex:1;accent-color:#60a5fa}
+#rainBar #rainPlay{width:44px;flex:none}
+#rainTime{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.9rem}
+.rain-ob,.rain-fc{font-size:.7rem;border-radius:5px;padding:0 5px;margin-left:4px}
+.rain-ob{background:#334155}.rain-fc{background:#b45309}
+#rainLegend{display:flex;align-items:center;gap:2px;padding:6px 16px 0;font-size:.75rem}
+#rainLegend i{display:inline-block;width:18px;height:10px}
+#rainLegend span{margin:0 4px}
 #mapNote{padding:8px 16px 16px;font-size:.8rem;text-shadow:none}
 #mapSheet{background:#0f172a;color:#e5e7eb;text-shadow:none}#mapSheet .muted{color:#cbd5e1}
 #mapSheet button{background:#1e293b;color:#fff;border-color:#334155}
@@ -166,6 +176,8 @@ footer{background:none!important}
 <div id="mapSheet" hidden>
   <div class="map-head"><b>現在位置と昼夜</b><span style="display:flex;gap:6px"><button id="mapNear">周辺</button><button id="mapWorld">世界</button><button id="mapClose">閉じる</button></span></div>
   <div id="mapBox"></div>
+  <div id="rainBar" hidden><button id="rainPlay" aria-label="再生">▶</button><input type="range" id="rainSlider" min="0" max="0" value="0"><span id="rainTime"></span></div>
+  <div id="rainLegend" hidden><span>弱</span><i style="background:#f2f2ff"></i><i style="background:#a0d2ff"></i><i style="background:#218cff"></i><i style="background:#0041ff"></i><i style="background:#fff500"></i><i style="background:#ff9900"></i><i style="background:#ff2800"></i><i style="background:#b40068"></i><span>強</span><span class="muted" style="margin-left:6px">1〜80mm/h以上</span></div>
   <div id="mapNote" class="muted"></div>
 </div>
 <main>
@@ -494,6 +506,7 @@ function renderWeather(w, demo){
     <div class="now">
       <div class="icon">${ic}</div>
       <div><div class="temp">${Math.round(c.temperature_2m*10)/10}℃</div><div>${tx}・体感 ${Math.round(c.apparent_temperature)}℃</div></div>
+      <button class="mapbtn rainbtn" type="button">☔ 雨雲を見る</button>
       <div class="muted">今日 <span class="hi">${Math.round(d.temperature_2m_max[0])}℃</span> / <span class="lo">${Math.round(d.temperature_2m_min[0])}℃</span></div>
     </div>
     <div class="grid">
@@ -510,6 +523,7 @@ function renderWeather(w, demo){
     <div class="sub-h">大気の状態</div>
     <div class="grid" id="aqGrid"><div class="muted">読み込み中…</div></div>`;
   loadAir(demo);
+  $("#weather .rainbtn").onclick = () => openMap({ rain:true });
 
   let i0 = h.time.findIndex(t => t >= c.time.slice(0,13));
   if(i0 < 0) i0 = 0;
@@ -1430,7 +1444,7 @@ const BASES = {
   pale:{ name:"地理院 淡色", url:"https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png", opt:{ maxZoom:18, attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html">地理院タイル</a>' } },
   sat:{ name:"衛星写真", url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", opt:{ maxZoom:19, attribution:'Tiles &copy; Esri &mdash; Maxar, Earthstar Geographics' } }
 };
-async function openMap(){
+async function openMap(opts){
   $("#mapSheet").hidden = false;
   const lat = S.lat ?? DEMO_PLACE.lat, lon = S.lon ?? DEMO_PLACE.lon;
   try{
@@ -1447,7 +1461,7 @@ async function openMap(){
       const bases = {}; for(const k in BASES) bases[BASES[k].name] = L.tileLayer(BASES[k].url, { ...BASES[k].opt, detectRetina:false });
       let pick = "std"; try{ pick = localStorage.getItem("mapBase") || "std"; }catch(_){}
       (bases[(BASES[pick] || BASES.std).name]).addTo(m);
-      L.control.layers(bases, null, { position:"topright" }).addTo(m);
+      MAP.ctl = L.control.layers(bases, null, { position:"topright", collapsed:true }).addTo(m);
       m.on("baselayerchange", e => { const k = Object.keys(BASES).find(k => BASES[k].name === e.name); try{ localStorage.setItem("mapBase", k); }catch(_){} });
       // 夜側の街明かり（NASA Black Marble）
       MAP.lights = L.tileLayer("https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png",
@@ -1456,6 +1470,12 @@ async function openMap(){
       // 拡大したら街明かりを消し、夜の影も薄くして道や地名を読めるようにする
       const fade = () => { const z = m.getZoom(); MAP.lights.setOpacity(z <= 4 ? .95 : z >= 7 ? 0 : .95*(7 - z)/3); MAP.earth.setOpacity(z <= 4 ? 1 : z >= 7 ? 0 : (7 - z)/3); m.getPane("nightTint").style.opacity = z >= 9 ? .4 : z >= 6 ? .7 : 1; };
       m.on("zoomend", fade); fade();
+      // 雨雲（気象庁）
+      m.createPane("rain").style.zIndex = 320;
+      RAIN.toggle = L.layerGroup();
+      MAP.ctl.addOverlay(RAIN.toggle, "雨雲（気象庁）");
+      m.on("layeradd", e => { if(e.layer === RAIN.toggle) rainOn(); });
+      m.on("layerremove", e => { if(e.layer === RAIN.toggle) rainOff(); });
     }
     const m = MAP.map; m.invalidateSize();
     if(MAP.marker) MAP.marker.remove(); if(MAP.acc) MAP.acc.remove();
@@ -1465,10 +1485,71 @@ async function openMap(){
     m.setView([lat, lon], m.getZoom());
     drawDayNight();
     clearInterval(MAP.timer); MAP.timer = setInterval(drawDayNight, 60000);
-  }catch(e){ drawMapFallback(lat, lon); }
+    if(opts && opts.rain){ if(!m.hasLayer(RAIN.toggle)) RAIN.toggle.addTo(m); else rainOn(); }
+  }catch(e){ drawMapFallback(lat, lon); if(opts && opts.rain) $("#mapNote").textContent += "（雨雲は地図が読み込めるときに表示できます）"; }
 }
 function mapZoom(z){ if(!MAP.map) return; const lat = S.lat ?? DEMO_PLACE.lat, lon = S.lon ?? DEMO_PLACE.lon; MAP.map.flyTo([lat, lon], z, { duration:.8 }); }
-function closeMap(){ $("#mapSheet").hidden = true; clearInterval(MAP.timer); }
+function closeMap(){ $("#mapSheet").hidden = true; clearInterval(MAP.timer); rainStop(); }
+/* ---------- 雨雲の動き（気象庁 高解像度降水ナウキャスト）：過去3時間＋1時間先まで ---------- */
+const NOWC = "https://www.jma.go.jp/bosai/jmatile/data/nowc/";
+const JP_BOUNDS = [[20, 118], [50, 156]];
+const RAIN = { frames:[], layers:{}, idx:0, timer:0, toggle:null, on:false };
+function jmaTime(s){ return new Date(Date.UTC(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8), +s.slice(8,10), +s.slice(10,12))); }
+async function rainFrames(){
+  const [n1, n2] = await Promise.all([getJSON(NOWC + "targetTimes_N1.json", { proxy:true }), getJSON(NOWC + "targetTimes_N2.json", { proxy:true }).catch(() => [])]);
+  const has = t => !t.elements || t.elements.includes("hrpns");
+  const by = (a, b) => a.validtime < b.validtime ? -1 : a.validtime > b.validtime ? 1 : 0;
+  const past = n1.filter(has).sort(by); if(!past.length) throw new Error("実況なし");
+  const last = past[past.length-1], lastT = jmaTime(last.validtime);
+  // 1時間より前は10分ごとに間引く
+  const pastSel = past.filter(t => { const tt = jmaTime(t.validtime); return lastT - tt <= 3600e3 || tt.getUTCMinutes() % 10 === 0; });
+  const fut = n2.filter(has).filter(t => t.validtime > last.validtime).sort(by);
+  return [...pastSel.map(t => ({ ...t, fc:false })), ...fut.map(t => ({ ...t, fc:true }))];
+}
+function rainLayer(i){
+  if(RAIN.layers[i]) return RAIN.layers[i];
+  const f = RAIN.frames[i];
+  return (RAIN.layers[i] = L.tileLayer(`${NOWC}${f.basetime}/none/${f.validtime}/surf/hrpns/{z}/{x}/{y}.png`,
+    { pane:"rain", opacity:0, minNativeZoom:3, maxNativeZoom:10, maxZoom:19, bounds:JP_BOUNDS, attribution:'雨雲: <a href="https://www.jma.go.jp/bosai/nowc/">気象庁</a>' }).addTo(MAP.map));
+}
+function rainShow(i){
+  const n = RAIN.frames.length; if(!n) return;
+  RAIN.idx = i = (i + n) % n;
+  rainLayer(i).setOpacity(.8);
+  for(const k in RAIN.layers) if(+k !== i) RAIN.layers[k].setOpacity(0);
+  if(i + 1 < n) rainLayer(i + 1);                     // 次のコマを先読み
+  const f = RAIN.frames[i], t = jmaTime(f.validtime);
+  $("#rainSlider").value = i;
+  $("#rainTime").innerHTML = `${t.getMonth()+1}/${t.getDate()} ${pad(t.getHours())}:${pad(t.getMinutes())} <span class="${f.fc ? "rain-fc" : "rain-ob"}">${f.fc ? "予報" : "実況"}</span>`;
+}
+function rainStop(){ clearTimeout(RAIN.timer); RAIN.timer = 0; $("#rainPlay").textContent = "▶"; }
+function rainPlay(){
+  if(RAIN.timer){ rainStop(); return; }
+  $("#rainPlay").textContent = "❚❚";
+  const step = () => { const last = RAIN.idx >= RAIN.frames.length - 1; rainShow(RAIN.idx + 1); RAIN.timer = setTimeout(step, last ? 700 : RAIN.idx === RAIN.frames.length - 1 ? 1600 : 450); };
+  step();
+}
+async function rainOn(){
+  RAIN.on = true; $("#rainBar").hidden = false; $("#rainLegend").hidden = false; $("#rainTime").textContent = "読み込み中…";
+  try{
+    if(!RAIN.frames.length || Date.now() - (RAIN.at || 0) > 5*60e3){
+      for(const k in RAIN.layers) RAIN.layers[k].remove(); RAIN.layers = {};
+      RAIN.frames = await rainFrames(); RAIN.at = Date.now();
+    }
+    if(!RAIN.on) return;
+    $("#rainSlider").max = RAIN.frames.length - 1;
+    const m = MAP.map; if(m.getZoom() < 5) m.setView([S.lat ?? DEMO_PLACE.lat, S.lon ?? DEMO_PLACE.lon], 7);
+    rainShow(RAIN.frames.filter(f => !f.fc).length - 1);   // 最新の実況から
+  }catch(e){
+    $("#rainTime").textContent = "雨雲のデータを取得できませんでした";
+  }
+}
+function rainOff(){
+  RAIN.on = false; rainStop();
+  for(const k in RAIN.layers) RAIN.layers[k].remove(); RAIN.layers = {};
+  $("#rainBar").hidden = true; $("#rainLegend").hidden = true;
+}
+
 // 地図ライブラリが読めないとき：経緯線だけのメルカトル図に昼夜と現在地を描く
 function drawMapFallback(lat, lon){
   const box = $("#mapBox"); box.innerHTML = '<canvas style="width:100%;height:100%;display:block"></canvas>';
@@ -1664,7 +1745,8 @@ Sky.init();
 updateBg();
 bgInit();
 setupOdptUI();
-$("#mapBtn").onclick = openMap; $("#mapClose").onclick = closeMap;
+$("#mapBtn").onclick = () => openMap(); $("#mapClose").onclick = closeMap;
+$("#rainPlay").onclick = rainPlay; $("#rainSlider").oninput = e => { rainStop(); rainShow(+e.target.value); };
 $("#mapNear").onclick = () => mapZoom(14); $("#mapWorld").onclick = () => mapZoom(2);
 tickClock(); setInterval(tickClock, 1000);
 locate();
