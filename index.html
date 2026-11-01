@@ -46,9 +46,18 @@ main{max-width:960px;margin:0 auto;padding:12px 16px 40px;display:grid;gap:12px}
 .muted{color:var(--muted);font-size:.85rem}
 .err{color:var(--alert);font-size:.9rem}
 a{color:var(--accent)}
-.now{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.now .icon{font-size:3rem;line-height:1}
-.now .temp{font-size:2.6rem;font-weight:700}
+.now-wrap{display:flex;gap:10px;align-items:flex-start}
+.now{flex:1;min-width:0}
+.now-row{display:flex;align-items:center;gap:8px}
+.now .icon{font-size:2.4rem;line-height:1;text-shadow:none}
+.now .temp{font-size:clamp(1.9rem,9vw,2.3rem);font-weight:700;white-space:nowrap;line-height:1.15}
+.ofit{flex:0 0 156px;text-align:center}
+.ofit-h{font-size:.75rem;font-weight:700;color:var(--title)}
+.ofit-figs{display:flex;justify-content:center;align-items:flex-end}
+.ofit-figs svg{height:132px;width:auto}
+.ofit-figs svg.umb{height:142px}
+.ofit-txt{font-size:.68rem;line-height:1.35;color:var(--muted);text-align:left;margin-top:2px}
+.ofit-txt b{color:var(--text);font-weight:600}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:12px}
 .stat{background:var(--chip);border-radius:10px;padding:8px 10px}
 .stat .k{font-size:.75rem;color:var(--muted)}
@@ -161,6 +170,13 @@ footer{background:none!important}
 .roku-5{color:#374151;background:#e5e7eb;border-color:#9ca3af}
 #calMoon{display:flex;align-items:center;gap:8px;margin-top:6px}
 #moonIco{width:28px;height:28px}
+.fash{display:grid;gap:14px}@media (min-width:600px){.fash{grid-template-columns:1fr 1fr}}
+.fash-top{display:flex;align-items:center;gap:10px}
+.fash-ico{font-size:2.4rem;line-height:1;text-shadow:none}
+.fash-name{font-size:1.25rem;font-weight:700}
+.fash-desc{margin:4px 0 0}
+.fash-tips{list-style:none;margin:6px 0 0;padding:0;font-size:.9rem}
+.fash-tips li{display:flex;gap:6px;padding:3px 0}.fash-tips li span{flex:none;text-shadow:none}
 .sub-h{font-weight:700;color:var(--title);margin:14px 0 0;font-size:.95rem}
 .stat .k+.v+.k{margin-top:1px}
 #skyCard{padding:4px 2px}
@@ -202,6 +218,11 @@ footer{background:none!important}
   <section class="card wide" id="weather">
     <h2>現在の天気</h2>
     <div class="muted">読み込み中…</div>
+  </section>
+
+  <section class="card wide">
+    <h2><span id="fashH">服装の目安</span></h2>
+    <div id="fashion"><span class="muted">読み込み中…</span></div>
   </section>
 
   <section class="card wide">
@@ -499,7 +520,7 @@ function renderPlace(placeDemo){
 async function loadWeather(){
   const url = "https://api.open-meteo.com/v1/forecast?latitude=" + S.lat + "&longitude=" + S.lon
     + "&current=uv_index,temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
-    + "&hourly=temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m"
+    + "&hourly=apparent_temperature,uv_index,temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m"
     + "&daily=uv_index_max,weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset,wind_speed_10m_max,wind_direction_10m_dominant"
     + "&timezone=Asia%2FTokyo&forecast_days=7&wind_speed_unit=ms";
   let w, demo = false;
@@ -512,10 +533,13 @@ function renderWeather(w, demo){
   const [ic, tx] = wmo(c.weather_code);
   $("#weather").innerHTML = `
     <h2><span>現在の天気${demo ? DEMO_TAG : ""}</span> <small>${fmtTime(c.time)} 時点</small></h2>
-    <div class="now">
-      <div class="icon">${ic}</div>
-      <div><div class="temp">${Math.round(c.temperature_2m*10)/10}℃</div><div>${tx}・体感 ${Math.round(c.apparent_temperature)}℃</div></div>
-      <div class="muted">今日 <span class="hi">${Math.round(d.temperature_2m_max[0])}℃</span> / <span class="lo">${Math.round(d.temperature_2m_min[0])}℃</span></div>
+    <div class="now-wrap">
+      <div class="now">
+        <div class="now-row"><div class="icon">${ic}</div><div class="temp">${Math.round(c.temperature_2m*10)/10}℃</div></div>
+        <div>${tx}・体感 ${Math.round(c.apparent_temperature)}℃</div>
+        <div class="muted">今日 <span class="hi">${Math.round(d.temperature_2m_max[0])}℃</span> / <span class="lo">${Math.round(d.temperature_2m_min[0])}℃</span></div>
+      </div>
+      ${outfitBox(w)}
     </div>
     <div class="grid">
       <div class="stat"><div class="k">湿度</div><div class="v">${c.relative_humidity_2m}%</div></div>
@@ -531,6 +555,7 @@ function renderWeather(w, demo){
     <div class="sub-h">大気の状態</div>
     <div class="grid" id="aqGrid"><div class="muted">読み込み中…</div></div>`;
   loadAir(demo);
+  renderFashion(w, demo);
 
   let i0 = h.time.findIndex(t => t >= c.time.slice(0,13));
   if(i0 < 0) i0 = 0;
@@ -587,6 +612,350 @@ async function loadPops(){
         <div style="height:4px;border-radius:2px;margin:4px 6px 0;background:linear-gradient(90deg,${col(p) === "transparent" ? "rgba(96,165,250,.35)" : col(p)} ${p}%,rgba(127,127,127,.18) ${p}%)"></div></div>`; }).join("")}</div>`
     + `<div class="muted" style="margin-top:6px;font-size:.8rem">対象：${esc(data.area)}。6時間のうちに1mm以上の雨か雪が降る確率です。</div>`;
   markDemo("pops", "#popH", demo);
+}
+
+/* ---------- 服装の目安（日中の体感温度・朝晩の差・雨・風・紫外線から） ---------- */
+const FASH = [
+  [30, "🎽", "真夏の服装", "半袖・ノースリーブ。通気性のよい素材で、こまめに水分補給を"],
+  [25, "👕", "半袖", "半袖シャツやTシャツ1枚で過ごせます"],
+  [21, "👔", "長袖シャツ", "長袖シャツや薄手のカットソー。腕まくりで調節を"],
+  [17, "🧶", "カーディガン", "長袖に薄手のカーディガンやパーカーを1枚"],
+  [13, "🧥", "ジャケット", "セーターやジャケット、トレンチコートなど秋の上着を"],
+  [9,  "🧥", "コート", "ウールのコートなど、しっかりした上着が必要です"],
+  [5,  "🧣", "冬のコート", "厚手のコートにマフラーを。インナーも暖かいものに"],
+  [-99,"🧤", "真冬の防寒", "ダウンコート・マフラー・手袋・帽子で万全の防寒を"]
+];
+function fashionDay(w, di){
+  const h = w.hourly, d = w.daily, day = d.time[di];
+  const idx = h.time.map((t, i) => [t, i]).filter(([t]) => t.startsWith(day)).map(([, i]) => i);
+  const hr = i => +h.time[i].slice(11, 13);
+  const dayI = idx.filter(i => hr(i) >= 9 && hr(i) <= 18), am = idx.filter(i => hr(i) >= 6 && hr(i) <= 8), pm = idx.filter(i => hr(i) >= 19 && hr(i) <= 22);
+  const at = i => h.apparent_temperature ? h.apparent_temperature[i] : h.temperature_2m[i];
+  const avg = a => a.length ? a.reduce((s, i) => s + at(i), 0)/a.length : null;
+  const feel = avg(dayI) ?? (d.temperature_2m_max[di] + d.temperature_2m_min[di])/2;
+  const cool = Math.min(avg(am) ?? feel, avg(pm) ?? feel);
+  const lv = FASH.find(f => Math.round(feel) >= f[0]);
+  const tips = [];
+  const gap = d.temperature_2m_max[di] - d.temperature_2m_min[di];
+  if(feel - cool >= 6 || gap >= 10){ const c = Math.round(cool), lv2 = FASH.find(f => c >= f[0]); tips.push(["🔁", `朝晩は冷えます（体感${c}℃）。${lv2 !== lv ? lv2[2] + "くらいの" : ""}脱ぎ着しやすい上着を持って出かけましょう`]); }
+  const pop = d.precipitation_probability_max[di] ?? 0, code = d.weather_code[di];
+  const snow = (code >= 71 && code <= 77) || code === 85 || code === 86;
+  if(snow) tips.push(["🥾", "雪の予報。滑りにくく防水の靴を"]);
+  if(pop >= 50) tips.push(["☂️", `降水確率${pop}%。傘を持って出かけましょう`]);
+  else if(pop >= 30) tips.push(["🌂", `降水確率${pop}%。折りたたみ傘があると安心`]);
+  const wind = d.wind_speed_10m_max[di] ?? 0;
+  if(wind >= 10) tips.push(["💨", `風が強め（最大${Math.round(wind)}m/s）。風を通しにくい上着を。スカートや帽子に注意`]);
+  else if(wind >= 7 && feel < 21) tips.push(["💨", `風があり体感より寒く感じます（最大${Math.round(wind)}m/s）`]);
+  const uv = d.uv_index_max ? d.uv_index_max[di] : null;
+  if(uv != null && uv >= 6) tips.push(["🧢", `紫外線が強い（UV${Math.round(uv)}）。帽子・日焼け止め・サングラスを`]);
+  else if(uv != null && uv >= 3 && feel >= 17) tips.push(["🧴", `紫外線は中程度（UV${Math.round(uv)}）。長時間の外出は日焼け止めを`]);
+  return { day, feel, lv, tips };
+}
+function renderFashion(w, demo){
+  const hNow = new Date().getHours(), list = [];
+  if(hNow < 18) list.push(["今日", 0]);
+  if(w.daily.time.length > 1) list.push(["明日", 1]);
+  $("#fashion").innerHTML = `<div class="fash">${list.map(([lab, di]) => {
+    const f = fashionDay(w, di);
+    return `<div class="fash-d"><div class="fash-top"><span class="fash-ico">${f.lv[1]}</span><div><div class="muted">${lab}・日中の体感 約${Math.round(f.feel)}℃</div><div class="fash-name">${f.lv[2]}</div></div></div>
+      <div class="fash-desc">${f.lv[3]}</div>
+      ${f.tips.length ? `<ul class="fash-tips">${f.tips.map(t => `<li><span>${t[0]}</span>${esc(t[1])}</li>`).join("")}</ul>` : ""}</div>`;
+  }).join("")}</div>`;
+  markDemo("fash", "#fashH", demo);
+}
+
+/* ---------- 服装イラスト ---------- */
+const Outfit = (() => {
+// ===== 服装イラスト（SVG）：約7頭身・陰影付き =====
+const SKIN = "#f6d3bb", SKIN_D = "#e7b597", SKIN_S = "#dca385";
+const UMB = ['#2563eb','#16a34a','#dc2626','#f59e0b','#7c3aed','#0891b2','#db2777','#334155','#ea580c','#65a30d'];
+let UID = 0;
+function shade(hex, k){ const n = parseInt(hex.slice(1), 16); let r = n>>16, g = (n>>8)&255, b = n&255; const f = v => Math.max(0, Math.min(255, Math.round(k < 0 ? v*(1+k) : v + (255-v)*k))); return "#" + [f(r), f(g), f(b)].map(v => v.toString(16).padStart(2, "0")).join(""); }
+const r1 = v => Math.round(v*10)/10;
+// 点列に沿って太さの変わる手足の形を作る
+function limbPath(pts, ws){
+  const L = [], R = [];
+  for(let i=0; i<pts.length; i++){
+    const p = pts[i], a = pts[Math.max(0, i-1)], b = pts[Math.min(pts.length-1, i+1)];
+    let dx = b[0]-a[0], dy = b[1]-a[1]; const l = Math.hypot(dx, dy) || 1; dx /= l; dy /= l;
+    const w = ws[i]/2; L.push([p[0] - dy*w, p[1] + dx*w]); R.push([p[0] + dy*w, p[1] - dx*w]);
+  }
+  const e = pts[pts.length-1], s = pts[0], we = ws[ws.length-1]/2, wsx = ws[0]/2;
+  let d = `M${r1(L[0][0])} ${r1(L[0][1])}`;
+  for(let i=1; i<L.length; i++) d += ` L${r1(L[i][0])} ${r1(L[i][1])}`;
+  d += ` A${r1(we)} ${r1(we)} 0 0 0 ${r1(R[R.length-1][0])} ${r1(R[R.length-1][1])}`;
+  for(let i=R.length-2; i>=0; i--) d += ` L${r1(R[i][0])} ${r1(R[i][1])}`;
+  d += ` A${r1(wsx)} ${r1(wsx)} 0 0 0 ${r1(L[0][0])} ${r1(L[0][1])} Z`;
+  return d;
+}
+// 線分の途中の点
+const lerp = (a, b, t) => [a[0] + (b[0]-a[0])*t, a[1] + (b[1]-a[1])*t];
+function along(pts, t){ // 折れ線上の割合 t の位置までの点列
+  const seg = []; let tot = 0; for(let i=1; i<pts.length; i++){ const l = Math.hypot(pts[i][0]-pts[i-1][0], pts[i][1]-pts[i-1][1]); seg.push(l); tot += l; }
+  let need = tot*t; const out = [pts[0]];
+  for(let i=1; i<pts.length; i++){ if(need <= seg[i-1]){ out.push(lerp(pts[i-1], pts[i], need/seg[i-1])); return out; } need -= seg[i-1]; out.push(pts[i]); }
+  return out;
+}
+function wAlong(ws, n){ return ws.slice(0, n); }
+
+function figure(o){
+  const id = "of" + (++UID), F = o.sex === "f";
+  const P = [], defs = `<defs><linearGradient id="${id}s" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset=".62" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient><linearGradient id="${id}v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".12"/><stop offset=".25" stop-color="#000" stop-opacity="0"/></linearGradient><radialGradient id="${id}f" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity=".06"/></radialGradient></defs>`;
+  const fillS = (d, col, extra = "") => `<path d="${d}" fill="${col}" ${extra}/><path d="${d}" fill="url(#${id}s)"/>`;
+  const umb = !!o.umbrella;
+  // ---- 骨格（正面） ----
+  const sh = F ? 15.5 : 19;                       // 肩幅の半分
+  const armL = F ? [[60-sh+2.5,55],[60-sh-3.5,90],[60-sh-5.5,123]] : [[60-sh+3,55],[60-sh-3,91],[60-sh-5,125]];
+  const armR = armL.map(([x, y]) => [120 - x, y]);
+  const UX = 70, UY = 92;                           // 傘を持つ手
+  const armRU = [[120-armL[0][0], 55], [F ? 81 : 85, 86], [UX + 3, UY + 1]];
+  const armW = F ? [9, 7.6, 5.6] : [10.5, 8.6, 6.6];
+  const legL = F ? [[54.5,116],[53.6,163],[53.8,186],[54,209]] : [[52.5,116],[51.6,163],[51.8,186],[52,209]];
+  const legR = legL.map(([x, y]) => [120 - x, y]);
+  const legW = F ? [13.5, 9.6, 9.8, 6.2] : [15, 11, 11, 7.2];
+  const hand = (x, y, col) => `<ellipse cx="${x}" cy="${y}" rx="${F ? 3.6 : 4.2}" ry="${F ? 5 : 5.6}" fill="${col}"/><path d="M${x-2} ${y+2.5} q2 1.5 4 0" fill="none" stroke="${col === SKIN ? SKIN_S : shade(col,-.3)}" stroke-width=".7"/>`;
+
+  // ---- 後ろ髪（女性） ----
+  if(F) P.push(`<path d="M46.3 27 Q45 8 60 7.6 Q75 8 73.7 27 L75.5 52 Q76.5 63 70.5 65 L49.5 65 Q43.5 63 44.5 52 Z" fill="${shade(o.hair,-.12)}"/>`);
+
+  // ---- 脚・ボトムス ----
+  const b = o.bottom, legCol = b.type === "pants" || b.type === "wide" ? b.col : (o.tights || SKIN);
+  for(const lg of [legL, legR]) P.push(`<path d="${limbPath(lg, legW)}" fill="${legCol === SKIN ? SKIN : legCol}"/>`);
+  if(legCol === SKIN || o.tights) for(const lg of [legL, legR]) P.push(`<path d="M${lg[1][0]-2} ${lg[1][1]+1} q2 1.5 4 0" fill="none" stroke="${o.tights ? "#000" : SKIN_S}" stroke-opacity=".35" stroke-width=".7"/>`);
+  if(b.type === "pants"){
+    for(const lg of [legL, legR]) P.push(fillS(limbPath(lg, legW.map((w, i) => w + (i === 0 ? 3 : 2.2))), b.col));
+    P.push(fillS(`M${legL[0][0]-9} 108 L${legR[0][0]+9} 108 L${legR[0][0]+9} 124 Q60 128 ${legL[0][0]-9} 124 Z`, b.col));
+    P.push(`<path d="M60 112 L60 128" stroke="${shade(b.col,-.3)}" stroke-width=".8"/>`);
+    for(const lg of [legL, legR]) P.push(`<path d="M${lg[1][0]} ${lg[1][1]-25} L${lg[3][0]} ${lg[3][1]-3}" stroke="${shade(b.col,-.18)}" stroke-width=".7"/>`);
+  }
+  const drawBottom = () => {
+  if(b.type === "wide"){
+    for(const s of [-1, 1]){ const x = 60 + s*7, d = `M${60 + s*0.5} 116 L${60 + s*13} 112 L${60 + s*14.5} 210 L${60 + s*1.2} 210 Z`; P.push(fillS(d, b.col)); P.push(`<path d="M${x} 130 L${x + s*1.5} 208" stroke="${shade(b.col,-.15)}" stroke-width=".7"/>`); }
+    P.push(fillS(`M46 104 H74 L75 118 H45 Z`, b.col));
+  }
+  if(b.type === "shorts"){
+    for(const lg of [legL, legR]) P.push(fillS(limbPath(along(lg, .38), [legW[0] + 4, legW[1] + 4.5]), b.col));
+    P.push(fillS(`M${legL[0][0]-9.5} 108 L${legR[0][0]+9.5} 108 L${legR[0][0]+9.5} 124 Q60 128 ${legL[0][0]-9.5} 124 Z`, b.col));
+  }
+  if(b.type === "skirt"){
+    const top = 104, bot = top + b.len, wT = 13.5, wB = 15 + b.len*.18;
+    const d = `M${60-wT} ${top} H${60+wT} Q${60+wT+3} ${top + b.len*.5} ${60+wB} ${bot} Q60 ${bot+3} ${60-wB} ${bot} Q${60-wT-3} ${top + b.len*.5} ${60-wT} ${top} Z`;
+    P.push(fillS(d, b.col));
+    for(const t of [-.55, -.18, .18, .55]) P.push(`<path d="M${60 + t*wT*1.4} ${top+4} Q${60 + t*wB*1.05} ${top + b.len*.6} ${60 + t*wB*1.15} ${bot+1}" fill="none" stroke="${shade(b.col,-.2)}" stroke-width=".7"/>`);
+    P.push(`<rect x="${60-wT}" y="${top}" width="${wT*2}" height="3.5" fill="${shade(b.col,-.12)}"/>`);
+  }
+  };
+  drawBottom();
+
+  // ---- 靴 ----
+  const foot = (x, s, col, kind) => {
+    const y = 211;
+    if(kind === "sandals"){
+      return `<path d="M${x-4.5} ${y-3} q4.5 -3 9 0 l1 5 q-5.5 2 -11 0 Z" fill="${SKIN}"/><path d="M${x-6} ${y+2.2} h12" stroke="${col}" stroke-width="2.2" stroke-linecap="round"/><path d="M${x-4} ${y-1} l8 0" stroke="${col}" stroke-width="1.6"/>`;
+    }
+    const toe = `M${x-6} ${y-2} Q${x-6.5} ${y-6} ${x} ${y-6} Q${x+6.5} ${y-6} ${x+6} ${y-2} Q${x+7} ${y+3} ${x} ${y+3.5} Q${x-7} ${y+3} ${x-6} ${y-2} Z`;
+    let s1 = `<path d="${toe}" fill="${col}"/><path d="M${x-6.5} ${y+1.6} Q${x} ${y+4.6} ${x+6.5} ${y+1.6}" fill="none" stroke="${kind === "sneaker" ? "#fff" : shade(col,-.35)}" stroke-width="1.6"/>`;
+    if(kind === "boots") s1 = `<path d="M${x-6} ${y-30} H${x+6} L${x+6.5} ${y-2} H${x-6.5} Z" fill="${col}"/><path d="M${x-6} ${y-30} H${x+6}" stroke="${shade(col,-.3)}" stroke-width="1.4"/><path d="M${x+2.5} ${y-27} L${x+3} ${y-6}" stroke="${shade(col,.2)}" stroke-width=".8"/>` + s1;
+    if(kind === "sneaker") s1 += `<path d="M${x-2.5} ${y-4.5} l5 0 M${x-2.5} ${y-2.8} l5 0" stroke="${shade(col,-.3)}" stroke-width=".6"/>`;
+    return s1;
+  };
+  P.push(foot(legL[3][0] - .5, -1, o.shoeCol, o.shoes), foot(legR[3][0] + .5, 1, o.shoeCol, o.shoes));
+
+  // ---- 首 ----
+  P.push(`<path d="M55 34 L65 34 L65.5 50 Q60 53 54.5 50 Z" fill="${SKIN_D}"/><path d="M55 44 Q60 47 65 44" fill="none" stroke="${SKIN_S}" stroke-width=".7" opacity=".6"/>`);
+
+  // ---- トップス ----
+  const t = o.top;
+  const torso = F ? `M44.5 51.5 Q60 46.5 75.5 51.5 Q78 56 77.5 66 Q74 86 73 97 Q75.5 108 77 118 H43 Q44.5 108 47 97 Q46 86 42.5 66 Q42 56 44.5 51.5 Z`
+                  : `M41.5 51.5 Q60 46 78.5 51.5 Q81 56 80.5 68 L78 98 L79 120 H41 L42 98 L39.5 68 Q39 56 41.5 51.5 Z`;
+  const tankD = F ? `M50 51 Q60 58 70 51 L71 50 Q77 56 77 66 Q74 86 73 97 Q75.5 108 77 118 H43 Q44.5 108 47 97 Q46 86 43 66 Q43 56 49 50 Z`
+                  : `M49 51 Q60 59 71 51 L72 50 Q79 56 79.5 68 L78 98 L79 120 H41 L42 98 L40.5 68 Q41 56 48 50 Z`;
+  P.push(fillS(t.type === "tank" ? tankD : torso, t.col));
+  P.push(`<path d="${t.type === "tank" ? tankD : torso}" fill="url(#${id}v)"/>`);
+  const tuck = (b.type === "skirt" || b.type === "wide") && F;
+  if(t.type === "tee" || t.type === "tank") P.push(`<path d="M${t.type === "tank" ? 50 : 53} ${t.type === "tank" ? 51.5 : 50} Q60 ${t.type === "tank" ? 59 : 56} ${t.type === "tank" ? 70 : 67} ${t.type === "tank" ? 51.5 : 50}" fill="${SKIN_D}" stroke="${shade(t.col,-.2)}" stroke-width="1.4"/>`);
+  if(t.type === "shirt"){
+    P.push(`<path d="M53.5 49 L60 58 L66.5 49 L69 52 L61.5 61 L60 59 L58.5 61 L51 52 Z" fill="${shade(t.col,.15)}" stroke="${shade(t.col,-.25)}" stroke-width=".7"/><path d="M60 59 V119" stroke="${shade(t.col,-.22)}" stroke-width=".8"/>`);
+    for(const y of [70, 82, 94, 106]) P.push(`<circle cx="61.3" cy="${y}" r=".9" fill="${shade(t.col,-.4)}"/>`);
+    P.push(`<path d="M44 62 L52 66 M76 62 L68 66" stroke="${shade(t.col,-.15)}" stroke-width=".7"/>`);
+  }
+  if(t.type === "blouse") P.push(`<path d="M52 49.5 Q60 62 68 49.5 Q71 52 69 55 Q60 66 51 55 Q49 52 52 49.5 Z" fill="${shade(t.col,.45)}" stroke="${shade(t.col,-.2)}" stroke-width=".7"/><path d="M60 58 V100" stroke="${shade(t.col,-.15)}" stroke-width=".6"/>`);
+  if(t.type === "knit"){
+    P.push(`<path d="M52 49.5 Q60 56 68 49.5" fill="none" stroke="${shade(t.col,-.18)}" stroke-width="3.2"/>`);
+    for(let x = F ? 47 : 44; x < (F ? 74 : 77); x += 3.2) P.push(`<path d="M${x} 58 V115" stroke="${shade(t.col,-.07)}" stroke-width=".8"/>`);
+    P.push(`<rect x="${F ? 43 : 41}" y="113" width="${F ? 34 : 38}" height="6" rx="1.5" fill="${shade(t.col,-.1)}"/>`);
+  }
+  if(tuck) drawBottom();   // トップスをスカート・パンツにイン
+
+  // ---- 上着 ----
+  const out = o.outer;
+  let sleeveCol = t.col, sleeveLen = t.sleeve, sleeveExtra = 0;
+  if(out){
+    sleeveCol = out.col; sleeveLen = 2; sleeveExtra = out.type === "down" ? 6 : out.type === "coat" ? 2.6 : 1.8;
+    const y2 = out.len === "knee" ? 170 : out.len === "long" ? 184 : 126;
+    const W = F ? 17 : 21, Wb = out.len === "hip" ? W + 1 : W + 6;
+    if(out.type === "open"){
+      for(const s of [-1, 1]){
+        const d = `M${60 + s*W} 51 Q${60 + s*(W+3)} 56 ${60 + s*(W+2.5)} 68 L${60 + s*(Wb)} ${y2} L${60 + s*4.5} ${y2} L${60 + s*4} 66 L${60 + s*7} 49 Z`;
+        P.push(fillS(d, out.col));
+        if(out.lapel) P.push(`<path d="M${60 + s*7} 49 L${60 + s*11} 66 L${60 + s*5} 76 L${60 + s*4} 66 Z" fill="${shade(out.col,-.12)}" stroke="${shade(out.col,-.3)}" stroke-width=".6"/>`);
+        else for(const y of [70, 84, 98, 112]) if(s < 0) P.push(`<circle cx="${60 - 5.6}" cy="${y}" r="1" fill="${shade(out.col,-.4)}"/>`);
+        P.push(`<path d="M${60 + s*(W-2)} ${y2-3} H${60 + s*5}" stroke="${shade(out.col,-.15)}" stroke-width="${out.lapel ? 0 : 2.2}"/>`);
+        if(out.lapel) P.push(`<path d="M${60 + s*(W-5)} 98 h${s*-7}" stroke="${shade(out.col,-.3)}" stroke-width=".8"/>`);
+      }
+    }else if(out.type === "coat"){
+      const d = `M${60-W} 51 Q60 45.5 ${60+W} 51 Q${60+W+3} 56 ${60+W+2.5} 68 L${60+Wb} ${y2} Q60 ${y2+2} ${60-Wb} ${y2} L${60-W-2.5} 68 Q${60-W-3} 56 ${60-W} 51 Z`;
+      P.push(fillS(d, out.col), `<path d="${d}" fill="url(#${id}v)"/>`);
+      P.push(`<path d="M53 49 L49.5 64 L57 70 L60 60 L63 70 L70.5 64 L67 49" fill="${shade(out.col,-.1)}" stroke="${shade(out.col,-.32)}" stroke-width=".7"/><path d="M61.5 66 L62 ${y2}" stroke="${shade(out.col,-.28)}" stroke-width=".8"/>`);
+      for(const y of [76, 92, 108, 124, 140, 156].filter(y => y < y2 - 6)) P.push(`<circle cx="56" cy="${y}" r="1.5" fill="${shade(out.col,-.45)}"/><circle cx="66.5" cy="${y}" r="1.5" fill="${shade(out.col,-.45)}"/>`);
+      if(out.belt) P.push(`<path d="M${60-W-1.5} 100 L${60+W+1.5} 100 L${60+W+1.8} 105 L${60-W-1.8} 105 Z" fill="${shade(out.col,-.15)}"/><rect x="57" y="98.5" width="7" height="8" rx="1" fill="none" stroke="${shade(out.col,-.5)}" stroke-width="1.1"/><path d="M58 105 l-2.5 14 M62 105 l1.5 13" stroke="${shade(out.col,-.15)}" stroke-width="2"/>`);
+      P.push(`<path d="M${60-W+2} 112 h7 M${60+W-2} 112 h-7" stroke="${shade(out.col,-.3)}" stroke-width=".8"/>`);
+    }else if(out.type === "down"){
+      const d = `M${60-W-1} 52 Q60 44 ${60+W+1} 52 Q${60+W+6} 60 ${60+W+5} 72 L${60+Wb+3} ${y2} Q60 ${y2+5} ${60-Wb-3} ${y2} L${60-W-5} 72 Q${60-W-6} 60 ${60-W-1} 52 Z`;
+      P.push(fillS(d, out.col));
+      for(let y = 66; y < y2 - 4; y += 13) P.push(`<path d="M${60-W-5} ${y} Q60 ${y+4.5} ${60+W+5} ${y}" fill="none" stroke="${shade(out.col,-.2)}" stroke-width="1.2"/><path d="M${60-W-4} ${y-5} Q60 ${y-1.5} ${60+W+4} ${y-5}" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="2"/>`);
+      P.push(`<path d="M60 52 V${y2+3}" stroke="${shade(out.col,-.38)}" stroke-width="1.1"/><path d="M48 50 Q60 42 72 50 L71 58 Q60 53 49 58 Z" fill="${shade(out.col,-.08)}" stroke="${shade(out.col,-.25)}" stroke-width=".6"/>`);
+    }
+  }
+
+  // ---- 腕・袖 ----
+  const sleeveOf = (pts, len) => {
+    if(!len) return "";
+    const ws = armW.map(w => w + 2.4 + sleeveExtra);
+    if(len === 1){
+      // 半袖：肩から胴につながる袖
+      const A = pts[0], sgn = A[0] < 60 ? 1 : -1, E = along(pts, .36).pop(), B = pts[1];
+      let nx = B[1]-A[1], ny = -(B[0]-A[0]); const nl = Math.hypot(nx, ny); nx /= nl; ny /= nl; if(nx*sgn < 0){ nx = -nx; ny = -ny; }
+      const w = (ws[1] + 1.2)/2, eo = [E[0] - nx*w, E[1] - ny*w], ei = [E[0] + nx*w, E[1] + ny*w];
+      const d = `M${r1(A[0] + sgn*6)} 49.6 Q${r1(A[0] - sgn*3.5)} 49 ${r1(A[0] - sgn*5.8)} ${r1(A[1] + 1)} L${r1(eo[0])} ${r1(eo[1])} Q${r1(E[0])} ${r1(E[1] + 1.6)} ${r1(ei[0])} ${r1(ei[1])} L${r1(A[0] + sgn*5)} ${r1(A[1] + 9)} Z`;
+      return fillS(d, sleeveCol) + `<path d="M${r1(eo[0])} ${r1(eo[1])} Q${r1(E[0])} ${r1(E[1] + 1.6)} ${r1(ei[0])} ${r1(ei[1])}" fill="none" stroke="${shade(sleeveCol,-.2)}" stroke-width=".7"/>`;
+    }
+    const p3 = along(pts, .93); let s = fillS(limbPath(p3, ws), sleeveCol);
+    const c = p3[p3.length-1], cb = p3[p3.length-2], a = Math.atan2(c[1]-cb[1], c[0]-cb[0])*180/Math.PI;
+    s += `<rect x="${c[0]-ws[2]/2}" y="${c[1]-2.6}" width="${ws[2]}" height="3.4" rx="1.2" fill="${shade(sleeveCol, t.type === "knit" || out ? -.12 : .1)}" transform="rotate(${a-90} ${c[0]} ${c[1]})"/>`;
+    return s;
+  };
+  const drawArm = (pts, isUmb) => {
+    P.push(`<path d="${limbPath(pts, armW)}" fill="${SKIN}"/>`);
+    P.push(sleeveOf(pts, sleeveLen));
+    if(!isUmb){ const h = pts[pts.length-1]; P.push(hand(h[0], h[1] + 4, o.gloves || SKIN)); }
+  };
+  drawArm(armL, false);
+  if(!umb) drawArm(armR, false);
+  if(out && out.type === "down") P.push(`<path d="M${armL[2][0]-6} ${armL[2][1]-2} q6 3 12 0 M${armR[2][0]-6} ${armR[2][1]-2} q6 3 12 0" stroke="${shade(out.col,-.25)}" stroke-width="1" fill="none" opacity="${umb ? 0 : 1}"/>`);
+
+  // ---- マフラー ----
+  if(o.scarf){
+    P.push(`<path d="M47.5 46 Q60 55 72.5 46 L73.5 54 Q60 64 46.5 54 Z" fill="${o.scarf}"/><path d="M47 50 Q60 58.5 73 50" fill="none" stroke="${shade(o.scarf,-.2)}" stroke-width=".8"/>`);
+    P.push(fillS(`M63 55 L68.5 92 L61.5 93.5 L57.5 58 Z`, o.scarf));
+    P.push(`<path d="M61.5 93.5 l.6 3 M63.3 93.2 l.6 3 M65.1 92.9 l.6 3 M66.9 92.6 l.6 3" stroke="${o.scarf}" stroke-width="1"/>`);
+    for(const y of [64, 70, 76, 82]) P.push(`<path d="M${58 + (y-58)*.12} ${y} L${63.5 + (y-58)*.15} ${y-0.8}" stroke="${shade(o.scarf,-.22)}" stroke-width=".6"/>`);
+  }
+
+  // ---- 頭 ----
+  // 頭と顔（シンプルな漫画風）
+  const head = `M60 12.2 A12.6 13 0 1 1 59.99 12.2 Z`;
+  P.push(`<ellipse cx="60" cy="25.2" rx="12.6" ry="13" fill="${SKIN}"/><ellipse cx="60" cy="25.2" rx="12.6" ry="13" fill="url(#${id}f)"/>`);
+  P.push(`<circle cx="55.2" cy="27.4" r="1.75" fill="#3a2a22"/><circle cx="64.8" cy="27.4" r="1.75" fill="#3a2a22"/>`);
+  P.push(`<path d="M56.6 32.4 Q60 35.2 63.4 32.4" fill="none" stroke="#b5574a" stroke-width="1.2" stroke-linecap="round"/>`);
+  P.push(`<ellipse cx="51.6" cy="31" rx="2.6" ry="1.5" fill="#f4a3a3" opacity=".5"/><ellipse cx="68.4" cy="31" rx="2.6" ry="1.5" fill="#f4a3a3" opacity=".5"/>`);
+  // 髪
+  const hc = o.hair, hl = shade(hc, .28), hd = shade(hc, -.18);
+  if(F){
+    P.push(`<path d="M47.6 27 Q46 8.6 60 8.4 Q74 8.6 72.4 27 Q71.6 21 68.4 18.4 Q62 20.6 55.5 18.4 Q51.5 20 50 27 Z" fill="${hc}"/>`);
+    P.push(`<path d="M48 21 Q45.8 35 47 45.5 L50.4 45 Q49.4 33 50.6 24 Z" fill="${hc}"/><path d="M72 21 Q74.2 35 73 45.5 L69.6 45 Q70.6 33 69.4 24 Z" fill="${hc}"/>`);
+    P.push(`<path d="M55.5 18.4 Q60 17 64 14.5 Q66.5 17 68.4 18.4" fill="none" stroke="${hd}" stroke-width=".7"/><path d="M52 13.5 Q58 9.8 66 11.2" fill="none" stroke="${hl}" stroke-width="1.6" stroke-linecap="round" opacity=".7"/>`);
+  }else{
+    // 7:3分け（分け目は向かって左寄り）
+    P.push(`<path d="M47.6 27.5 Q46.4 9.6 60 9 Q73.6 9.6 72.4 27.5 L71.4 22 Q70.6 17.4 66.5 15.8 L55.6 14.6 Q51.2 16.2 49.6 21.5 Z" fill="${hc}"/>`);
+    P.push(`<path d="M55.6 12.4 Q64.5 10.8 70.8 14.6 Q73.4 18.8 72.3 24.6 Q69.8 19.4 63.4 18.4 Q58.6 17.8 55.6 14.8 Z" fill="${hc}"/>`);
+    P.push(`<path d="M55.4 12.8 Q50.4 13.4 48.6 18.6 Q47.9 21.8 48.2 24.8 Q50 19.6 54.9 16.6 Z" fill="${hc}"/>`);
+    P.push(`<path d="M55.6 12.6 L55.5 15.6" stroke="${hd}" stroke-width=".7"/><path d="M58 13.2 Q65 12.4 70 15.6" fill="none" stroke="${hl}" stroke-width="1.5" stroke-linecap="round" opacity=".75"/><path d="M60 17 Q65.5 17.4 69.6 20.4" fill="none" stroke="${hd}" stroke-width=".6"/>`);
+    P.push(`<path d="M48.3 22 L48.6 27.6 L50 26 Z M71.7 22 L71.4 27.6 L70 26 Z" fill="${hc}"/>`);
+  }
+  // 帽子・サングラス
+  if(o.beanie) P.push(fillS(`M47 24 Q47 6 60 6 Q73 6 73 24 Z`, o.beanie) + `<rect x="46" y="20" width="28" height="7" rx="3" fill="${shade(o.beanie,-.15)}"/>${[49,52,55,58,61,64,67,70].map(x => `<path d="M${x} 20.5 v6" stroke="${shade(o.beanie,-.3)}" stroke-width=".6"/>`).join("")}<circle cx="60" cy="5" r="3.6" fill="${shade(o.beanie,.3)}"/>`);
+  if(o.cap) P.push(fillS(`M47.4 22.5 Q47.6 8 60 8 Q72.4 8 72.6 22.5 Z`, o.cap) + `<path d="M47.6 22 H76 Q75 26 69 25.6 H47.6 Z" fill="${shade(o.cap,-.15)}"/><circle cx="60" cy="8.6" r="1.2" fill="${shade(o.cap,-.3)}"/>`);
+  if(o.hat) P.push(`<ellipse cx="60" cy="20" rx="${F ? 23 : 21}" ry="4.6" fill="${o.hat}"/><path d="M48.5 20 Q49 6.5 60 6.5 Q71 6.5 71.5 20 Z" fill="${o.hat}"/><path d="M48.5 20 Q49 6.5 60 6.5 Q71 6.5 71.5 20 Z" fill="url(#${id}s)"/><rect x="48.7" y="15.5" width="22.6" height="3.4" fill="${shade(o.hat,-.4)}"/>`);
+  if(o.sunglasses) P.push(`<path d="M51.2 26 h8 q-.2 4.6 -4 4.6 q-3.8 0 -4 -4.6 Z M60.8 26 h8 q-.2 4.6 -4 4.6 q-3.8 0 -4 -4.6 Z" fill="#1f2937"/><path d="M59.2 26.6 h1.6" stroke="#1f2937" stroke-width="1.2"/><path d="M52.4 27 l2 0" stroke="#fff" stroke-opacity=".5" stroke-width=".8"/>`);
+
+  // ---- 傘（さす） ----
+  if(umb){
+    const col = o.umbrella === true ? UMB[Math.floor(Math.random()*UMB.length)] : o.umbrella;
+    const AX = 77, AY = -22, ang = Math.atan2(AX - UX, -(AY - UY))*180/Math.PI, dk = shade(col, -.25), W2 = 60, rim = 30;
+    const dx = UX - AX, dy = UY - AY, L0 = Math.hypot(dx, dy), ux = dx/L0, uy = dy/L0, bx = UX + ux*6, by = UY + uy*6;
+    // 傘を持つ腕（先に描き、柄と傘はその手前に重ねる）
+    P.push(`<path d="${limbPath(armRU, armW)}" fill="${SKIN}"/>`);
+    if(sleeveLen === 1) P.push(sleeveOf(armRU, 1));
+    if(sleeveLen === 2){ const ws = armW.map(w => w + 2.4 + sleeveExtra); P.push(fillS(limbPath(along(armRU, .9), ws), sleeveCol)); }
+    P.push(`<line x1="${AX + ux*10}" y1="${AY + uy*10}" x2="${bx}" y2="${by}" stroke="#3f4652" stroke-width="2.2"/><path d="M${bx} ${by} q${ux*3} 7 -5.5 7 q-5 0 -5 -5" fill="none" stroke="#2b313b" stroke-width="2.6" stroke-linecap="round"/>`);
+    let d = `M${-W2} ${rim} C${-W2} ${-8} ${W2} ${-8} ${W2} ${rim}`;
+    for(let k=8; k>0; k--){ const a = -W2 + 2*W2*k/8, bb = -W2 + 2*W2*(k-1)/8; d += ` Q${(a+bb)/2} ${rim-6} ${bb} ${rim}`; }
+    let ribs = ""; for(let k=1; k<8; k++){ const x = -W2 + 2*W2*k/8; ribs += `<path d="M0 2 Q${x/2} 5 ${x} ${rim-2}" fill="none" stroke="${dk}" stroke-width=".9"/>`; }
+    P.push(`<g transform="translate(${AX} ${AY}) rotate(${ang.toFixed(1)})"><line x1="0" y1="2" x2="0" y2="-7" stroke="#374151" stroke-width="2.2" stroke-linecap="round"/><path d="${d} Z" fill="${col}"/><path d="${d} Z" fill="url(#${id}s)"/>${ribs}</g>`);
+    P.push(`<ellipse cx="${UX}" cy="${UY}" rx="${F ? 4 : 4.6}" ry="${F ? 4.2 : 4.8}" fill="${o.gloves || SKIN}"/><path d="M${UX-3.5} ${UY-1} q3.5 -2.4 7 0 M${UX-3.5} ${UY+1.2} q3.5 -2 7 0" fill="none" stroke="${o.gloves ? shade(o.gloves,-.3) : SKIN_S}" stroke-width=".7"/>`);
+  }
+  // ---- 折りたたみ傘（横に置く・手の高さ） ----
+  if(o.folding){
+    const fc = o.folding === true ? UMB[Math.floor(Math.random()*UMB.length)] : o.folding, x = 104, g0 = 140;
+    P.push(fillS(`M${x-5.5} ${g0-30} Q${x} ${g0-33} ${x+5.5} ${g0-30} L${x+4} ${g0-2} Q${x} ${g0+1} ${x-4} ${g0-2} Z`, fc));
+    P.push(`<path d="M${x-2} ${g0-29} L${x-1} ${g0-3} M${x+2} ${g0-29} L${x+1.2} ${g0-3}" stroke="${shade(fc,-.22)}" stroke-width=".9"/>`);
+    P.push(`<rect x="${x-6.5}" y="${g0-18}" width="13" height="4" rx="1.5" fill="${shade(fc,-.3)}"/><circle cx="${x+4.5}" cy="${g0-16}" r="1.2" fill="#e5e7eb"/>`);
+    P.push(`<rect x="${x-3.5}" y="${g0-41}" width="7" height="12" rx="2.5" fill="#2b313b"/><path d="M${x} ${g0-41} q0 -5 4 -5" fill="none" stroke="#6b7280" stroke-width="1.4" stroke-linecap="round"/>`);
+  }
+  const vb = umb ? "-2 -40 140 258" : o.folding ? "18 0 98 220" : "18 0 84 220";
+  return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg">${defs}${P.join("")}</svg>`;
+}
+
+// 8段階 × 男女
+const M = (x) => ({ sex:"m", hair:"#2b2420", ...x }), Fm = (x) => ({ sex:"f", hair:"#4a2f22", ...x });
+const LOOK = {
+  m:[
+    M({ top:{type:"tank", col:"#38bdf8", sleeve:0}, bottom:{type:"shorts", col:"#c8b48a"}, shoes:"sandals", shoeCol:"#7c5a3a", cap:"#f8fafc", sunglasses:1 }),
+    M({ top:{type:"tee", col:"#f8fafc", sleeve:1}, bottom:{type:"pants", col:"#c8b48a"}, shoes:"sneaker", shoeCol:"#334155" }),
+    M({ top:{type:"shirt", col:"#9cc3e6", sleeve:2}, bottom:{type:"pants", col:"#374151"}, shoes:"sneaker", shoeCol:"#e5e7eb" }),
+    M({ top:{type:"tee", col:"#f8fafc", sleeve:1}, outer:{type:"open", col:"#6b7a8f", len:"hip"}, bottom:{type:"pants", col:"#3b4a6b"}, shoes:"sneaker", shoeCol:"#e5e7eb" }),
+    M({ top:{type:"knit", col:"#e7dcc8", sleeve:2}, outer:{type:"open", col:"#5b6b4e", len:"hip", lapel:1}, bottom:{type:"pants", col:"#2f3a4f"}, shoes:"loafer", shoeCol:"#5a3d2b" }),
+    M({ top:{type:"knit", col:"#e7dcc8", sleeve:2}, outer:{type:"coat", col:"#8a6d4b", len:"knee"}, bottom:{type:"pants", col:"#2f3a4f"}, shoes:"loafer", shoeCol:"#3a2a20" }),
+    M({ top:{type:"knit", col:"#d1d5db", sleeve:2}, outer:{type:"coat", col:"#2f3a4f", len:"knee"}, bottom:{type:"pants", col:"#4b5563"}, shoes:"boots", shoeCol:"#3a2a20", scarf:"#b91c1c" }),
+    M({ top:{type:"knit", col:"#d1d5db", sleeve:2}, outer:{type:"down", col:"#1f2937", len:"hip"}, bottom:{type:"pants", col:"#4b5563"}, shoes:"boots", shoeCol:"#3a2a20", scarf:"#9ca3af", gloves:"#6b7280", beanie:"#b45309" })
+  ],
+  f:[
+    Fm({ top:{type:"tank", col:"#fbcfe8", sleeve:0}, bottom:{type:"skirt", col:"#fef3c7", len:30}, shoes:"sandals", shoeCol:"#c08a5a", hat:"#f5deb3", sunglasses:1 }),
+    Fm({ top:{type:"tee", col:"#ffffff", sleeve:1}, bottom:{type:"skirt", col:"#93c5fd", len:48}, shoes:"sneaker", shoeCol:"#f8fafc" }),
+    Fm({ top:{type:"blouse", col:"#fde2e4", sleeve:2}, bottom:{type:"wide", col:"#e7dcc8"}, shoes:"loafer", shoeCol:"#c08a5a" }),
+    Fm({ top:{type:"blouse", col:"#ffffff", sleeve:2}, outer:{type:"open", col:"#f9a8d4", len:"hip"}, bottom:{type:"skirt", col:"#6b7a8f", len:62}, shoes:"sneaker", shoeCol:"#f1f5f9" }),
+    Fm({ top:{type:"knit", col:"#f5f0e6", sleeve:2}, outer:{type:"coat", col:"#cdb48a", len:"knee", belt:1}, bottom:{type:"pants", col:"#3b4a6b"}, shoes:"loafer", shoeCol:"#5a3d2b" }),
+    Fm({ top:{type:"knit", col:"#f5f0e6", sleeve:2}, outer:{type:"coat", col:"#9f8170", len:"knee"}, bottom:{type:"skirt", col:"#4b5563", len:58}, tights:"#2b2b2b", shoes:"boots", shoeCol:"#3a2a20" }),
+    Fm({ top:{type:"knit", col:"#f5f0e6", sleeve:2}, outer:{type:"coat", col:"#1f2a44", len:"knee"}, bottom:{type:"pants", col:"#374151"}, shoes:"boots", shoeCol:"#3a2a20", scarf:"#c2410c" }),
+    Fm({ top:{type:"knit", col:"#f5f0e6", sleeve:2}, outer:{type:"down", col:"#f1f5f9", len:"long"}, bottom:{type:"pants", col:"#374151"}, shoes:"boots", shoeCol:"#3a2a20", scarf:"#be123c", gloves:"#be123c", beanie:"#9ca3af" })
+  ]
+};
+const DESC = {
+  m:["タンクトップ＋ハーフパンツ＋サンダル、帽子・サングラス","Tシャツ＋チノパン","長袖シャツ＋パンツ","Tシャツ＋カーディガン＋パンツ","ニット＋ジャケット＋パンツ","ニット＋コート＋パンツ","ニット＋冬のコート＋ブーツ、マフラー","ニット＋ダウン＋ブーツ、マフラー・手袋・ニット帽"],
+  f:["キャミソール＋ミニスカート＋サンダル、帽子・サングラス","Tシャツ＋スカート","ブラウス＋ワイドパンツ","ブラウス＋カーディガン＋スカート","ニット＋トレンチコート＋パンツ","ニット＋コート＋スカート＋タイツ・ブーツ","ニット＋冬のコート＋ブーツ、マフラー","ニット＋ロングダウン＋ブーツ、マフラー・手袋・ニット帽"]
+};
+return { figure, LOOK, DESC };
+})();
+
+function outfitBox(w){
+  try{
+    const di = new Date().getHours() < 18 ? 0 : 1, f = fashionDay(w, di), lvI = FASH.indexOf(f.lv);
+    const pop = w.daily.precipitation_probability_max[di] ?? 0, uv = w.daily.uv_index_max ? w.daily.uv_index_max[di] : 0;
+    const extra = pop >= 50 ? { umbrella:true } : pop >= 30 ? { folding:true } : {};
+    const sunny = uv >= 6 && f.feel >= 21 && lvI > 0 && !extra.umbrella;
+    const add = (k) => {
+      const o = { ...Outfit.LOOK[k][lvI], ...extra };
+      if(sunny){ if(k === "m") o.cap = "#f8fafc"; else o.hat = "#f5deb3"; o.sunglasses = 1; }
+      return o;
+    };
+    const tail = extra.umbrella ? "＋傘" : extra.folding ? "（折りたたみ傘）" : "";
+    const sun = sunny ? "、帽子・サングラス" : "";
+    const svg = k => Outfit.figure(add(k)).replace("<svg ", `<svg class="${extra.umbrella ? "umb" : ""}" `);
+    return `<div class="ofit"><div class="ofit-h">${di ? "明日の" : ""}服装の目安</div>
+      <div class="ofit-figs">${svg("m")}${svg("f")}</div>
+      <div class="ofit-txt"><b>男性</b> ${esc(Outfit.DESC.m[lvI] + sun + tail)}<br><b>女性</b> ${esc(Outfit.DESC.f[lvI] + sun + tail)}</div></div>`;
+  }catch(e){ console.error(e); return ""; }
 }
 
 /* ---------- 不快指数・紫外線・大気汚染 ---------- */
