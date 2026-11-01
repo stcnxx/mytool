@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ja">
+<html lang="ja" class="light-bg">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -104,6 +104,32 @@ footer{max-width:928px;margin:0 auto 30px;padding:12px 16px;font-size:.75rem;col
 @media (max-width:960px){footer{margin:0 16px 30px}}
 .spin{display:inline-block;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
+/* ===== 枠なし・背景が見えるレイアウト（背景の明るさで文字色を切り替え） ===== */
+html.light-bg{--text:#0b1324;--muted:#334155;--line:rgba(15,23,42,.16);--chip:rgba(255,255,255,.38);--card:#ffffff}
+html.dark-bg{--text:#f1f5f9;--muted:#cbd5e1;--line:rgba(255,255,255,.18);--chip:rgba(255,255,255,.1);--card:#111827;--ok:#86efac}
+html.light-bg body{text-shadow:0 1px 1px rgba(255,255,255,.55)}
+html.dark-bg body{text-shadow:0 1px 2px rgba(0,0,0,.55)}
+html.dark-bg a{color:#9cc9ff}
+html.dark-bg .err{color:#fecaca}
+html.dark-bg .hi,html.dark-bg .sun{color:#fda4af}
+html.dark-bg .lo,html.dark-bg .sat{color:#93c5fd}
+html.dark-bg .anv-d{color:#a5d8f0}
+html.light-bg .anv-d{color:#1d5f80}
+html.light-bg header{background:rgba(255,255,255,.5)}
+html.dark-bg header{background:rgba(8,12,28,.45)}
+header{border-bottom:none}
+.card{background:none!important;border:none;border-radius:0;padding:4px 2px}
+main{gap:28px}
+footer{background:none!important}
+.badge,.chip,.scale,.demo,.hol,button,#demoBar,.banner{text-shadow:none}
+/* 情報のタイトルを統一 */
+.card h2,.cal-h{font-size:1.15rem;font-weight:700;color:var(--text);margin:0 0 8px;letter-spacing:.02em}
+.card h2 small{font-size:.75rem;font-weight:normal}
+.cal-sec{margin-top:16px;padding-top:0;border-top:none}
+#skyCard{padding:4px 2px}
+#skyCard h2{padding:0}
+#skyInfo{padding:0 0 8px}
+#skyv{border-radius:14px}
 </style>
 </head>
 <body>
@@ -1363,7 +1389,8 @@ function updateBg(){
   if(kind === "snow"){ top = mx(gray(top, .6), [225,230,238], .45*day); bot = mx(gray(bot, .5), [238,242,247], .55*day); }
   if(kind === "fog"){ top = mx(top, [200,206,214], .55*day + .2); bot = mx(bot, [215,220,226], .6*day + .2); }
   $("#bg").style.background = `linear-gradient(180deg, ${css(top)} 0%, ${css(mx(top, bot, .55))} 55%, ${css(bot)} 100%)`;
-  document.documentElement.style.setProperty("--page-dark", lum(mx(top, bot, .5)) < 110 ? "1" : "0");
+  const isDark = lum(mx(top, bot, .45)) < 120;
+  document.documentElement.classList.toggle("dark-bg", isDark); document.documentElement.classList.toggle("light-bg", !isDark);
 }
 setInterval(updateBg, 60000);
 
