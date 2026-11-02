@@ -50,6 +50,17 @@ a{color:var(--accent)}
 .now{flex:1;min-width:0}
 .now-row{display:flex;align-items:center;gap:8px}
 .now .icon{font-size:2.2rem;line-height:1;text-shadow:none}
+.nw .now-row{display:flex;align-items:center;gap:8px}
+.nw .icon{font-size:2.2rem;line-height:1;text-shadow:none}
+.nw .wx{font-size:1.05rem;font-weight:600}
+.nw-grid{display:grid;grid-template-columns:1fr 1fr;column-gap:12px;row-gap:2px;margin-top:4px;align-items:center}
+.nw-grid>div{display:flex;align-items:baseline;gap:6px;justify-content:flex-start;min-width:0;white-space:nowrap}
+.nw-grid .k{font-size:.78rem;color:var(--muted)}
+.nw-grid b{font-size:.95rem}
+.nw-temp{align-items:center!important}
+.nw-temp .ico{width:22px;height:22px;opacity:.8;align-self:center}
+.nw-temp .temp{font-size:clamp(2rem,10vw,2.5rem);font-weight:700;line-height:1.1}
+.nw-sun{font-size:.8rem;color:var(--muted);margin-top:4px}.nw-sun b{color:var(--text)}
 .now .wx{font-size:1.05rem;font-weight:600}
 .t-row{margin-top:2px}
 .t-sub{font-size:.95rem;line-height:1.3;font-weight:600}
@@ -208,6 +219,27 @@ footer{background:none!important}
 #calMoon{display:flex;align-items:center;gap:8px;margin-top:6px}
 #moonIco{width:46px;height:46px;flex:none}
 .fash{display:grid;gap:14px}@media (min-width:600px){.fash{grid-template-columns:1fr 1fr}}
+.fash-tom{display:grid;grid-template-columns:1fr auto;column-gap:8px}
+.fash-tom>.fash-figs{grid-column:2;grid-row:1 / span 4;align-self:start}
+.fash-tom>:not(.fash-figs){grid-column:1}
+.ofit-figs.sm svg{height:92px}.ofit-figs.sm svg.umb{height:100px}
+.slot{padding:8px 0}
+.slot-h{font-weight:700;color:var(--title);font-size:.95rem}.slot-h span{font-weight:normal;font-size:.72rem;color:var(--muted)}
+.slot-row{display:flex;align-items:flex-start;gap:6px}.slot-txt{flex:1;min-width:0}
+.slot-lv{font-weight:700;font-size:1.05rem;text-shadow:none}
+.slot-desc{font-size:.82rem;line-height:1.45;margin-top:2px}
+.slot-pts{list-style:none;margin:4px 0 0;padding:0;font-size:.8rem;line-height:1.5}.slot-pts li{display:flex;gap:4px}.slot-pts span{flex:none;text-shadow:none}
+.slot.big .ofit-figs svg{height:118px}.slot.big .ofit-figs svg.umb{height:128px}
+.slot-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--line);margin-top:4px}
+.slot.half{padding-top:8px}.slot.half .slot-h{font-size:.8rem}.slot.half .slot-row{flex-direction:column-reverse;align-items:stretch}
+.slot.half .slot-lv{font-size:.85rem}.slot.half .slot-desc{font-size:.68rem}.slot.half .slot-pts{font-size:.68rem}
+.ofit-figs.xs{justify-content:flex-start}.ofit-figs.xs svg{height:66px}.ofit-figs.xs svg.umb{height:72px}
+.half-top{display:flex;align-items:center;gap:6px;margin:2px 0 4px}
+.half-top .ofit-figs{flex:none}
+.half-key{list-style:none;margin:0;padding:0;font-size:.66rem;line-height:1.25;min-width:0}
+.half-key li{display:flex;gap:3px;align-items:flex-start;margin:2px 0}.half-key span{flex:none;text-shadow:none}
+.half-key b{display:block;font-size:.72rem}.half-key i{display:block;font-style:normal;color:var(--muted)}
+.slot.half+.slot.half{border-left:1px solid var(--line);padding-left:10px}
 .fash-top{display:flex;align-items:center;gap:10px}
 .fash-ico{font-size:2.4rem;line-height:1;text-shadow:none}
 .fash-name{font-size:1.25rem;font-weight:700}
@@ -582,19 +614,17 @@ function renderWeather(w, demo){
   const [ic, tx] = wmo(c.weather_code);
   $("#weather").innerHTML = `
     <h2><span>現在の天気${demo ? DEMO_TAG : ""}</span> <small>${fmtTime(c.time)} 時点</small></h2>
-    <div class="now-wrap">
-      <div class="now">
-        <div class="now-row"><div class="icon">${ic}</div><div class="wx">${tx}</div></div>
-        <div class="now-row t-row"><span class="t-ico">${ICO.temp}</span><div class="temp">${Math.round(c.temperature_2m*10)/10}℃</div>
-          <div class="t-sub"><div><span class="hi">${Math.round(d.temperature_2m_max[0])}</span>/<span class="lo">${Math.round(d.temperature_2m_min[0])}</span>℃</div><div class="muted">体感 ${Math.round(c.apparent_temperature)}℃</div></div></div>
-        <dl class="now-list">
-          <dt>${ICO.hum}湿度</dt><dd>${c.relative_humidity_2m}%</dd>
-          <dt>${ICO.rain}雨量(直近1時間)</dt><dd>${c.precipitation} mm</dd>
-          <dt>${ICO.umb}今日の降水</dt><dd>${d.precipitation_sum[0]} mm・${d.precipitation_probability_max[0] ?? "—"}%</dd>
-          <dt>${ICO.sun}日の出/日の入</dt><dd>${hm(d.sunrise[0])} / ${hm(d.sunset[0])}</dd>
-        </dl>
+    <div class="nw">
+      <div class="now-row"><div class="icon">${ic}</div><div class="wx">${tx}</div></div>
+      <div class="nw-grid">
+        <div class="nw-l nw-temp">${ICO.temp}<span class="temp">${Math.round(c.temperature_2m*10)/10}℃</span></div>
+        <div class="nw-r"><span class="k">${ICO.hum}湿度</span><b>${c.relative_humidity_2m}%</b></div>
+        <div class="nw-l"><span class="k">体感温度</span><b>${Math.round(c.apparent_temperature)}℃</b></div>
+        <div class="nw-r"><span class="k">${ICO.rain}雨量(直近1h)</span><b>${c.precipitation} mm</b></div>
+        <div class="nw-l"><span class="k">最低/最高</span><b><span class="lo">${Math.round(d.temperature_2m_min[0])}</span>/<span class="hi">${Math.round(d.temperature_2m_max[0])}</span>℃</b></div>
+        <div class="nw-r"><span class="k">${ICO.umb}今日の降水</span><b>${d.precipitation_sum[0]} mm・${d.precipitation_probability_max[0] ?? "—"}%</b></div>
       </div>
-      ${outfitBox(w)}
+      <div class="nw-sun">${ICO.sun}日の出 <b>${hm(d.sunrise[0])}</b>　日の入 <b>${hm(d.sunset[0])}</b></div>
     </div>
     <div class="sub-h"><span id="fashH">服装の目安</span></div>
     <div id="fashion"></div>
@@ -722,17 +752,81 @@ function fashionDay(w, di){
   else if(uv != null && uv >= 3 && feel >= 17) tips.push(["🧴", `紫外線${uv >= 6 ? "が強め" : "は中程度"}（UV${Math.round(uv)}）。日焼け止めを`]);
   return { day, feel, lv, tips, rn, sunny };
 }
+// ===== 時間帯ごとの服装の目安：①いまの時間帯（横いっぱい）②③その次の2つ（半分ずつ） =====
+const PERIODS = [["午前中", 6, 12], ["午後", 12, 18], ["夜", 18, 30]];
+function periodSlots(now){
+  const h = now.getHours(), base = new Date(now); base.setHours(0,0,0,0);
+  let day = 0, p = h >= 18 ? 2 : h >= 12 ? 1 : h >= 6 ? 0 : 2;
+  if(h < 6) day = -1;                                  // 0〜6時は前日の「夜」の続き
+  const out = [];
+  for(let k=0; k<3; k++){
+    const d = new Date(base.getTime() + day*86400e3), [name, a, b] = PERIODS[p];
+    const isToday = day === 0 || (day === -1 && p === 2), isTomorrow = day === 1 || (day === 0 && h < 6);
+    const label = p === 2 ? (day === 0 ? "今晩" : day === -1 ? "今夜" : "明日の夜") : ((day === 1 || (h < 6 && day === 0)) && h >= 6 ? "明日の" + name : (day === 0 ? name : name));
+    out.push({ label: k === 0 ? label : label, name, a, b, start:new Date(d.getTime() + a*3600e3), end:new Date(d.getTime() + b*3600e3), key:d.toISOString().slice(0,10) + "-" + p, day, p });
+    p++; if(p > 2){ p = 0; day++; }
+  }
+  // 名前を整える
+  for(const sl of out){
+    const today0 = base.getTime(), sd = new Date(sl.start); sd.setHours(0,0,0,0);
+    const rel = Math.round((sd - today0)/86400e3) + (h < 6 ? 0 : 0);
+    const tm = `${pad(sl.a)}:00-${sl.p === 2 ? "" : pad(sl.b) + ":00"}`;
+    sl.title = sl.p === 2 ? (rel <= 0 ? "今晩" : "明日の夜") : ((rel >= 1 && h >= 6) || (rel >= 1 && h < 6 && false) ? "明日の" + sl.name : sl.name);
+    sl.range = sl.p === 2 ? "18:00以降" : tm;
+  }
+  return out;
+}
+function periodPlan(w, sl, cur){
+  const h = w.hourly, idx = h.time.map((t, i) => [new Date(t), i]).filter(([t]) => t >= sl.start && t < sl.end).map(([, i]) => i);
+  const at = i => h.apparent_temperature ? h.apparent_temperature[i] : h.temperature_2m[i];
+  if(!idx.length) return null;
+  const feels = idx.map(at), feel = feels.reduce((a, b) => a + b, 0)/feels.length, low = Math.min(...feels), high = Math.max(...feels);
+  const lv = FASH.find(f => Math.round(feel) >= f[0]), lvI = FASH.indexOf(lv);
+  const mm = i => h.precipitation[i] || 0, pp = i => (h.precipitation_probability || [])[i] ?? 0;
+  const wet = idx.filter(i => mm(i) >= 0.5 || (mm(i) >= 0.2 && pp(i) >= 50)), maybe = idx.filter(i => mm(i) >= 0.2 || pp(i) >= 40);
+  const max = Math.max(0, ...idx.map(mm)), total = idx.reduce((s2, i) => s2 + mm(i), 0);
+  const nowRain = cur && rainingNow(w);   // いまの時間帯で実際に降っていれば傘
+  const kind = (nowRain || max >= 1 || wet.length >= 3 || total >= 3) ? "umbrella" : maybe.length ? "folding" : "none";
+  const hr = i => +h.time[i].slice(11, 13), span = a => !a.length ? "" : (a.length === 1 ? `${hr(a[0])}時ごろ` : `${hr(a[0])}〜${hr(a[a.length-1]) + 1}時`);
+  const uv = h.uv_index ? Math.max(0, ...idx.map(i => h.uv_index[i] || 0)) : null;
+  const wind = Math.max(0, ...idx.map(i => h.wind_speed_10m[i] || 0));
+  const sunny = uv != null && uv >= 6 && feel >= 21 && lvI > 0 && kind !== "umbrella";
+  const uc = Outfit.umbrellaColors(sl.key);
+  const look = k => { const o = { ...Outfit.dailyLook(k, lvI, sl.key) }; if(kind !== "none") o[kind] = uc[k]; if(sunny){ if(k === "m") o.cap = "#f8fafc"; else o.hat = "#f5deb3"; o.sunglasses = 1; } return o; };
+  const tail = kind === "umbrella" ? "＋傘" : kind === "folding" ? "＋折りたたみ傘" : "";
+  const pts = [];
+  pts.push(["🌡️", `体感 約${Math.round(feel)}℃（${Math.round(low)}〜${Math.round(high)}℃）`]);
+  if(nowRain) pts.push(["☂️", `いま${wmo(w.current.weather_code)[1]}が降っています`]);
+  else pts.push(kind === "umbrella" ? ["☂️", `${span(wet.length ? wet : maybe)} 雨 最大${max.toFixed(1)}mm/h`] : kind === "folding" ? ["🌂", `${span(maybe)} 雨の可能性`] : ["🌤️", "雨の心配なし"]);
+  if(uv != null && uv >= 3) pts.push(["🧴", `UV最大${Math.round(uv)}${sunny ? "・帽子とサングラス" : "・日焼け止め"}`]);
+  if(wind >= 8) pts.push(["💨", `風 最大${Math.round(wind)}m/s`]);
+  if(high - low >= 5) pts.push(["🔁", "時間で気温差あり。脱ぎ着しやすく"]);
+  // 小さい枠用の短い表記
+  const short = [["🌡️", `体感${Math.round(feel)}℃`, `${Math.round(low)}〜${Math.round(high)}℃`],
+    nowRain ? ["☂️", "いま雨", ""] : kind === "umbrella" ? ["☂️", span(wet.length ? wet : maybe), `最大${max.toFixed(1)}mm`] : kind === "folding" ? ["🌂", span(maybe), "雨の可能性"] : ["🌤️", "雨なし", ""]];
+  if(uv != null && uv >= 1) short.push(["🧴", `UV${Math.round(uv)}`, uv >= 6 ? "強い" : uv >= 3 ? "中程度" : "弱い"]);
+  return { lv, lvI, kind, look, pts, short, desc:{ m:Outfit.DESC.m[lvI] + tail, f:Outfit.DESC.f[lvI] + tail } };
+}
+function slotHTML(w, sl, big){
+  const pl = periodPlan(w, sl, big); if(!pl) return "";
+  const figs = `<div class="ofit-figs ${big ? "" : "xs"}">${["m","f"].map(k => Outfit.figure(pl.look(k)).replace("<svg ", `<svg class="${pl.kind === "umbrella" ? "umb" : ""}" `)).join("")}</div>`;
+  const pts = `<ul class="slot-pts">${pl.pts.map(([e, t]) => `<li><span>${e}</span>${esc(t)}</li>`).join("")}</ul>`;
+  if(big) return `<div class="slot big">
+    <div class="slot-h">${sl.title}<span>（${sl.range}）</span></div>
+    <div class="slot-row"><div class="slot-txt"><div class="slot-lv">${pl.lv[1]} ${pl.lv[2]}</div>
+      <div class="slot-desc"><b>男</b> ${esc(pl.desc.m)}<br><b>女</b> ${esc(pl.desc.f)}</div>${pts}</div>${figs}</div></div>`;
+  // 小さい枠：人形の右に体感・雨・UV、下に服装と脱ぎ着などのポイント
+  const main = new Set(["🌡️","☂️","🌂","🌤️","🧴"]), extra = pl.pts.filter(([e]) => !main.has(e));
+  return `<div class="slot half">
+    <div class="slot-h">${sl.title}<span>（${sl.range}）</span></div>
+    <div class="half-top">${figs}<ul class="half-key">${pl.short.map(([e, a, b]) => `<li><span>${e}</span><div><b>${esc(a)}</b>${b ? `<i>${esc(b)}</i>` : ""}</div></li>`).join("")}</ul></div>
+    <div class="slot-lv">${pl.lv[1]} ${pl.lv[2]}</div>
+    <div class="slot-desc"><b>男</b> ${esc(pl.desc.m)}<br><b>女</b> ${esc(pl.desc.f)}</div>
+    ${extra.length ? `<ul class="slot-pts">${extra.map(([e, t]) => `<li><span>${e}</span>${esc(t)}</li>`).join("")}</ul>` : ""}</div>`;
+}
 function renderFashion(w, demo){
-  const hNow = new Date().getHours(), list = [];
-  list.push(hNow < 18 ? ["今日", 0] : ["明日", 1]);   // 絵と同じ日だけ
-  $("#fashion").innerHTML = `<div class="fash">${list.map(([lab, di]) => {
-    const pl = outfitPlan(w, di), f = pl.f;
-    if(pl.rn.now){ const [, tx] = wmo(w.current.weather_code); f.tips = f.tips.filter(t => t[0] !== "☂️" && t[0] !== "🌂"); f.tips.unshift(["☂️", `いま${tx}が降っています（${w.current.precipitation} mm）。傘を持って出かけましょう`]); }
-    else if(pl.rn.soon) f.tips.unshift(["🌂", "このあと3時間以内に雨の予報。折りたたみ傘があると安心"]);
-    return `<div class="fash-d"><div class="fash-top"><span class="fash-ico">${f.lv[1]}</span><div><div class="muted">${lab}・日中の体感 約${Math.round(f.feel)}℃</div><div class="fash-name">${f.lv[2]}</div></div></div>
-      <div class="fash-desc"><b>男性</b> ${esc(pl.desc.m)}<br><b>女性</b> ${esc(pl.desc.f)}</div>
-      ${f.tips.length ? `<ul class="fash-tips">${f.tips.map(t => `<li><span>${t[0]}</span>${esc(t[1])}</li>`).join("")}</ul>` : ""}</div>`;
-  }).join("")}</div>`;
+  const sl = periodSlots(new Date());
+  $("#fashion").innerHTML = slotHTML(w, sl[0], true) + `<div class="slot-pair">${slotHTML(w, sl[1], false)}${slotHTML(w, sl[2], false)}</div>`;
   markDemo("fash", "#fashH", demo);
 }
 
@@ -1068,10 +1162,10 @@ function rainSoon(w){
   const h = w.hourly, t0 = Date.now();
   return h.time.some((t, i) => { const dt = new Date(t) - t0; return dt > -3600e3 && dt <= 3*3600e3 && (h.precipitation[i] || 0) >= 0.2; });
 }
-function outfitPlan(w, di){
+function outfitPlan(w, di, useNow = di === 0){
   const f = fashionDay(w, di), lvI = FASH.indexOf(f.lv), sunny = f.sunny;
   let rn = f.rn;
-  const now = rainingNow(w), soon = !now && rainSoon(w);
+  const now = useNow && rainingNow(w), soon = useNow && !now && rainSoon(w);
   if(now) rn = { kind:"umbrella", now:true };
   else if(soon && rn.kind === "none") rn = { kind:"folding", soon:true };
   f.rn = rn;
@@ -1085,9 +1179,12 @@ function outfitPlan(w, di){
   const addF = (sunny && !/帽子/.test(Outfit.DESC.f[lvI]) ? "、帽子・サングラス" : "") + (extra === "umbrella" ? "＋傘" : extra === "folding" ? "＋折りたたみ傘" : "");
   return { f, lvI, rn, extra, look, desc:{ m:Outfit.DESC.m[lvI] + add, f:Outfit.DESC.f[lvI] + addF } };
 }
+function outfitFigs(pl, cls){
+  return `<div class="ofit-figs ${cls || ""}">${["m","f"].map(k => Outfit.figure(pl.look(k)).replace("<svg ", `<svg class="${pl.extra === "umbrella" ? "umb" : ""}" `)).join("")}</div>`;
+}
 function outfitBox(w){
   try{
-    const di = new Date().getHours() < 18 ? 0 : 1, pl = outfitPlan(w, di), rn = pl.rn;
+    const pl = outfitPlan(w, 0, true);   // 気温の横はいまの服装
     const svg = k => Outfit.figure(pl.look(k)).replace("<svg ", `<svg class="${pl.extra === "umbrella" ? "umb" : ""}" `);
     return `<div class="ofit"><div class="ofit-figs">${svg("m")}${svg("f")}</div></div>`;
   }catch(e){ console.error(e); return ""; }
