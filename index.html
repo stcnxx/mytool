@@ -331,6 +331,15 @@ footer{background:none!important}
 
 <script>
 "use strict";
+/* ---------- 戻るボタン対応：重ねて開いた画面を履歴に積み、戻るで1つずつ閉じる ---------- */
+var OVS = [];
+function ovOpen(name, close){ if(OVS.some(o => o.name === name)) return; OVS.push({ name, close }); try{ history.pushState({ ov:name, n:OVS.length }, ""); }catch(_){} }
+// 画面のボタンで閉じるとき：履歴も1つ戻す（popstate 側で実際に閉じる）
+function ovClose(name){ const i = OVS.findIndex(o => o.name === name); if(i < 0) return; if(i === OVS.length - 1) history.back(); else { const [o] = OVS.splice(i, 1); o.close(); } }
+// 外から閉じられたとき（全画面がシステム側で解除された等）：履歴だけ合わせる
+function ovForget(name){ const i = OVS.findIndex(o => o.name === name); if(i < 0) return; OVS.splice(i, 1); OVS_SKIP++; history.back(); }
+var OVS_SKIP = 0;
+addEventListener("popstate", () => { if(OVS_SKIP > 0){ OVS_SKIP--; return; } const o = OVS.pop(); if(o) o.close(); });
 const $ = s => document.querySelector(s);
 const S = { lat:null, lon:null, acc:null, prefCode:null, prefName:null, city:null, town:"", class20:null, class10:null, office:null, demoLoc:false };
 const FORCE_DEMO = /[?&]demo\b/.test(location.search);
@@ -1705,15 +1714,21 @@ function setupUI(){
   c.addEventListener('pointermove', e => { const p = SKYV.ptr; if(!p || p.id !== e.pointerId || SKYV.zoom) return; const dx = e.clientX - p.x; if(Math.abs(dx) > 6) p.moved = true; if(p.moved) SKYV.A0 = ((p.a0 - dx*SKYV.fov/c.clientWidth) % 360 + 360) % 360; });
   c.addEventListener('pointerup', e => { const p = SKYV.ptr; SKYV.ptr = null; if(!p || p.moved) return;
     const r = c.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
-    if(SKYV.zoom){ SKYV.zoom = false; return; }
-    const m = SKYV.moonP; if(m && Math.hypot(x-m.x, y-m.y) < m.r + 26){ SKYV.zoom = true; SKYV.zoomReady = false; } });
+    if(SKYV.zoom){ ovClose('moon'); return; }
+    const m = SKYV.moonP; if(m && Math.hypot(x-m.x, y-m.y) < m.r + 26){ SKYV.zoom = true; SKYV.zoomReady = false; ovOpen('moon', () => { SKYV.zoom = false; }); } });
   c.addEventListener('pointercancel', () => { SKYV.ptr = null; });
   ov.querySelector('#svLines').onclick = e => { SKYV.lines = !SKYV.lines; e.currentTarget.setAttribute('aria-pressed', SKYV.lines); };
+  const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement || ov.classList.contains('pseudo-full'));
+  const exitFull = () => { const d = document; if(d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d); ov.classList.remove('pseudo-full'); };
   ov.querySelector('#svFull').onclick = () => {
-    const d = document;
-    if(d.fullscreenElement || d.webkitFullscreenElement){ (d.exitFullscreen || d.webkitExitFullscreen).call(d); }
-    else if(ov.requestFullscreen) ov.requestFullscreen(); else if(ov.webkitRequestFullscreen) ov.webkitRequestFullscreen(); else ov.classList.toggle('pseudo-full');
+    if(isFull()){ ovClose('sky'); return; }
+    if(ov.requestFullscreen) ov.requestFullscreen().catch(() => ov.classList.add('pseudo-full'));
+    else if(ov.webkitRequestFullscreen) ov.webkitRequestFullscreen(); else ov.classList.add('pseudo-full');
+    ovOpen('sky', exitFull);
   };
+  // システム側（戻るボタン・Escキー）で全画面が解除されたときは、積んだ履歴だけ取り除く
+  const onFs = () => { if(!isFull() && OVS.some(o => o.name === 'sky')) ovForget('sky'); };
+  document.addEventListener('fullscreenchange', onFs); document.addEventListener('webkitfullscreenchange', onFs);
   ov.querySelector('#svMoon').onclick = () => { const sk = skyNow(); SKYV.A0 = sk.moon.az; };
   ov.querySelector('#svNight').onclick = e => { SKYV.night = !SKYV.night; e.currentTarget.setAttribute('aria-pressed', SKYV.night); e.currentTarget.textContent = SKYV.night ? '実際の空' : '夜にする'; infoAt = 0; updateInfo(); };
   const h = ov.querySelector('#svHint'); setTimeout(() => { h.style.opacity = '0'; }, 6000);
@@ -1835,8 +1850,8 @@ function renderWorldClocks(){
 }
 // 都市の検索（よく使う都市は手元で即時に、それ以外は Open-Meteo の地名検索で）
 let WC_EDIT = 0, WC_T = 0;
-function wcOpen(i){ WC_EDIT = i; $("#wcsTitle").textContent = `${i+1}つ目の時計の都市`; $("#wcSheet").hidden = false; $("#wcsInput").value = ""; wcSearch(""); setTimeout(() => $("#wcsInput").focus(), 50); }
-function wcClose(){ $("#wcSheet").hidden = true; }
+function wcOpen(i){ ovOpen("wc", () => { $("#wcSheet").hidden = true; }); WC_EDIT = i; $("#wcsTitle").textContent = `${i+1}つ目の時計の都市`; $("#wcSheet").hidden = false; $("#wcsInput").value = ""; wcSearch(""); setTimeout(() => $("#wcsInput").focus(), 50); }
+function wcClose(){ ovClose("wc"); }
 function wcItem(name, sub, tz){ return `<li data-name="${esc(name)}" data-tz="${esc(tz)}"><span>${esc(name)} <span class="sub">${esc(sub)}</span></span><span class="tm">${wcParts(tz, new Date()).split(" ")[1]}</span></li>`; }
 async function wcSearch(q){
   q = q.trim(); const list = $("#wcsList");
@@ -2029,6 +2044,7 @@ const BASES = {
   sat:{ name:"衛星写真", url:"https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", opt:{ maxZoom:19, attribution:'Tiles &copy; Esri &mdash; Maxar, Earthstar Geographics' } }
 };
 async function openMap(opts){
+  ovOpen("map", closeMapReal);
   $("#mapSheet").hidden = false;
   const lat = S.lat ?? DEMO_PLACE.lat, lon = S.lon ?? DEMO_PLACE.lon;
   try{
@@ -2073,7 +2089,8 @@ async function openMap(opts){
   }catch(e){ drawMapFallback(lat, lon); if(opts && opts.rain) $("#mapNote").textContent += "（雨雲は地図が読み込めるときに表示できます）"; }
 }
 function mapZoom(z){ if(!MAP.map) return; const lat = S.lat ?? DEMO_PLACE.lat, lon = S.lon ?? DEMO_PLACE.lon; MAP.map.flyTo([lat, lon], z, { duration:.8 }); }
-function closeMap(){ $("#mapSheet").hidden = true; clearInterval(MAP.timer); rainStop(); }
+function closeMapReal(){ $("#mapSheet").hidden = true; clearInterval(MAP.timer); rainStop(); }
+function closeMap(){ ovClose("map"); }
 /* ---------- 雨雲の動き（気象庁 高解像度降水ナウキャスト）：過去3時間＋1時間先まで ---------- */
 const NOWC = "https://www.jma.go.jp/bosai/jmatile/data/nowc/";
 const JP_BOUNDS = [[20, 118], [50, 156]];
