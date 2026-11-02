@@ -55,7 +55,18 @@ a{color:var(--accent)}
 .t-sub{font-size:.95rem;line-height:1.3;font-weight:600}
 .t-sub .muted{font-size:.82rem;font-weight:normal}
 .now-list{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;margin:8px 0 0;font-size:.86rem;line-height:1.45}
-.now-list dt{color:var(--muted);white-space:nowrap;font-size:.78rem;align-self:center}.now-list dd{margin:0;font-weight:600;white-space:nowrap}
+.now-list dt{color:var(--muted);white-space:nowrap;font-size:.78rem;align-self:center}.ico{width:1.15em;height:1.15em;vertical-align:-.2em;margin-right:4px;opacity:.85;flex:none}
+.t-ico .ico{width:22px;height:22px;margin:0;opacity:.8}
+.uv-box{grid-column:1/-1;padding:6px 10px 4px}
+.uv-top{display:flex;align-items:center;gap:6px}
+.uv-sun{width:42px;height:42px;flex:none}
+.uv-main{min-width:0;flex:1}
+.uv-v{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.uv-v b{font-size:1.1rem}
+.uv-name{color:#fff;font-size:.68rem;font-weight:700;border-radius:999px;padding:0 7px;text-shadow:none}
+.uv-items{font-size:.95rem;letter-spacing:1px;text-shadow:none;margin-left:auto}
+.uv-msg{font-size:.75rem;color:var(--muted);line-height:1.3}
+.uv-bar{width:100%;height:auto;display:block;margin-top:2px}
+.now-list dd{margin:0;font-weight:600;white-space:nowrap}
 .now .temp{font-size:clamp(1.9rem,9vw,2.3rem);font-weight:700;white-space:nowrap;line-height:1.15}
 .ofit{flex:0 0 156px;text-align:center}
 .ofit-h{font-size:.75rem;font-weight:700;color:var(--title)}
@@ -64,10 +75,10 @@ a{color:var(--accent)}
 .ofit-figs svg.umb{height:142px}
 .ofit-txt{font-size:.68rem;line-height:1.35;color:var(--muted);text-align:left;margin-top:2px}
 .ofit-txt b{color:var(--text);font-weight:600}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin-top:12px}
-.stat{background:var(--chip);border-radius:10px;padding:8px 10px}
-.stat .k{font-size:.75rem;color:var(--muted)}
-.stat .v{font-size:1.05rem;font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:10px}
+.stat{background:var(--chip);border-radius:10px;padding:5px 10px}
+.stat .k{font-size:.72rem;color:var(--muted);line-height:1.35}
+.stat .v{font-size:1rem;font-weight:600;line-height:1.35}
 .arrow{display:inline-block}
 .hours{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
 .hour{flex:0 0 58px;text-align:center;background:var(--chip);border-radius:10px;padding:6px 2px;font-size:.8rem}
@@ -175,7 +186,7 @@ footer{background:none!important}
 .roku-4{color:#6b21a8;background:#f3e8ff;border-color:#c084fc}
 .roku-5{color:#374151;background:#e5e7eb;border-color:#9ca3af}
 #calMoon{display:flex;align-items:center;gap:8px;margin-top:6px}
-#moonIco{width:28px;height:28px}
+#moonIco{width:46px;height:46px;flex:none}
 .fash{display:grid;gap:14px}@media (min-width:600px){.fash{grid-template-columns:1fr 1fr}}
 .fash-top{display:flex;align-items:center;gap:10px}
 .fash-ico{font-size:2.4rem;line-height:1;text-shadow:none}
@@ -214,7 +225,7 @@ footer{background:none!important}
     <div id="calDate" class="cal-date"></div>
     <div id="calClock" class="cal-clock"></div>
     <div id="calRoku"></div>
-    <div id="calMoon"><canvas id="moonIco" width="56" height="56"></canvas><span id="moonTxt"></span></div>
+    <div id="calMoon"><canvas id="moonIco" width="92" height="92"></canvas><span id="moonTxt"></span></div>
     <div class="cal-sec"><div class="cal-h">今日は何の日</div><div id="calAnniv"></div></div>
     <div class="cal-sec"><div class="cal-h">今日が誕生日の有名人 <span id="bdTag"></span></div><div id="calBirth"></div></div>
   </section>
@@ -537,13 +548,13 @@ function renderWeather(w, demo){
     <div class="now-wrap">
       <div class="now">
         <div class="now-row"><div class="icon">${ic}</div><div class="wx">${tx}</div></div>
-        <div class="now-row t-row"><div class="temp">${Math.round(c.temperature_2m*10)/10}℃</div>
+        <div class="now-row t-row"><span class="t-ico">${ICO.temp}</span><div class="temp">${Math.round(c.temperature_2m*10)/10}℃</div>
           <div class="t-sub"><div><span class="hi">${Math.round(d.temperature_2m_max[0])}</span>/<span class="lo">${Math.round(d.temperature_2m_min[0])}</span>℃</div><div class="muted">体感 ${Math.round(c.apparent_temperature)}℃</div></div></div>
         <dl class="now-list">
-          <dt>湿度</dt><dd>${c.relative_humidity_2m}%</dd>
-          <dt>雨量(直近1時間)</dt><dd>${c.precipitation} mm</dd>
-          <dt>今日の降水</dt><dd>${d.precipitation_sum[0]} mm・${d.precipitation_probability_max[0] ?? "—"}%</dd>
-          <dt>日の出/日の入</dt><dd>${hm(d.sunrise[0])} / ${hm(d.sunset[0])}</dd>
+          <dt>${ICO.hum}湿度</dt><dd>${c.relative_humidity_2m}%</dd>
+          <dt>${ICO.rain}雨量(直近1時間)</dt><dd>${c.precipitation} mm</dd>
+          <dt>${ICO.umb}今日の降水</dt><dd>${d.precipitation_sum[0]} mm・${d.precipitation_probability_max[0] ?? "—"}%</dd>
+          <dt>${ICO.sun}日の出/日の入</dt><dd>${hm(d.sunrise[0])} / ${hm(d.sunset[0])}</dd>
         </dl>
       </div>
       ${outfitBox(w)}
@@ -551,9 +562,9 @@ function renderWeather(w, demo){
     <div class="sub-h"><span id="fashH">服装の目安</span></div>
     <div id="fashion"></div>
     <div class="grid">
-      <div class="stat"><div class="k">風</div><div class="v"><span class="arrow" style="transform:rotate(${c.wind_direction_10m}deg)">↓</span> ${dirName(c.wind_direction_10m)} ${c.wind_speed_10m} m/s</div></div>
-      <div class="stat"><div class="k">最大瞬間風速</div><div class="v">${c.wind_gusts_10m} m/s</div></div>
-      <div class="stat"><div class="k">気圧(海面)</div><div class="v">${Math.round(c.pressure_msl)} hPa</div></div>
+      <div class="stat"><div class="k">${ICO.wind}風</div><div class="v"><span class="arrow" style="transform:rotate(${c.wind_direction_10m}deg)">↓</span> ${dirName(c.wind_direction_10m)} ${c.wind_speed_10m} m/s</div></div>
+      <div class="stat"><div class="k">${ICO.gust}最大瞬間風速</div><div class="v">${c.wind_gusts_10m} m/s</div></div>
+      <div class="stat"><div class="k">${ICO.press}気圧(海面)</div><div class="v">${Math.round(c.pressure_msl)} hPa</div></div>
       ${extraStats(c, d)}
     </div>
     <div class="sub-h">大気の状態</div>
@@ -676,8 +687,7 @@ function fashionDay(w, di){
 }
 function renderFashion(w, demo){
   const hNow = new Date().getHours(), list = [];
-  if(hNow < 18) list.push(["今日", 0]);
-  if(w.daily.time.length > 1) list.push(["明日", 1]);
+  list.push(hNow < 18 ? ["今日", 0] : ["明日", 1]);   // 絵と同じ日だけ
   $("#fashion").innerHTML = `<div class="fash">${list.map(([lab, di]) => {
     const pl = outfitPlan(w, di), f = pl.f;
     return `<div class="fash-d"><div class="fash-top"><span class="fash-ico">${f.lv[1]}</span><div><div class="muted">${lab}・日中の体感 約${Math.round(f.feel)}℃</div><div class="fash-name">${f.lv[2]}</div></div></div>
@@ -1029,6 +1039,49 @@ function outfitBox(w){
   }catch(e){ console.error(e); return ""; }
 }
 
+/* ---------- モノクロのシンプルなアイコン ---------- */
+const ICO = (() => {
+  const w = b => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${b}</svg>`;
+  return {
+    temp: w('<path d="M10 4a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0Z"/><path d="M12 9v7"/><circle cx="12" cy="17" r="1.2" fill="currentColor"/>'),
+    hum: w('<path d="M12 3.5s-6 6.6-6 10.7a6 6 0 0 0 12 0C18 10.1 12 3.5 12 3.5Z"/><path d="M9 14.5a3 3 0 0 0 3 3"/>'),
+    rain: w('<path d="M7 15a4 4 0 1 1 .9-7.9A5.5 5.5 0 0 1 18.5 9 3.5 3.5 0 0 1 17.5 15Z"/><path d="M9 18l-1 2.5M13 18l-1 2.5M17 18l-1 2.5"/>'),
+    umb: w('<path d="M3 12a9 9 0 0 1 18 0Z"/><path d="M12 12v6.5a2 2 0 0 1-4 0"/><path d="M12 3v.5"/>'),
+    sun: w('<path d="M3 18h18"/><path d="M7 18a5 5 0 0 1 10 0"/><path d="M12 7.5V9.5M5.6 10.6l1.4 1.4M18.4 10.6 17 12M3.5 14.5h1.5M19 14.5h1.5"/><path d="M8 21h8"/>'),
+    wind: w('<path d="M3 8h11a2.5 2.5 0 1 0-2.5-2.5"/><path d="M3 12h15a3 3 0 1 1-3 3"/><path d="M3 16h7"/>'),
+    gust: w('<path d="M3 7h9a2 2 0 1 0-2-2"/><path d="M3 11h14a3 3 0 1 1-3 3"/><path d="M3 15h6"/><path d="M17 4l2-1.5M19.5 7.5H22"/>'),
+    press: w('<path d="M4.5 16a8 8 0 1 1 15 0"/><path d="M12 13l3.5-4"/><circle cx="12" cy="13.5" r="1.3" fill="currentColor"/><path d="M6 19h12"/>'),
+    face: w('<circle cx="12" cy="12" r="8.5"/><path d="M9 10h.01M15 10h.01"/><path d="M8.8 15.3h6.4"/>'),
+    uv: w('<circle cx="12" cy="12" r="3.8"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>')
+  };
+})();
+
+/* ---------- 紫外線の絵（表情と光が変わる太陽＋5段階ゲージ＋対策） ---------- */
+const UVL = [
+  { max:2.99, name:"弱い",       col:"#3a9d3a", face:"smile", rays:8,  r:12, items:[], msg:"対策はほぼ不要" },
+  { max:5.99, name:"中程度",     col:"#e2b100", face:"smile", rays:10, r:13, items:["🧴"], msg:"長く外にいるなら日焼け止めを" },
+  { max:7.99, name:"強い",       col:"#f07b00", face:"squint", rays:12, r:14, items:["🧴","🧢","🕶️"], msg:"日焼け止め・帽子・サングラスを" },
+  { max:10.99,name:"非常に強い", col:"#d62828", face:"hot",   rays:14, r:15, items:["🧴","🧢","🕶️","👕"], msg:"日中の外出は控えめに。長袖も" },
+  { max:99,   name:"極端に強い", col:"#7b2fa8", face:"hot",   rays:16, r:16, items:["🧴","🧢","🕶️","👕","⛱️"], msg:"日中の外出はできるだけ避けて" }
+];
+function uvArt(v, vmax){
+  const i = UVL.findIndex(l => v <= l.max), L = UVL[i], cx = 30, cy = 30;
+  let rays = "";
+  for(let k=0; k<L.rays; k++){ const a = k/L.rays*Math.PI*2, r1 = L.r + 3, r2 = L.r + 7 + (i >= 3 && k % 2 ? 3 : 0);
+    rays += `<line x1="${(cx + Math.cos(a)*r1).toFixed(1)}" y1="${(cy + Math.sin(a)*r1).toFixed(1)}" x2="${(cx + Math.cos(a)*r2).toFixed(1)}" y2="${(cy + Math.sin(a)*r2).toFixed(1)}" stroke="${L.col}" stroke-width="2.4" stroke-linecap="round"/>`; }
+  const eyes = L.face === "smile" ? `<circle cx="${cx-4.5}" cy="${cy-2}" r="1.6" fill="#3a2a22"/><circle cx="${cx+4.5}" cy="${cy-2}" r="1.6" fill="#3a2a22"/>`
+             : `<path d="M${cx-7} ${cy-2} l3 -1.5 l-3 -1.5 M${cx+7} ${cy-2} l-3 -1.5 l3 -1.5" stroke="#3a2a22" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+  const mouth = L.face === "hot" ? `<ellipse cx="${cx}" cy="${cy+4.5}" rx="3" ry="2.4" fill="#b5574a"/>` : `<path d="M${cx-4} ${cy+3} Q${cx} ${cy+7} ${cx+4} ${cy+3}" stroke="#b5574a" stroke-width="1.5" fill="none" stroke-linecap="round"/>`;
+  const sweat = L.face === "hot" ? `<path d="M${cx+L.r-2} ${cy-L.r+4} q2 3 0 5 q-2 -2 0 -5Z" fill="#7cc4ff"/>` : "";
+  const sun = `<svg viewBox="0 0 60 60" class="uv-sun" aria-hidden="true"><circle cx="${cx}" cy="${cy}" r="${L.r + 10}" fill="${L.col}" opacity="${.08 + i*.05}"/>${rays}<circle cx="${cx}" cy="${cy}" r="${L.r}" fill="${i >= 3 ? "#ffb347" : "#ffd84a"}" stroke="${L.col}" stroke-width="1.5"/>${eyes}${mouth}<ellipse cx="${cx-7.5}" cy="${cy+2.5}" rx="2.4" ry="1.4" fill="#f08a8a" opacity=".6"/><ellipse cx="${cx+7.5}" cy="${cy+2.5}" rx="2.4" ry="1.4" fill="#f08a8a" opacity=".6"/>${sweat}</svg>`;
+  const segs = [[0,3,UVL[0].col],[3,6,UVL[1].col],[6,8,UVL[2].col],[8,11,UVL[3].col],[11,13,UVL[4].col]];
+  const X = u => 3 + Math.min(u, 13)/13*194;
+  const bar = `<svg viewBox="0 0 200 15" class="uv-bar" aria-hidden="true">${segs.map(([a,b,c]) => `<rect x="${X(a)}" y="6" width="${X(b)-X(a)-1}" height="4" rx="1.5" fill="${c}"/>`).join("")}<path d="M${X(v)} 6 l-3 -5 h6 Z" fill="currentColor"/>${[0,3,6,8,11].map(u => `<text x="${X(u)}" y="15" font-size="4.6" fill="currentColor" opacity=".65">${u}</text>`).join("")}</svg>`;
+  return `<div class="stat uv-box"><div class="uv-top">${sun}<div class="uv-main"><div class="k">${ICO.uv}紫外線(UV指数)${vmax != null ? `・今日最大${Math.round(vmax)}` : ""}</div>
+    <div class="uv-v"><b>${v.toFixed(1)}</b><span class="uv-name" style="background:${L.col}">${L.name}</span>${L.items.length ? `<span class="uv-items">${L.items.join("")}</span>` : ""}</div>
+    <div class="uv-msg">${L.msg}</div></div></div>${bar}</div>`;
+}
+
 /* ---------- 不快指数・紫外線・大気汚染 ---------- */
 function discomfort(t, h){ return 0.81*t + 0.01*h*(0.99*t - 14.3) + 46.3; }
 function diLabel(v){ return v < 55 ? "寒い" : v < 60 ? "肌寒い" : v < 65 ? "何も感じない" : v < 70 ? "快い" : v < 75 ? "暑くない" : v < 80 ? "やや暑い" : v < 85 ? "暑くて汗が出る" : "暑くてたまらない"; }
@@ -1036,8 +1089,8 @@ function uvLabel(v){ return v < 3 ? "弱い" : v < 6 ? "中程度" : v < 8 ? "�
 const stat = (k, v, note) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${note ? `<div class="k">${note}</div>` : ""}</div>`;
 function extraStats(c, d){
   const di = discomfort(c.temperature_2m, c.relative_humidity_2m);
-  let h = stat("不快指数", Math.round(di), diLabel(di));
-  if(c.uv_index != null) h += stat("紫外線(UV指数)", `${(+c.uv_index).toFixed(1)}`, `${uvLabel(c.uv_index)}${d.uv_index_max ? `・今日最大${Math.round(d.uv_index_max[0])}` : ""}`);
+  let h = stat(ICO.face + "不快指数", Math.round(di), diLabel(di));
+  if(c.uv_index != null) h += uvArt(+c.uv_index, d.uv_index_max ? d.uv_index_max[0] : null);
   return h;
 }
 function pm25Label(v){ return v <= 15 ? "良い" : v <= 35 ? "普通" : v <= 50 ? "やや多い" : v <= 70 ? "多い" : "非常に多い"; }
@@ -1742,7 +1795,7 @@ function renderMoon(){
   try{
     const m = Sky.moonInfo(), age = m.age, c = $("#moonIco"), x = c.getContext("2d");
     x.setTransform(1,0,0,1,0,0); x.clearRect(0, 0, c.width, c.height); x.setTransform(2,0,0,2,0,0);
-    Sky.iconMoon(x, 14, 14, 12);
+    Sky.iconMoon(x, 23, 23, 21);
     $("#moonTxt").innerHTML = `月齢 <b>${age.toFixed(1)}</b> <span class="muted">${m.name}・光っている部分 ${Math.round(m.frac*100)}%</span>`;
   }catch(e){ console.error(e); }
 }
