@@ -363,7 +363,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-03 08:30</div>
+  <div style="margin-bottom:4px">版：2026-11-03 09:45</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -911,15 +911,22 @@ function wAlong(ws, n){ return ws.slice(0, n); }
 
 function figure(o){
   const id = "of" + (++UID), F = o.sex === "f";
-  const P = [], defs = `<defs><linearGradient id="${id}s" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset=".62" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient><linearGradient id="${id}v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".12"/><stop offset=".25" stop-color="#000" stop-opacity="0"/></linearGradient><radialGradient id="${id}f" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity=".06"/></radialGradient></defs>`;
+  const oo = o.outer, shX = oo ? 60 - (F ? 17 : 21) - (oo.type === "down" ? 1.5 : 0) : (F ? 44.5 : 41.5), shR = 120 - shX;
+  // 肩の線より上に出る腕・袖の丸い部分を切り取る（肩から自然に腕が下りるように）
+  const shoulderClip = `M-40 66 L${shX-14} 66 Q${shX-5} 52.6 ${shX} 51.2 Q60 44.5 ${shR} 51.2 Q${shR+5} 52.6 ${shR+14} 66 L160 66 L160 260 L-40 260 Z`;
+  const P = [], defs = `<defs><linearGradient id="${id}s" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset=".62" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient><linearGradient id="${id}v" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".12"/><stop offset=".25" stop-color="#000" stop-opacity="0"/></linearGradient><radialGradient id="${id}f" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".18"/><stop offset="1" stop-color="#000" stop-opacity=".06"/></radialGradient><linearGradient id="${id}b" gradientUnits="userSpaceOnUse" x1="24" y1="0" x2="96" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".2"/><stop offset=".42" stop-color="#fff" stop-opacity=".03"/><stop offset=".6" stop-color="#000" stop-opacity=".02"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient><linearGradient id="${id}t" gradientUnits="userSpaceOnUse" x1="0" y1="45" x2="0" y2="74"><stop offset="0" stop-color="#000" stop-opacity=".1"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient><clipPath id="${id}c"><path d="${shoulderClip}"/></clipPath><radialGradient id="${id}r"><stop offset=".35" stop-color="#fff"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient><mask id="${id}m" maskUnits="userSpaceOnUse" x="-40" y="0" width="200" height="260"><ellipse cx="${shX+2}" cy="61" rx="9" ry="13" fill="url(#${id}r)"/><ellipse cx="${shR-2}" cy="61" rx="9" ry="13" fill="url(#${id}r)"/></mask></defs>`;
   const fillS = (d, col, extra = "") => `<path d="${d}" fill="${col}" ${extra}/><path d="${d}" fill="url(#${id}s)"/>`;
+  // 胴と袖は、体全体で共通の光の当たり方にする（肩のつなぎ目で明るさが食い違わないように）
+  const fillB = (d, col) => `<path d="${d}" fill="${col}"/><path d="${d}" fill="url(#${id}s)"/><path d="${d}" fill="url(#${id}v)"/><g mask="url(#${id}m)"><path d="${d}" fill="${col}"/><path d="${d}" fill="url(#${id}b)"/><path d="${d}" fill="url(#${id}t)"/></g>`;
   const umb = !!o.umbrella;
   // ---- 骨格（正面） ----
   const sh = F ? 15.5 : 19;                       // 肩幅の半分
-  const armL = F ? [[60-sh+2.5,55],[60-sh-3.5,90],[60-sh-5.5,123]] : [[60-sh+3,55],[60-sh-3,91],[60-sh-5,125]];
+  // 腕は、いちばん外側の服の脇の線に合わせて付ける（肩はわずかに内側、手首は少し外へ）
+  const xEdge = !o.outer ? (F ? 42.5 : 39.5) : o.outer.type === "down" ? (F ? 38 : 34) : (F ? 40.5 : 36.5);
+  const armL = [[xEdge + (F ? 3.6 : 4.2), 57.5], [xEdge - (F ? 1.8 : 2.4), 91], [xEdge - (F ? 3 : 3.8), 124]];
   const armR = armL.map(([x, y]) => [120 - x, y]);
   const UX = 70, UY = 92;                           // 傘を持つ手
-  const armRU = [[120-armL[0][0], 55], [F ? 81 : 85, 86], [UX + 3, UY + 1]];
+  const armRU = [[120-armL[0][0], 57.5], [F ? 81 : 85, 86], [UX + 3, UY + 1]];
   const armW = F ? [9, 7.6, 5.6] : [10.5, 8.6, 6.6];
   const legL = F ? [[54.5,116],[53.6,163],[53.8,186],[54,209]] : [[52.5,116],[51.6,163],[51.8,186],[52,209]];
   const legR = legL.map(([x, y]) => [120 - x, y]);
@@ -975,14 +982,14 @@ function figure(o){
   // ---- 首 ----
   P.push(`<path d="M55 34 L65 34 L65.5 50 Q60 53 54.5 50 Z" fill="${SKIN_D}"/><path d="M55 44 Q60 47 65 44" fill="none" stroke="${SKIN_S}" stroke-width=".7" opacity=".6"/>`);
 
+  const ARM_AT = P.length;   // 腕はここ（服の下）に差し込む
   // ---- トップス ----
   const t = o.top;
   const torso = F ? `M44.5 51.5 Q60 46.5 75.5 51.5 Q78 56 77.5 66 Q74 86 73 97 Q75.5 108 77 118 H43 Q44.5 108 47 97 Q46 86 42.5 66 Q42 56 44.5 51.5 Z`
                   : `M41.5 51.5 Q60 46 78.5 51.5 Q81 56 80.5 68 L78 98 L79 120 H41 L42 98 L39.5 68 Q39 56 41.5 51.5 Z`;
   const tankD = F ? `M50 51 Q60 58 70 51 L71 50 Q77 56 77 66 Q74 86 73 97 Q75.5 108 77 118 H43 Q44.5 108 47 97 Q46 86 43 66 Q43 56 49 50 Z`
                   : `M49 51 Q60 59 71 51 L72 50 Q79 56 79.5 68 L78 98 L79 120 H41 L42 98 L40.5 68 Q41 56 48 50 Z`;
-  P.push(fillS(t.type === "tank" ? tankD : torso, t.col));
-  P.push(`<path d="${t.type === "tank" ? tankD : torso}" fill="url(#${id}v)"/>`);
+  P.push(fillB(t.type === "tank" ? tankD : torso, t.col));
   const tuck = (b.type === "skirt" || b.type === "wide") && F;
   if(t.type === "tee" || t.type === "tank") P.push(`<path d="M${t.type === "tank" ? 50 : 53} ${t.type === "tank" ? 51.5 : 50} Q60 ${t.type === "tank" ? 59 : 56} ${t.type === "tank" ? 70 : 67} ${t.type === "tank" ? 51.5 : 50}" fill="${SKIN_D}" stroke="${shade(t.col,-.2)}" stroke-width="1.4"/>`);
   if(t.type === "shirt"){
@@ -1008,7 +1015,7 @@ function figure(o){
     if(out.type === "open"){
       for(const s of [-1, 1]){
         const d = `M${60 + s*W} 51 Q${60 + s*(W+3)} 56 ${60 + s*(W+2.5)} 68 L${60 + s*(Wb)} ${y2} L${60 + s*4.5} ${y2} L${60 + s*4} 66 L${60 + s*7} 49 Z`;
-        P.push(fillS(d, out.col));
+        P.push(fillB(d, out.col));
         if(out.lapel) P.push(`<path d="M${60 + s*7} 49 L${60 + s*11} 66 L${60 + s*5} 76 L${60 + s*4} 66 Z" fill="${shade(out.col,-.12)}" stroke="${shade(out.col,-.3)}" stroke-width=".6"/>`);
         else for(const y of [70, 84, 98, 112]) if(s < 0) P.push(`<circle cx="${60 - 5.6}" cy="${y}" r="1" fill="${shade(out.col,-.4)}"/>`);
         P.push(`<path d="M${60 + s*(W-2)} ${y2-3} H${60 + s*5}" stroke="${shade(out.col,-.15)}" stroke-width="${out.lapel ? 0 : 2.2}"/>`);
@@ -1016,14 +1023,14 @@ function figure(o){
       }
     }else if(out.type === "coat"){
       const d = `M${60-W} 51 Q60 45.5 ${60+W} 51 Q${60+W+3} 56 ${60+W+2.5} 68 L${60+Wb} ${y2} Q60 ${y2+2} ${60-Wb} ${y2} L${60-W-2.5} 68 Q${60-W-3} 56 ${60-W} 51 Z`;
-      P.push(fillS(d, out.col), `<path d="${d}" fill="url(#${id}v)"/>`);
+      P.push(fillB(d, out.col));
       P.push(`<path d="M53 49 L49.5 64 L57 70 L60 60 L63 70 L70.5 64 L67 49" fill="${shade(out.col,-.1)}" stroke="${shade(out.col,-.32)}" stroke-width=".7"/><path d="M61.5 66 L62 ${y2}" stroke="${shade(out.col,-.28)}" stroke-width=".8"/>`);
       for(const y of [76, 92, 108, 124, 140, 156].filter(y => y < y2 - 6)) P.push(`<circle cx="56" cy="${y}" r="1.5" fill="${shade(out.col,-.45)}"/><circle cx="66.5" cy="${y}" r="1.5" fill="${shade(out.col,-.45)}"/>`);
       if(out.belt) P.push(`<path d="M${60-W-1.5} 100 L${60+W+1.5} 100 L${60+W+1.8} 105 L${60-W-1.8} 105 Z" fill="${shade(out.col,-.15)}"/><rect x="57" y="98.5" width="7" height="8" rx="1" fill="none" stroke="${shade(out.col,-.5)}" stroke-width="1.1"/><path d="M58 105 l-2.5 14 M62 105 l1.5 13" stroke="${shade(out.col,-.15)}" stroke-width="2"/>`);
       P.push(`<path d="M${60-W+2} 112 h7 M${60+W-2} 112 h-7" stroke="${shade(out.col,-.3)}" stroke-width=".8"/>`);
     }else if(out.type === "down"){
       const d = `M${60-W-1} 52 Q60 44 ${60+W+1} 52 Q${60+W+6} 60 ${60+W+5} 72 L${60+Wb+3} ${y2} Q60 ${y2+5} ${60-Wb-3} ${y2} L${60-W-5} 72 Q${60-W-6} 60 ${60-W-1} 52 Z`;
-      P.push(fillS(d, out.col));
+      P.push(fillB(d, out.col));
       for(let y = 66; y < y2 - 4; y += 13) P.push(`<path d="M${60-W-5} ${y} Q60 ${y+4.5} ${60+W+5} ${y}" fill="none" stroke="${shade(out.col,-.2)}" stroke-width="1.2"/><path d="M${60-W-4} ${y-5} Q60 ${y-1.5} ${60+W+4} ${y-5}" fill="none" stroke="#fff" stroke-opacity=".25" stroke-width="2"/>`);
       P.push(`<path d="M60 52 V${y2+3}" stroke="${shade(out.col,-.38)}" stroke-width="1.1"/><path d="M48 50 Q60 42 72 50 L71 58 Q60 53 49 58 Z" fill="${shade(out.col,-.08)}" stroke="${shade(out.col,-.25)}" stroke-width=".6"/>`);
     }
@@ -1034,21 +1041,18 @@ function figure(o){
     if(!len) return "";
     const ws = armW.map(w => w + 2.4 + sleeveExtra);
     if(len === 1){
-      // 半袖：肩から胴につながる袖
-      const A = pts[0], sgn = A[0] < 60 ? 1 : -1, E = along(pts, .36).pop(), B = pts[1];
-      let nx = B[1]-A[1], ny = -(B[0]-A[0]); const nl = Math.hypot(nx, ny); nx /= nl; ny /= nl; if(nx*sgn < 0){ nx = -nx; ny = -ny; }
-      const w = (ws[1] + 1.2)/2, eo = [E[0] - nx*w, E[1] - ny*w], ei = [E[0] + nx*w, E[1] + ny*w];
-      const d = `M${r1(A[0] + sgn*6)} 49.6 Q${r1(A[0] - sgn*3.5)} 49 ${r1(A[0] - sgn*5.8)} ${r1(A[1] + 1)} L${r1(eo[0])} ${r1(eo[1])} Q${r1(E[0])} ${r1(E[1] + 1.6)} ${r1(ei[0])} ${r1(ei[1])} L${r1(A[0] + sgn*5)} ${r1(A[1] + 9)} Z`;
-      return fillS(d, sleeveCol) + `<path d="M${r1(eo[0])} ${r1(eo[1])} Q${r1(E[0])} ${r1(E[1] + 1.6)} ${r1(ei[0])} ${r1(ei[1])}" fill="none" stroke="${shade(sleeveCol,-.2)}" stroke-width=".7"/>`;
+      // 半袖：服の下から出る短い筒（肩側は胴の下に隠れる）
+      const p2 = along(pts, .4), w2 = [ws[0] + 2.5, ws[1] + 3.2], d = limbPath(p2, w2);
+      const e = p2[p2.length-1], eb = p2[p2.length-2], a = Math.atan2(e[1]-eb[1], e[0]-eb[0])*180/Math.PI;
+      return fillB(d, sleeveCol) + `<rect x="${e[0]-w2[1]/2}" y="${e[1]-1.6}" width="${w2[1]}" height="1.6" fill="${shade(sleeveCol,-.12)}" transform="rotate(${a-90} ${e[0]} ${e[1]})"/>`;
     }
-    const p3 = along(pts, .93); let s = fillS(limbPath(p3, ws), sleeveCol);
+    const p3 = along(pts, .93); let s = fillB(limbPath(p3, ws), sleeveCol);
     const c = p3[p3.length-1], cb = p3[p3.length-2], a = Math.atan2(c[1]-cb[1], c[0]-cb[0])*180/Math.PI;
     s += `<rect x="${c[0]-ws[2]/2}" y="${c[1]-2.6}" width="${ws[2]}" height="3.4" rx="1.2" fill="${shade(sleeveCol, t.type === "knit" || out ? -.12 : .1)}" transform="rotate(${a-90} ${c[0]} ${c[1]})"/>`;
     return s;
   };
   const drawArm = (pts, isUmb) => {
-    P.push(`<path d="${limbPath(pts, armW)}" fill="${SKIN}"/>`);
-    P.push(sleeveOf(pts, sleeveLen));
+    P.splice(ARM_AT, 0, `<g clip-path="url(#${id}c)"><path d="${limbPath(pts, armW)}" fill="${SKIN}"/>${sleeveOf(pts, sleeveLen)}</g>`);
     if(!isUmb){ const h = pts[pts.length-1]; P.push(hand(h[0], h[1] + 4, o.gloves || SKIN)); }
   };
   drawArm(armL, false);
@@ -1096,9 +1100,10 @@ function figure(o){
     const AX = 77, AY = -22, ang = Math.atan2(AX - UX, -(AY - UY))*180/Math.PI, dk = shade(col, -.25), W2 = 60, rim = 30;
     const dx = UX - AX, dy = UY - AY, L0 = Math.hypot(dx, dy), ux = dx/L0, uy = dy/L0, bx = UX + ux*6, by = UY + uy*6;
     // 傘を持つ腕（先に描き、柄と傘はその手前に重ねる）
-    P.push(`<path d="${limbPath(armRU, armW)}" fill="${SKIN}"/>`);
-    if(sleeveLen === 1) P.push(sleeveOf(armRU, 1));
-    if(sleeveLen === 2){ const ws = armW.map(w => w + 2.4 + sleeveExtra); P.push(fillS(limbPath(along(armRU, .9), ws), sleeveCol)); }
+    { let a = `<path d="${limbPath(armRU, armW)}" fill="${SKIN}"/>`;
+      if(sleeveLen === 1) a += sleeveOf(armRU, 1);
+      if(sleeveLen === 2){ const ws = armW.map(w => w + 2.4 + sleeveExtra); a += fillB(limbPath(along(armRU, .9), ws), sleeveCol); }
+      P.push(`<g clip-path="url(#${id}c)">${a}</g>`); }
     P.push(`<line x1="${AX + ux*10}" y1="${AY + uy*10}" x2="${bx}" y2="${by}" stroke="#3f4652" stroke-width="2.2"/><path d="M${bx} ${by} q${ux*3} 7 -5.5 7 q-5 0 -5 -5" fill="none" stroke="#2b313b" stroke-width="2.6" stroke-linecap="round"/>`);
     let d = `M${-W2} ${rim} C${-W2} ${-8} ${W2} ${-8} ${W2} ${rim}`;
     for(let k=8; k>0; k--){ const a = -W2 + 2*W2*k/8, bb = -W2 + 2*W2*(k-1)/8; d += ` Q${(a+bb)/2} ${rim-6} ${bb} ${rim}`; }
