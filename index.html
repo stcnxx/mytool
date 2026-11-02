@@ -31,7 +31,13 @@ header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--card) 
 body{background:transparent}
 .hrow{display:flex;align-items:center;gap:8px;justify-content:space-between}
 h1{font-size:1.15rem;margin:0;display:flex;align-items:center;gap:6px}
-h1 .pin{width:22px;height:22px;flex:none}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.place-row{display:flex;align-items:flex-start;gap:6px}
+.place-row .pin{width:22px;height:22px;flex:none;margin-top:1px}
+.place-row #place{font-size:.95rem;color:var(--text);min-width:0}
+.btn-row{display:flex;gap:6px;align-items:center}
+.btn-row .refresh{margin-left:auto}
+.btn-row .refresh:disabled{opacity:.55}
 #place{font-size:.85rem;color:var(--muted)}
 button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);
   border-radius:10px;padding:6px 12px;cursor:pointer}
@@ -261,12 +267,9 @@ footer{background:none!important}
 <body>
 <div id="bg"><canvas id="bgc"></canvas></div>
 <header>
-  <div class="hrow">
-    <h1><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.6 2 4 5.5 4 9.9c0 5.6 6.6 11.3 7.3 11.9.4.3 1 .3 1.4 0 .7-.6 7.3-6.3 7.3-11.9C20 5.5 16.4 2 12 2z" fill="#e53935"/><circle cx="12" cy="9.8" r="3.2" fill="#fff"/></svg>現在位置</h1>
-    <button id="refresh" class="primary">更新</button>
-  </div>
-  <div id="place">位置情報を取得しています…</div>
-  <div style="display:flex;gap:6px"><button id="mapBtn" class="mapbtn">🗺️ 地図を見る</button><button id="rainBtn" class="mapbtn">☔ 雨雲を見る</button></div>
+  <h1 class="sr-only">情報ツール</h1>
+  <div class="place-row"><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.6 2 4 5.5 4 9.9c0 5.6 6.6 11.3 7.3 11.9.4.3 1 .3 1.4 0 .7-.6 7.3-6.3 7.3-11.9C20 5.5 16.4 2 12 2z" fill="#e53935"/><circle cx="12" cy="9.8" r="3.2" fill="#fff"/></svg><div id="place">位置情報を取得しています…</div></div>
+  <div class="btn-row"><button id="mapBtn" class="mapbtn">🗺️ 地図を見る</button><button id="rainBtn" class="mapbtn">☔ 雨雲を見る</button><button id="refresh" class="mapbtn refresh">⟳ 更新</button></div>
 </header>
 
 <div id="mapSheet" hidden>
