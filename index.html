@@ -189,7 +189,7 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 #skyv .sv-top{position:absolute;top:8px;left:0;right:0;text-align:center;color:#fff;font-size:12px;font-weight:600;letter-spacing:.06em;text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:none}
 #skyv .sv-bar{position:absolute;left:8px;right:8px;bottom:12px;display:flex;gap:6px}
 #skyv .sv-bar button{flex:1 1 0;min-width:0;white-space:nowrap;background:rgba(24,22,44,.6);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:17px;padding:7px 4px;font-size:12px;font-weight:600;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
-#skyv #svLines[aria-pressed=false]{opacity:.6}#skyv #svNight[aria-pressed=true]{background:rgba(120,140,255,.55)}
+#skyv .sv-bar button[aria-pressed=true]{background:rgba(96,140,255,.75);border-color:rgba(190,210,255,.95);box-shadow:0 0 0 1px rgba(190,210,255,.35) inset}
 #skyv .sv-hint{position:absolute;bottom:56px;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:11px;text-shadow:0 1px 3px #000;transition:opacity 1.2s;pointer-events:none}
 footer{max-width:928px;margin:0 auto 30px;padding:12px 16px;font-size:.75rem;color:var(--muted);background:color-mix(in srgb,var(--card) 85%,transparent);border-radius:14px}
 @media (max-width:960px){footer{margin:0 16px 30px}}
@@ -356,13 +356,14 @@ footer{background:none!important}
         <button type="button" id="svMoon">月の方へ</button>
         <button type="button" id="svNight" aria-pressed="false">夜にする</button>
         <button type="button" id="svLines" aria-pressed="true">星座線</button>
-        <button type="button" id="svFull">全画面</button>
+        <button type="button" id="svFull" aria-pressed="false">全画面</button>
       </div>
     </div>
   </section>
 </main>
 
 <footer>
+  <div style="margin-bottom:4px">版：2026-11-03 08:30</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1980,7 +1981,11 @@ function setupUI(){
     ovOpen('sky', exitFull);
   };
   // システム側（戻るボタン・Escキー）で全画面が解除されたときは、積んだ履歴だけ取り除く
-  const onFs = () => { if(!isFull() && OVS.some(o => o.name === 'sky')) ovForget('sky'); };
+  // 全画面ボタンの色（押した状態）を、実際の全画面の状態に合わせる
+  const fb = ov.querySelector('#svFull');
+  const syncFull = () => fb.setAttribute('aria-pressed', isFull());
+  new MutationObserver(syncFull).observe(ov, { attributes:true, attributeFilter:['class'] });
+  const onFs = () => { syncFull(); if(!isFull() && OVS.some(o => o.name === 'sky')) ovForget('sky'); };
   document.addEventListener('fullscreenchange', onFs); document.addEventListener('webkitfullscreenchange', onFs);
   ov.querySelector('#svMoon').onclick = () => { const sk = skyNow(); SKYV.A0 = sk.moon.az; };
   ov.querySelector('#svNight').onclick = e => { SKYV.night = !SKYV.night; e.currentTarget.setAttribute('aria-pressed', SKYV.night); e.currentTarget.textContent = SKYV.night ? '実際の空' : '夜にする'; infoAt = 0; updateInfo(); };
