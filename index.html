@@ -203,6 +203,7 @@ html.light-bg .anv-d{color:#0c3d57}
 html.light-bg header{background:rgba(255,255,255,.5)}
 html.dark-bg header{background:rgba(8,12,28,.45)}
 header{border-bottom:none}
+.card[hidden]{display:none!important}
 .card{background:none!important;border:none;border-radius:0;padding:4px 2px}
 main{gap:28px}
 footer{background:none!important}
@@ -321,7 +322,7 @@ footer{background:none!important}
   </section>
 
   <section class="card">
-    <h2><span id="quakeH">最近の地震</span> <small>震度1以上</small></h2>
+    <h2><span id="quakeH">最近の地震</span> <small id="quakeSub">震度1以上</small></h2>
     <div id="quakes"><span class="muted">読み込み中…</span></div>
   </section>
 
@@ -364,7 +365,7 @@ footer{background:none!important}
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
   <a href="https://www.p2pquake.net/" target="_blank" rel="noopener">P2P地震情報</a>／
   <a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>・<a href="https://www.odpt.org/" target="_blank" rel="noopener">公共交通オープンデータセンター</a>（運行情報）／
-  <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>（地図）／Open-Meteo Geocoding（世界時計の都市検索）／
+  <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>（地図）／Open-Meteo Geocoding（世界時計の都市検索）／<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（海外の地名）／<a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS</a>（海外の地震）／<a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>（海外の雨雲）／<a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Terrain Tiles</a>（海外の地形）／
   <a href="https://ja.wikipedia.org/" target="_blank" rel="noopener">ウィキペディア</a>（誕生日・記念日）。天体は現在地と時刻から計算し、山並みは<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院の標高タイル</a>から描いています。
   情報は参考用です。避難等の判断は自治体・気象庁の発表に従ってください。<br>
   URLの末尾に <code>?demo</code> を付けると、通信せずにサンプルデータだけで表示します。
@@ -372,6 +373,10 @@ footer{background:none!important}
 
 <script>
 "use strict";
+/* ---------- 日本かどうか（日本専用の欄の出し分け） ---------- */
+function inJapanBox(lat, lon){ return lat >= 20 && lat <= 46.5 && lon >= 122 && lon <= 154.5; }
+function inJapan(){ return S.abroad != null ? !S.abroad : inJapanBox(S.lat ?? 35.68, S.lon ?? 139.76); }
+function showCard(sel, on){ const el = document.querySelector(sel); const c = el && el.closest(".card"); if(c) c.hidden = !on; }
 /* ---------- 戻るボタン対応：重ねて開いた画面を履歴に積み、戻るで1つずつ閉じる ---------- */
 var OVS = [];
 function ovOpen(name, close){ if(OVS.some(o => o.name === name)) return; OVS.push({ name, close }); try{ history.pushState({ ov:name, n:OVS.length }, ""); }catch(_){} }
@@ -572,32 +577,44 @@ function setFromClass20(code){
   S.office = AREA.class10s[S.class10]?.parent;
 }
 async function resolvePlace(){
-  if(!AREA) AREA = await getJSON("https://www.jma.go.jp/bosai/common/const/area.json", { proxy:true });
-  // 1) 国土地理院（市区町村コードが取れる）
-  try{
-    const g = await getJSON(`https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${S.lat}&lon=${S.lon}`);
-    const muni = String(g?.results?.muniCd ?? "").padStart(5,"0");
-    if(!/^\d{5}$/.test(muni) || muni === "00000") throw new Error("住所なし");
-    S.prefCode = parseInt(muni.slice(0,2),10); S.prefName = PREFS[S.prefCode];
-    S.town = g.results.lv01Nm && g.results.lv01Nm !== "－" ? g.results.lv01Nm : "";
-    const code = findClass20(muni);
-    if(!code) throw new Error("気象庁の地域コードが見つかりません");
-    setFromClass20(code);
-    return;
-  }catch(e){ /* 2) へ */ }
-  // 2) BigDataCloud（都道府県名・市区町村名から気象庁コードを探す）
+  Object.assign(S, { abroad:null, country:"", countryCode:"", prefCode:null, prefName:"", city:"", town:"", class20:null, class10:null, office:null });
+  // 1) 日本国内：国土地理院（市区町村コード → 気象庁の地域コード）
+  if(inJapanBox(S.lat, S.lon)){
+    try{
+      if(!AREA) AREA = await getJSON("https://www.jma.go.jp/bosai/common/const/area.json", { proxy:true });
+      const g = await getJSON(`https://mreversegeocoder.gsi.go.jp/reverse-geocoder/LonLatToAddress?lat=${S.lat}&lon=${S.lon}`);
+      const muni = String(g?.results?.muniCd ?? "").padStart(5,"0");
+      if(!/^\d{5}$/.test(muni) || muni === "00000") throw new Error("住所なし");
+      S.prefCode = parseInt(muni.slice(0,2),10); S.prefName = PREFS[S.prefCode];
+      S.town = g.results.lv01Nm && g.results.lv01Nm !== "－" ? g.results.lv01Nm : "";
+      const code = findClass20(muni);
+      if(!code) throw new Error("気象庁の地域コードが見つかりません");
+      setFromClass20(code); S.abroad = false; S.country = "日本"; S.countryCode = "JP";
+      return;
+    }catch(e){ /* 2) へ */ }
+  }
+  // 2) 世界：BigDataCloud（日本なら都道府県名から気象庁コードも探す）
   const j = await getJSON(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${S.lat}&longitude=${S.lon}&localityLanguage=ja`);
   const pc = PREFS.indexOf(j.principalSubdivision);
-  if(pc < 1) throw new Error("日本国外、または住所を特定できない地点です");
-  S.prefCode = pc; S.prefName = PREFS[pc]; S.town = j.locality && j.locality !== j.city ? j.locality : "";
-  const pfx = pad(pc), names = [j.city, j.locality].filter(Boolean);
-  const code = Object.keys(AREA.class20s).find(k => k.startsWith(pfx) && names.some(n => AREA.class20s[k].name === n || AREA.class20s[k].name.startsWith(n)));
-  if(code) setFromClass20(code); else S.city = j.city || "";
+  if((j.countryCode === "JP" || !j.countryCode) && pc >= 1){
+    S.abroad = false; S.country = "日本"; S.countryCode = "JP";
+    S.prefCode = pc; S.prefName = PREFS[pc]; S.town = j.locality && j.locality !== j.city ? j.locality : "";
+    try{ if(!AREA) AREA = await getJSON("https://www.jma.go.jp/bosai/common/const/area.json", { proxy:true });
+      const pfx = pad(pc), names = [j.city, j.locality].filter(Boolean);
+      const code = Object.keys(AREA.class20s).find(k => k.startsWith(pfx) && names.some(n => AREA.class20s[k].name === n || AREA.class20s[k].name.startsWith(n)));
+      if(code) setFromClass20(code); else S.city = j.city || "";
+    }catch(_){ S.city = j.city || ""; }
+    return;
+  }
+  S.abroad = j.countryCode ? j.countryCode !== "JP" : !inJapanBox(S.lat, S.lon);
+  S.country = j.countryName || ""; S.countryCode = j.countryCode || "";
+  S.prefName = j.principalSubdivision || ""; S.city = j.city || ""; S.town = j.locality && j.locality !== j.city ? j.locality : "";
+  if(!S.country && !S.prefName && !S.city) throw new Error("住所を特定できない地点です");
 }
-function applyDemoPlace(){ Object.assign(S, { prefCode:DEMO_PLACE.prefCode, prefName:DEMO_PLACE.prefName, city:DEMO_PLACE.city, town:DEMO_PLACE.town, class20:DEMO_PLACE.class20, class10:DEMO_PLACE.class10, office:DEMO_PLACE.office }); }
+function applyDemoPlace(){ Object.assign(S, { abroad:false, country:"日本", countryCode:"JP", prefCode:DEMO_PLACE.prefCode, prefName:DEMO_PLACE.prefName, city:DEMO_PLACE.city, town:DEMO_PLACE.town, class20:DEMO_PLACE.class20, class10:DEMO_PLACE.class10, office:DEMO_PLACE.office }); }
 
 function renderPlace(placeDemo){
-  const name = [S.prefName, S.city, S.town].filter(Boolean).join(" ");
+  const name = (S.abroad ? [S.country, S.prefName, S.city, S.town] : [S.prefName, S.city, S.town]).filter((v, i, a) => v && a.indexOf(v) === i).join(" ");
   let html = `${esc(name || "現在地")}${S.elevText ? ` <b>標高 ${esc(S.elevText)}</b>` : ""} <span class="muted">(${S.lat}, ${S.lon}${S.acc ? ` ±${S.acc}m` : ""})</span>`;
   if(placeDemo || S.demoLoc) html += DEMO_TAG;
   if(S.locMsg) html += `<div class="err" style="font-size:.8rem">${esc(S.locMsg)} <button id="retryLoc" style="padding:2px 8px">再取得</button></div>`;
@@ -611,7 +628,7 @@ async function loadWeather(){
     + "&current=uv_index,temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
     + "&hourly=apparent_temperature,uv_index,temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m"
     + "&daily=uv_index_max,weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset,wind_speed_10m_max,wind_direction_10m_dominant"
-    + "&timezone=Asia%2FTokyo&forecast_days=7&wind_speed_unit=ms";
+    + "&timezone=auto&forecast_days=7&wind_speed_unit=ms";
   let w, demo = false;
   try{ w = await getJSON(url); }catch(e){ w = demoWeather(); demo = true; }
   renderWeather(w, demo);
@@ -683,6 +700,8 @@ function demoPops(){
   return { area:"東京地方", at:new Date().toISOString(), list:v.map((p, i) => ({ t:new Date(t0.getTime() + i*6*3600e3), p })) };
 }
 async function loadPops(){
+  showCard("#pops", inJapan());
+  if(!inJapan()){ markDemo("pops", "#popH", false); return; }
   let data, demo = false;
   try{
     if(!S.office || !S.class10) throw new Error("地域コードなし");
@@ -755,7 +774,7 @@ function fashionDay(w, di){
   if(wind >= 10) tips.push(["💨", `風が強め（最大${Math.round(wind)}m/s）。風を通しにくい上着を。スカートや帽子に注意`]);
   else if(wind >= 7 && feel < 21) tips.push(["💨", `風があり体感より寒く感じます（最大${Math.round(wind)}m/s）`]);
   const uv = d.uv_index_max ? d.uv_index_max[di] : null;
-  const sunny = uv != null && uv >= 6 && feel >= 21 && FASH.indexOf(lv) > 0 && rn.kind !== "umbrella";
+  const sunny = uv != null && uv >= 6 && FASH.indexOf(lv) > 0 && FASH.indexOf(lv) < FASH.length - 1 && rn.kind !== "umbrella";
   if(sunny) tips.push(["🧢", `紫外線が強い（UV${Math.round(uv)}）。帽子・サングラス・日焼け止めを`]);
   else if(uv != null && uv >= 3 && feel >= 17) tips.push(["🧴", `紫外線${uv >= 6 ? "が強め" : "は中程度"}（UV${Math.round(uv)}）。日焼け止めを`]);
   return { day, feel, lv, tips, rn, sunny };
@@ -798,22 +817,24 @@ function periodPlan(w, sl, cur){
   const hr = i => +h.time[i].slice(11, 13), span = a => !a.length ? "" : (a.length === 1 ? `${hr(a[0])}時ごろ` : `${hr(a[0])}〜${hr(a[a.length-1]) + 1}時`);
   const uv = h.uv_index ? Math.max(0, ...idx.map(i => h.uv_index[i] || 0)) : null;
   const wind = Math.max(0, ...idx.map(i => h.wind_speed_10m[i] || 0));
-  const sunny = uv != null && uv >= 6 && feel >= 21 && lvI > 0 && kind !== "umbrella";
+  const sunny = uv != null && uv >= 6 && lvI > 0 && lvI < FASH.length - 1 && kind !== "umbrella";
   const uc = Outfit.umbrellaColors(sl.key);
   const look = k => { const o = { ...Outfit.dailyLook(k, lvI, sl.key) }; if(kind !== "none") o[kind] = uc[k]; if(sunny){ if(k === "m") o.cap = "#f8fafc"; else o.hat = "#f5deb3"; o.sunglasses = 1; } return o; };
   const tail = kind === "umbrella" ? "＋傘" : kind === "folding" ? "＋折りたたみ傘" : "";
+  const sunT = k => sunny && !/帽子/.test(Outfit.DESC[k][lvI]) ? "、帽子・サングラス" : "";
   const pts = [];
   pts.push(["🌡️", `体感 約${Math.round(feel)}℃（${Math.round(low)}〜${Math.round(high)}℃）`]);
   if(nowRain) pts.push(["☂️", `いま${wmo(w.current.weather_code)[1]}が降っています`]);
   else pts.push(kind === "umbrella" ? ["☂️", `${span(wet.length ? wet : maybe)} 雨 最大${max.toFixed(1)}mm/h`] : kind === "folding" ? ["🌂", `${span(maybe)} 雨の可能性`] : ["🌤️", "雨の心配なし"]);
   if(uv != null && uv >= 3) pts.push(["🧴", `UV最大${Math.round(uv)}${sunny ? "・帽子とサングラス" : "・日焼け止め"}`]);
+  if(uv != null && uv >= 8) pts.push(["☀️", "紫外線が非常に強い。長袖や日傘も"]);
   if(wind >= 8) pts.push(["💨", `風 最大${Math.round(wind)}m/s`]);
   if(high - low >= 5) pts.push(["🔁", "時間で気温差あり。脱ぎ着しやすく"]);
   // 小さい枠用の短い表記
   const short = [["🌡️", `体感${Math.round(feel)}℃`, `${Math.round(low)}〜${Math.round(high)}℃`],
     nowRain ? ["☂️", "いま雨", ""] : kind === "umbrella" ? ["☂️", span(wet.length ? wet : maybe), `最大${max.toFixed(1)}mm`] : kind === "folding" ? ["🌂", span(maybe), "雨の可能性"] : ["🌤️", "雨なし", ""]];
-  if(uv != null && uv >= 1) short.push(["🧴", `UV${Math.round(uv)}`, uv >= 6 ? "強い" : uv >= 3 ? "中程度" : "弱い"]);
-  return { lv, lvI, kind, look, pts, short, desc:{ m:Outfit.DESC.m[lvI] + tail, f:Outfit.DESC.f[lvI] + tail } };
+  if(uv != null && uv >= 1) short.push(["🧴", `UV${Math.round(uv)}`, uv >= 8 ? "非常に強い" : uv >= 6 ? "強い・帽子" : uv >= 3 ? "中程度" : "弱い"]);
+  return { lv, lvI, kind, look, pts, short, desc:{ m:Outfit.DESC.m[lvI] + sunT("m") + tail, f:Outfit.DESC.f[lvI] + sunT("f") + tail } };
 }
 function slotHTML(w, sl, big){
   const pl = periodPlan(w, sl, big); if(!pl) return "";
@@ -1226,6 +1247,9 @@ const UVL = [
 ];
 function uvArt(v, vmax){
   const i = UVL.findIndex(l => v <= l.max), L = UVL[i], cx = 30, cy = 30;
+  // 今日の最高値のほうが強い段階なら、対策と一言はそちらに合わせる
+  const iM = vmax != null ? UVL.findIndex(l => vmax <= l.max) : i, LM = iM > i ? UVL[iM] : L;
+  const msg = iM > i ? `日中は「${LM.name}」まで上がります。${LM.msg}` : L.msg;
   let rays = "";
   for(let k=0; k<L.rays; k++){ const a = k/L.rays*Math.PI*2, r1 = L.r + 3, r2 = L.r + 7 + (i >= 3 && k % 2 ? 3 : 0);
     rays += `<line x1="${(cx + Math.cos(a)*r1).toFixed(1)}" y1="${(cy + Math.sin(a)*r1).toFixed(1)}" x2="${(cx + Math.cos(a)*r2).toFixed(1)}" y2="${(cy + Math.sin(a)*r2).toFixed(1)}" stroke="${L.col}" stroke-width="2.4" stroke-linecap="round"/>`; }
@@ -1236,10 +1260,10 @@ function uvArt(v, vmax){
   const sun = `<svg viewBox="0 0 60 60" class="uv-sun" aria-hidden="true"><circle cx="${cx}" cy="${cy}" r="${L.r + 10}" fill="${L.col}" opacity="${.08 + i*.05}"/>${rays}<circle cx="${cx}" cy="${cy}" r="${L.r}" fill="${i >= 3 ? "#ffb347" : "#ffd84a"}" stroke="${L.col}" stroke-width="1.5"/>${eyes}${mouth}<ellipse cx="${cx-7.5}" cy="${cy+2.5}" rx="2.4" ry="1.4" fill="#f08a8a" opacity=".6"/><ellipse cx="${cx+7.5}" cy="${cy+2.5}" rx="2.4" ry="1.4" fill="#f08a8a" opacity=".6"/>${sweat}</svg>`;
   const segs = [[0,3,UVL[0].col],[3,6,UVL[1].col],[6,8,UVL[2].col],[8,11,UVL[3].col],[11,13,UVL[4].col]];
   const X = u => 3 + Math.min(u, 13)/13*194;
-  const bar = `<svg viewBox="0 0 200 15" class="uv-bar" aria-hidden="true">${segs.map(([a,b,c]) => `<rect x="${X(a)}" y="6" width="${X(b)-X(a)-1}" height="4" rx="1.5" fill="${c}"/>`).join("")}<path d="M${X(v)} 6 l-3 -5 h6 Z" fill="currentColor"/>${[0,3,6,8,11].map(u => `<text x="${X(u)}" y="15" font-size="4.6" fill="currentColor" opacity=".65">${u}</text>`).join("")}</svg>`;
+  const bar = `<svg viewBox="0 -1 200 16" class="uv-bar" aria-hidden="true">${segs.map(([a,b,c]) => `<rect x="${X(a)}" y="6" width="${X(b)-X(a)-1}" height="4" rx="1.5" fill="${c}"/>`).join("")}${vmax != null && vmax > v + .2 ? `<rect x="${X(v)}" y="5" width="${X(vmax)-X(v)}" height="6" rx="2" fill="none" stroke="currentColor" stroke-width=".7" stroke-dasharray="1.5 1" opacity=".75"/><path d="M${X(vmax)} 6 l-3 -5 h6 Z" fill="none" stroke="currentColor" stroke-width=".8"/><text x="${Math.min(X(vmax) + 4, 170)}" y="5" font-size="4.6" fill="currentColor">今日最高${vmax.toFixed(1)}</text>` : ""}<path d="M${X(v)} 6 l-3 -5 h6 Z" fill="currentColor"/><text x="${Math.max(X(v) - 4, 0)}" y="5" font-size="4.6" fill="currentColor" text-anchor="end">いま</text>${[0,3,6,8,11].map(u => `<text x="${X(u)}" y="15" font-size="4.6" fill="currentColor" opacity=".65">${u}</text>`).join("")}</svg>`;
   return `<div class="stat uv-box"><div class="uv-top">${sun}<div class="uv-main"><div class="k">${ICO.uv}紫外線(UV指数)${vmax != null ? `・今日最大${Math.round(vmax)}` : ""}</div>
-    <div class="uv-v"><b>${v.toFixed(1)}</b><span class="uv-name" style="background:${L.col}">${L.name}</span>${L.items.length ? `<span class="uv-items">${L.items.join("")}</span>` : ""}</div>
-    <div class="uv-msg">${L.msg}</div></div></div>${bar}</div>`;
+    <div class="uv-v"><b>${v.toFixed(1)}</b><span class="uv-name" style="background:${L.col}">${L.name}</span>${LM.items.length ? `<span class="uv-items">${LM.items.join("")}</span>` : ""}</div>
+    <div class="uv-msg">${msg}</div></div></div>${bar}</div>`;
 }
 
 /* ---------- 不快指数・紫外線・大気汚染 ---------- */
@@ -1260,7 +1284,7 @@ async function loadAir(demoW){
   let a, demo = false;
   try{
     if(demoW) throw new Error("demo");
-    const j = await getJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${S.lat}&longitude=${S.lon}&current=pm2_5,pm10,us_aqi,dust,ozone,nitrogen_dioxide&timezone=Asia%2FTokyo`);
+    const j = await getJSON(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${S.lat}&longitude=${S.lon}&current=pm2_5,pm10,us_aqi,dust,ozone,nitrogen_dioxide&timezone=auto`);
     a = j.current; if(!a) throw new Error("no data");
   }catch(e){ a = { pm2_5:9.8, pm10:16.2, us_aqi:41, dust:3, ozone:62, nitrogen_dioxide:11 }; demo = true; }
   const g = $("#aqGrid"); if(!g) return;
@@ -1290,6 +1314,12 @@ function warnClass(name){
   return "b-adv";
 }
 async function loadWarnings(){
+  if(!inJapan()){
+    const eu = S.lat > 34 && S.lat < 72 && S.lon > -25 && S.lon < 45;
+    $("#warnTime").textContent = "";
+    $("#warnings").innerHTML = `<div class="muted">日本国外のため、気象庁の警報・注意報は表示できません。</div>` + (eu ? `<div style="margin-top:6px"><a href="https://meteoalarm.org/" target="_blank" rel="noopener">この地域の気象警報（MeteoAlarm）→</a></div>` : "");
+    markDemo("warn", "#warnH", false); return;
+  }
   let data, demo = false;
   try{
     if(!S.office) throw new Error("地域コードなし");
@@ -1319,6 +1349,8 @@ async function loadWarnings(){
 const SCALE = {10:"1",20:"2",30:"3",40:"4",45:"5弱",46:"5弱?",50:"5強",55:"6弱",60:"6強",70:"7"};
 function scaleCls(v){ return v>=70?"s7":v>=55?"s6":v>=45?"s5":v>=40?"s4":v>=30?"s3":"s1"; }
 async function loadQuakes(){
+  if(!inJapan()) return loadWorldQuakes();
+  $("#quakeSub").textContent = "震度1以上";
   let list, demo = false;
   try{ list = await getJSON("https://api.p2pquake.net/v2/history?codes=551&limit=20"); }
   catch(e){ list = demoQuakes(); demo = true; }
@@ -1355,6 +1387,27 @@ async function loadQuakes(){
   }catch(e){}
 }
 
+/* ---------- 世界の地震（USGS）：日本国外のとき ---------- */
+function magCls(m){ return m >= 7 ? "s7" : m >= 6 ? "s6" : m >= 5 ? "s5" : m >= 4 ? "s4" : m >= 3 ? "s3" : "s1"; }
+async function loadWorldQuakes(){
+  $("#tsunami").hidden = true; markDemo("quake", "#quakeH", false);
+  const R = 2000; $("#quakeSub").textContent = `M2.5以上・半径${R.toLocaleString()}km・7日間`;
+  const link = '<div style="margin-top:6px"><a href="https://earthquake.usgs.gov/earthquakes/map/" target="_blank" rel="noopener">世界の地震地図（USGS）→</a></div>';
+  let feats;
+  try{ feats = (await getJSON("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_week.geojson")).features || []; }
+  catch(e){ $("#quakes").innerHTML = '<div class="err">地震情報を取得できませんでした</div>' + link; return; }
+  const all = feats.map(f => { const p = f.properties, c = f.geometry.coordinates;
+    return { m:p.mag, place:p.place || "", t:new Date(p.time), lat:c[1], lon:c[0], depth:c[2], url:p.url, tsu:p.tsunami, dist:Math.round(distKm(S.lat, S.lon, c[1], c[0])) }; }).filter(q => q.m != null);
+  const near = all.filter(q => q.dist <= R).sort((a, b) => b.t - a.t).slice(0, 6);
+  const li = q => `<li><span class="scale ${magCls(q.m)}">M${q.m.toFixed(1)}</span>
+      <a href="${esc(q.url)}" target="_blank" rel="noopener"><b>${esc(q.place || "場所不明")}</b></a>
+      <div class="muted">${q.t.getMonth()+1}/${q.t.getDate()}(${WD[q.t.getDay()]}) ${pad(q.t.getHours())}:${pad(q.t.getMinutes())}${q.depth != null ? ` 深さ${Math.round(q.depth)}km` : ""} ・ 約${q.dist.toLocaleString()}km${q.tsu ? " ・ <b>津波の可能性</b>" : ""}</div></li>`;
+  let html = near.length ? `<ul class="list">${near.map(li).join("")}</ul>` : '<div class="okline">✓ 近くで最近起きた地震はありません</div>';
+  if(!near.length){ const big = all.filter(q => q.m >= 5.5).sort((a, b) => b.m - a.m).slice(0, 3);
+    if(big.length) html += `<div class="muted" style="margin-top:8px">世界の主な地震（この7日間）</div><ul class="list">${big.map(li).join("")}</ul>`; }
+  $("#quakes").innerHTML = html + `<div class="muted" style="font-size:.72rem;margin-top:4px">震源地の表記は USGS（英語）のものです。</div>` + link;
+}
+
 /* ---------- 台風（気象庁）：「浮遊島ぐらし」の読み取り方を流用 ---------- */
 function tcNoOf(v){ if(v == null) return null; const s2 = String(v).trim(); const m = s2.match(/台風第\s*(\d+)\s*号/); if(m) return +m[1]; if(/^\d{3,4}$/.test(s2)) return +s2.slice(-2) || null; if(/^\d{1,2}$/.test(s2) && +s2 > 0 && +s2 <= 40) return +s2; return null; }
 function tcFindNo(o, depth = 0){ if(!o || typeof o !== "object" || depth > 6) return null;
@@ -1377,6 +1430,10 @@ function tcScan(o, acc){ if(!o || typeof o !== "object") return;
 function bearing(a, b){ const y = Math.sin((b[1]-a[1])*Math.PI/180)*Math.cos(b[0]*Math.PI/180), x = Math.cos(a[0]*Math.PI/180)*Math.sin(b[0]*Math.PI/180) - Math.sin(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.cos((b[1]-a[1])*Math.PI/180); return (Math.atan2(y, x)*180/Math.PI + 360) % 360; }
 const DEMO_TC = [{ id:"TC2625", no:25, name:"サンプル", str:"強い", size:"大型", p:965, w:35, pos:[24.1, 131.8], area:"沖縄の南", dir:"北北西", spd:15, demo:true }];
 async function loadTyphoons(){
+  // 日本と北西太平洋の周辺だけ表示
+  const tcArea = inJapan() || (S.lat > -5 && S.lat < 50 && S.lon > 95 && S.lon < 180);
+  showCard("#typhoons", tcArea);
+  if(!tcArea){ markDemo("tc", "#tcH", false); return; }
   let list, demo = false;
   try{
     const L = await getJSON("https://www.jma.go.jp/bosai/typhoon/data/targetTc.json", { proxy:true });
@@ -1507,6 +1564,8 @@ function setupOdptUI(){
 
 let LAST_TRAINS = null;
 async function loadTrains(){
+  showCard("#trains", inJapan());
+  if(!inJapan()){ markDemo("train", "#trainH", false); return; }
   const key = odptKey(), kanto = trainRegion()[2] === "関東";
   if(key && kanto){
     try{ renderOdpt(await loadOdpt(key), false); }
@@ -1817,7 +1876,7 @@ function skyvZoom(x,Wc,Hc,sk,t){x.fillStyle='rgba(2,3,10,.95)';x.fillRect(0,0,Wc
 
 /* --- 周囲の地形（国土地理院 標高タイル dem_png から地平線の山並みを計算） --- */
 const TERR = { key:"", prof:null, elev:null, ready:null };
-function demTile(z, X, Y){
+function demTile(z, X, Y, src){
   return new Promise((res, rej) => {
     const img = new Image(); img.crossOrigin = "anonymous";
     img.onload = () => {
@@ -1825,24 +1884,28 @@ function demTile(z, X, Y){
       const g = c.getContext("2d"); g.drawImage(img, 0, 0);
       let d; try{ d = g.getImageData(0, 0, 256, 256).data; }catch(e){ return rej(e); }
       const a = new Float32Array(65536);
-      for(let i=0;i<65536;i++){ const v = d[i*4]*65536 + d[i*4+1]*256 + d[i*4+2]; a[i] = v === 8388608 ? NaN : v < 8388608 ? v*0.01 : (v-16777216)*0.01; }
+      if(src === "terrarium") for(let i=0;i<65536;i++) a[i] = d[i*4]*256 + d[i*4+1] + d[i*4+2]/256 - 32768;
+      else for(let i=0;i<65536;i++){ const v = d[i*4]*65536 + d[i*4+1]*256 + d[i*4+2]; a[i] = v === 8388608 ? NaN : v < 8388608 ? v*0.01 : (v-16777216)*0.01; }
       res(a);
     };
     img.onerror = () => rej(new Error("tile"));
-    img.src = `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${z}/${X}/${Y}.png`;
+    img.src = src === "terrarium" ? `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${X}/${Y}.png` : `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${z}/${X}/${Y}.png`;
   });
 }
 async function computeTerrain(lat, lon){
   const z = 11, R = 25000, n = 2**z, Re = 6371000;
   const tx = (lon+180)/360*n, ty = (1 - Math.log(Math.tan(lat*D2R) + 1/Math.cos(lat*D2R))/Math.PI)/2*n;
   const mPerTile = 40075016.686*Math.cos(lat*D2R)/n, mpp = mPerTile/256, span = Math.ceil(R/mPerTile);
-  const tiles = new Map(), jobs = [];
-  for(let dx=-span; dx<=span; dx++) for(let dy=-span; dy<=span; dy++){
-    const X = Math.floor(tx)+dx, Y = Math.floor(ty)+dy, k = X+"/"+Y;
-    jobs.push(demTile(z, X, Y).then(a => tiles.set(k, a), () => tiles.set(k, null)));
-  }
-  await Promise.all(jobs);
-  const got = [...tiles.values()].filter(Boolean).length;
+  const tiles = new Map();
+  const fetchAll = async src => { tiles.clear(); const jobs = [];
+    for(let dx=-span; dx<=span; dx++) for(let dy=-span; dy<=span; dy++){
+      const X = Math.floor(tx)+dx, Y = Math.floor(ty)+dy, k = X+"/"+Y;
+      jobs.push(demTile(z, X, Y, src).then(a => tiles.set(k, a), () => tiles.set(k, null)));
+    }
+    await Promise.all(jobs); return [...tiles.values()].filter(Boolean).length; };
+  // 日本は国土地理院、それ以外（または取れないとき）は世界の標高タイル
+  let got = inJapanBox(lat, lon) ? await fetchAll("gsi") : 0;
+  if(!got) got = await fetchAll("terrarium");
   if(!got) throw new Error("標高タイルを取得できません");
   const cx = tx*256, cy = ty*256;
   const elevAt = (px, py) => { const X = Math.floor(px/256), Y = Math.floor(py/256), a = tiles.get(X+"/"+Y); if(!a) return null;
@@ -2260,7 +2323,7 @@ async function openMap(opts){
     m.setView([lat, lon], m.getZoom());
     drawDayNight();
     clearInterval(MAP.timer); MAP.timer = setInterval(drawDayNight, 60000);
-    if(opts && opts.rain){ m.setView([lat, lon], 10, { animate:false }); if(!m.hasLayer(RAIN.toggle)) RAIN.toggle.addTo(m); else rainOn(); }
+    if(opts && opts.rain){ m.setView([lat, lon], inJapan() ? 10 : 7, { animate:false }); if(!m.hasLayer(RAIN.toggle)) RAIN.toggle.addTo(m); else rainOn(); }
   }catch(e){ drawMapFallback(lat, lon); if(opts && opts.rain) $("#mapNote").textContent += "（雨雲は地図が読み込めるときに表示できます）"; }
 }
 function mapZoom(z){ if(!MAP.map) return; const lat = S.lat ?? DEMO_PLACE.lat, lon = S.lon ?? DEMO_PLACE.lon; MAP.map.flyTo([lat, lon], z, { duration:.8 }); }
@@ -2280,7 +2343,16 @@ async function rainFrames(){
   // 1時間より前は10分ごとに間引く
   const pastSel = past.filter(t => { const tt = jmaTime(t.validtime); return lastT - tt <= 3600e3 || tt.getUTCMinutes() % 10 === 0; });
   const fut = n2.filter(has).filter(t => t.validtime > last.validtime).sort(by);
-  return [...pastSel.map(t => ({ ...t, fc:false })), ...fut.map(t => ({ ...t, fc:true }))];
+  const u = t => `${NOWC}${t.basetime}/none/${t.validtime}/surf/hrpns/{z}/{x}/{y}.png`;
+  return [...pastSel.map(t => ({ ...t, t:jmaTime(t.validtime), url:u(t), fc:false })), ...fut.map(t => ({ ...t, t:jmaTime(t.validtime), url:u(t), fc:true }))];
+}
+// 日本国外：RainViewer（過去2時間・10分ごと・拡大率7まで）
+async function rainFramesWorld(){
+  const j = await getJSON("https://api.rainviewer.com/public/weather-maps.json");
+  const host = j.host || "https://tilecache.rainviewer.com", r = j.radar || {};
+  const mk = fc => f => ({ t:new Date(f.time*1000), url:`${host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, fc });
+  const fr = [...(r.past || []).map(mk(false)), ...(r.nowcast || []).map(mk(true))];
+  if(!fr.length) throw new Error("レーダーなし"); return fr;
 }
 // 気象庁の雨雲画像は一部の拡大率（4・6・8・10）にしか用意されていないため、
 // それ以外の拡大率では近い拡大率の画像を拡大・縮小して描く
@@ -2316,7 +2388,10 @@ function rainGrid(url){
 function rainLayer(i){
   if(RAIN.layers[i]) return RAIN.layers[i];
   const f = RAIN.frames[i];
-  return (RAIN.layers[i] = rainGrid(`${NOWC}${f.basetime}/none/${f.validtime}/surf/hrpns/{z}/{x}/{y}.png`).addTo(MAP.map));
+  const lay = RAIN.world
+    ? L.tileLayer(f.url, { pane:"rain", opacity:0, maxNativeZoom:7, maxZoom:19, attribution:'雨雲: <a href="https://www.rainviewer.com/">RainViewer</a>' })
+    : rainGrid(f.url);
+  return (RAIN.layers[i] = lay.addTo(MAP.map));
 }
 function rainShow(i){
   const n = RAIN.frames.length; if(!n) return;
@@ -2324,7 +2399,7 @@ function rainShow(i){
   rainLayer(i).setOpacity(.8);
   for(const k in RAIN.layers) if(+k !== i) RAIN.layers[k].setOpacity(0);
   if(i + 1 < n) rainLayer(i + 1);                     // 次のコマを先読み
-  const f = RAIN.frames[i], t = jmaTime(f.validtime);
+  const f = RAIN.frames[i], t = f.t;
   $("#rainSlider").value = i;
   $("#rainTime").innerHTML = `${t.getMonth()+1}/${t.getDate()} ${pad(t.getHours())}:${pad(t.getMinutes())} <span class="${f.fc ? "rain-fc" : "rain-ob"}">${f.fc ? "予報" : "実況"}</span>`;
 }
@@ -2345,24 +2420,27 @@ function rainMode(on){
   if(on){
     MAP.prevBase = Object.values(MAP.bases).find(l => m.hasLayer(l));
     if(MAP.prevBase !== std){ if(MAP.prevBase) m.removeLayer(MAP.prevBase); std.addTo(m); }
-    $("#mapNote").textContent = "気象庁の高解像度降水ナウキャストを表示しています（日本国内のみ）。";
+    $("#mapNote").textContent = RAIN.world ? "RainViewer の雨雲レーダー（過去2時間・10分ごと）を表示しています。" : "気象庁の高解像度降水ナウキャストを表示しています（日本国内のみ）。";
   }else{
     if(MAP.prevBase && MAP.prevBase !== std && !m.hasLayer(MAP.prevBase)){ m.removeLayer(std); MAP.prevBase.addTo(m); }
     MAP.prevBase = null; drawDayNight();
   }
 }
 async function rainOn(){
+  const world = !inJapan();
+  if(world !== !!RAIN.world){ RAIN.frames = []; RAIN.at = 0; }
+  RAIN.world = world;
   rainMode(true);
-  RAIN.on = true; $("#rainBar").hidden = false; $("#rainLegend").hidden = false; $("#rainTime").textContent = "読み込み中…";
+  RAIN.on = true; $("#rainBar").hidden = false; $("#rainLegend").hidden = world; $("#rainTime").textContent = "読み込み中…";
   try{
     if(!RAIN.frames.length || Date.now() - (RAIN.at || 0) > 5*60e3){
       for(const k in RAIN.layers) RAIN.layers[k].remove(); RAIN.layers = {};
-      RAIN.frames = await rainFrames(); RAIN.at = Date.now();
+      RAIN.frames = world ? await rainFramesWorld() : await rainFrames(); RAIN.at = Date.now();
     }
     if(!RAIN.on) return;
     $("#rainSlider").max = RAIN.frames.length - 1;
     // 雨雲データが一番細かく見える拡大率（約250m単位）で現在地を表示
-    MAP.map.setView([S.lat ?? DEMO_PLACE.lat, S.lon ?? DEMO_PLACE.lon], RAIN_Z[RAIN_Z.length-1], { animate:false });
+    MAP.map.setView([S.lat ?? DEMO_PLACE.lat, S.lon ?? DEMO_PLACE.lon], world ? 7 : RAIN_Z[RAIN_Z.length-1], { animate:false });
     rainShow(RAIN.frames.filter(f => !f.fc).length - 1);   // 最新の実況から
   }catch(e){
     $("#rainTime").textContent = "雨雲のデータを取得できませんでした";
@@ -2534,7 +2612,8 @@ let PLACE_DEMO = false;
 async function loadElevation(){
   let e = null;
   if(!FORCE_DEMO){
-    try{ const j = await getJSON(`https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=${S.lon}&lat=${S.lat}&outtype=JSON`); if(j && j.elevation !== "-----" && !isNaN(+j.elevation)) e = +j.elevation; }catch(_){}
+    if(inJapanBox(S.lat, S.lon)) try{ const j = await getJSON(`https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=${S.lon}&lat=${S.lat}&outtype=JSON`); if(j && j.elevation !== "-----" && !isNaN(+j.elevation)) e = +j.elevation; }catch(_){}
+    if(e == null){ try{ const j = await getJSON(`https://api.open-meteo.com/v1/elevation?latitude=${S.lat}&longitude=${S.lon}`); const v = j && j.elevation && j.elevation[0]; if(v != null && !isNaN(+v)) e = +v; }catch(_){} }
     if(e == null){ try{ const r = await Sky.terrain(S.lat, S.lon); e = r.elev; }catch(_){} }
     else Sky.terrain(S.lat, S.lon).catch(() => {});
     if(e == null && S.gpsAlt != null && !S.demoLoc) e = S.gpsAlt;
@@ -2556,7 +2635,7 @@ async function loadAll(){
     if(S.demoLoc){ applyDemoPlace(); }
     else{
       try{ await resolvePlace(); }
-      catch(e){ applyDemoPlace(); placeDemo = true; S.locMsg = (S.locMsg || "") + "地名を特定できなかったため、地域情報はサンプル（東京都千代田区）で表示しています。"; }
+      catch(e){ S.office = null; if(S.abroad == null) S.abroad = !inJapanBox(S.lat, S.lon); S.locMsg = (S.locMsg || "") + "地名を特定できませんでした。"; }
     }
     PLACE_DEMO = placeDemo; renderPlace(placeDemo);
   })();
