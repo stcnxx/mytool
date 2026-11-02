@@ -221,11 +221,6 @@ footer{background:none!important}
   </section>
 
   <section class="card wide">
-    <h2><span id="fashH">服装の目安</span></h2>
-    <div id="fashion"><span class="muted">読み込み中…</span></div>
-  </section>
-
-  <section class="card wide">
     <h2 id="hourlyH">24時間の予報</h2>
     <div id="hourly" class="hours"><span class="muted">読み込み中…</span></div>
   </section>
@@ -541,6 +536,8 @@ function renderWeather(w, demo){
       </div>
       ${outfitBox(w)}
     </div>
+    <div class="sub-h"><span id="fashH">服装の目安</span></div>
+    <div id="fashion"></div>
     <div class="grid">
       <div class="stat"><div class="k">湿度</div><div class="v">${c.relative_humidity_2m}%</div></div>
       <div class="stat"><div class="k">雨量(直近1時間)</div><div class="v">${c.precipitation} mm</div></div>
@@ -654,7 +651,7 @@ function fashionDay(w, di){
   const lv = FASH.find(f => Math.round(feel) >= f[0]);
   const tips = [];
   const gap = d.temperature_2m_max[di] - d.temperature_2m_min[di];
-  if(feel - cool >= 6 || gap >= 10){ const c = Math.round(cool), lv2 = FASH.find(f => c >= f[0]); tips.push(["🔁", `朝晩は冷えます（体感${c}℃）。${lv2 !== lv ? lv2[2] + "くらいの" : ""}脱ぎ着しやすい上着を持って出かけましょう`]); }
+  if(feel - cool >= 6 || gap >= 10) tips.push(["🔁", `朝晩は体感${Math.round(cool)}℃まで下がります。上着は脱ぎ着しやすいものを`]);
   const pop = d.precipitation_probability_max[di] ?? 0, code = d.weather_code[di];
   const snow = (code >= 71 && code <= 77) || code === 85 || code === 86;
   if(snow) tips.push(["🥾", "雪の予報。滑りにくく防水の靴を"]);
@@ -665,18 +662,19 @@ function fashionDay(w, di){
   if(wind >= 10) tips.push(["💨", `風が強め（最大${Math.round(wind)}m/s）。風を通しにくい上着を。スカートや帽子に注意`]);
   else if(wind >= 7 && feel < 21) tips.push(["💨", `風があり体感より寒く感じます（最大${Math.round(wind)}m/s）`]);
   const uv = d.uv_index_max ? d.uv_index_max[di] : null;
-  if(uv != null && uv >= 6) tips.push(["🧢", `紫外線が強い（UV${Math.round(uv)}）。帽子・日焼け止め・サングラスを`]);
-  else if(uv != null && uv >= 3 && feel >= 17) tips.push(["🧴", `紫外線は中程度（UV${Math.round(uv)}）。長時間の外出は日焼け止めを`]);
-  return { day, feel, lv, tips };
+  const sunny = uv != null && uv >= 6 && feel >= 21 && FASH.indexOf(lv) > 0 && rn.kind !== "umbrella";
+  if(sunny) tips.push(["🧢", `紫外線が強い（UV${Math.round(uv)}）。帽子・サングラス・日焼け止めを`]);
+  else if(uv != null && uv >= 3 && feel >= 17) tips.push(["🧴", `紫外線${uv >= 6 ? "が強め" : "は中程度"}（UV${Math.round(uv)}）。日焼け止めを`]);
+  return { day, feel, lv, tips, rn, sunny };
 }
 function renderFashion(w, demo){
   const hNow = new Date().getHours(), list = [];
   if(hNow < 18) list.push(["今日", 0]);
   if(w.daily.time.length > 1) list.push(["明日", 1]);
   $("#fashion").innerHTML = `<div class="fash">${list.map(([lab, di]) => {
-    const f = fashionDay(w, di);
+    const pl = outfitPlan(w, di), f = pl.f;
     return `<div class="fash-d"><div class="fash-top"><span class="fash-ico">${f.lv[1]}</span><div><div class="muted">${lab}・日中の体感 約${Math.round(f.feel)}℃</div><div class="fash-name">${f.lv[2]}</div></div></div>
-      <div class="fash-desc">${f.lv[3]}</div>
+      <div class="fash-desc"><b>男性</b> ${esc(pl.desc.m)}<br><b>女性</b> ${esc(pl.desc.f)}</div>
       ${f.tips.length ? `<ul class="fash-tips">${f.tips.map(t => `<li><span>${t[0]}</span>${esc(t[1])}</li>`).join("")}</ul>` : ""}</div>`;
   }).join("")}</div>`;
   markDemo("fash", "#fashH", demo);
@@ -1003,26 +1001,24 @@ function umbrellaColors(key){ const r = rng(key + "|umb"), a = Math.floor(r()*UM
 return { figure, LOOK, DESC, dailyLook, umbrellaColors };
 })();
 
+// 絵と文字が必ず同じ内容になるよう、服装の決定はここ1か所で行う
+function outfitPlan(w, di){
+  const f = fashionDay(w, di), lvI = FASH.indexOf(f.lv), rn = f.rn, sunny = f.sunny;
+  const key = w.daily.time[di], uc = Outfit.umbrellaColors(key);
+  const extra = rn.kind === "umbrella" ? "umbrella" : rn.kind === "folding" ? "folding" : "";
+  const look = k => { const o = { ...Outfit.dailyLook(k, lvI, key) };
+    if(extra) o[extra] = uc[k];
+    if(sunny){ if(k === "m") o.cap = "#f8fafc"; else o.hat = "#f5deb3"; o.sunglasses = 1; }
+    return o; };
+  const add = (sunny && !/帽子/.test(Outfit.DESC.m[lvI]) ? "、帽子・サングラス" : "") + (extra === "umbrella" ? "＋傘" : extra === "folding" ? "＋折りたたみ傘" : "");
+  const addF = (sunny && !/帽子/.test(Outfit.DESC.f[lvI]) ? "、帽子・サングラス" : "") + (extra === "umbrella" ? "＋傘" : extra === "folding" ? "＋折りたたみ傘" : "");
+  return { f, lvI, rn, extra, look, desc:{ m:Outfit.DESC.m[lvI] + add, f:Outfit.DESC.f[lvI] + addF } };
+}
 function outfitBox(w){
   try{
-    const di = new Date().getHours() < 18 ? 0 : 1, f = fashionDay(w, di), lvI = FASH.indexOf(f.lv);
-    const pop = w.daily.precipitation_probability_max[di] ?? 0, uv = w.daily.uv_index_max ? w.daily.uv_index_max[di] : 0;
-    const rn = rainNeed(w, di), extra = rn.kind === "umbrella" ? { umbrella:true } : rn.kind === "folding" ? { folding:true } : {};
-    const sunny = uv >= 6 && f.feel >= 21 && lvI > 0 && !extra.umbrella;
-    const key = w.daily.time[di], uc = Outfit.umbrellaColors(key);
-    const add = (k) => {
-      const o = { ...Outfit.dailyLook(k, lvI, key) };
-      if(extra.umbrella) o.umbrella = uc[k]; if(extra.folding) o.folding = uc[k];
-      if(sunny){ if(k === "m") o.cap = "#f8fafc"; else o.hat = "#f5deb3"; o.sunglasses = 1; }
-      return o;
-    };
-    const tail = extra.umbrella ? "＋傘" : extra.folding ? "＋折りたたみ傘" : "";
-    const rainNote = rn.kind === "umbrella" ? `☂️ ${rn.when} ${rn.strength}（最大${rn.max.toFixed(1)}mm/h）` : rn.kind === "folding" ? `🌂 ${rn.when} 雨の可能性` : "";
-    const sun = sunny ? "、帽子・サングラス" : "";
-    const svg = k => Outfit.figure(add(k)).replace("<svg ", `<svg class="${extra.umbrella ? "umb" : ""}" `);
-    return `<div class="ofit"><div class="ofit-h">${di ? "明日の" : ""}服装の目安</div>
-      <div class="ofit-figs">${svg("m")}${svg("f")}</div>
-      <div class="ofit-txt"><b>男性</b> ${esc(Outfit.DESC.m[lvI] + sun + tail)}<br><b>女性</b> ${esc(Outfit.DESC.f[lvI] + sun + tail)}${rainNote ? `<br>${esc(rainNote)}` : ""}</div></div>`;
+    const di = new Date().getHours() < 18 ? 0 : 1, pl = outfitPlan(w, di), rn = pl.rn;
+    const svg = k => Outfit.figure(pl.look(k)).replace("<svg ", `<svg class="${pl.extra === "umbrella" ? "umb" : ""}" `);
+    return `<div class="ofit"><div class="ofit-figs">${svg("m")}${svg("f")}</div></div>`;
   }catch(e){ console.error(e); return ""; }
 }
 
