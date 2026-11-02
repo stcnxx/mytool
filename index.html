@@ -59,6 +59,7 @@ a{color:var(--accent)}
 .nw-grid b{font-size:.95rem}
 .nw-temp{align-items:center!important}
 .nw-temp .ico{width:22px;height:22px;opacity:.8;align-self:center}
+.nw-hum .ico{width:20px;height:20px}
 .nw-temp .temp{font-size:clamp(2rem,10vw,2.5rem);font-weight:700;line-height:1.1}
 .nw-sun{font-size:.8rem;color:var(--muted);margin-top:4px}.nw-sun b{color:var(--text)}
 .now .wx{font-size:1.05rem;font-weight:600}
@@ -246,6 +247,7 @@ footer{background:none!important}
 .fash-desc{margin:4px 0 0}
 .fash-tips{list-style:none;margin:6px 0 0;padding:0;font-size:.9rem}
 .fash-tips li{display:flex;gap:6px;padding:3px 0}.fash-tips li span{flex:none;text-shadow:none}
+.tc-tag{display:inline-block;font-size:.68rem;font-weight:700;color:#fff;background:#b45309;border-radius:999px;padding:0 7px;margin-left:3px;text-shadow:none;vertical-align:2px}
 .sub-h{font-weight:700;color:var(--title);margin:14px 0 0;font-size:.95rem}
 .stat .k+.v+.k{margin-top:1px}
 #skyCard{padding:4px 2px}
@@ -320,6 +322,11 @@ footer{background:none!important}
   <section class="card">
     <h2><span id="quakeH">最近の地震</span> <small>震度1以上</small></h2>
     <div id="quakes"><span class="muted">読み込み中…</span></div>
+  </section>
+
+  <section class="card">
+    <h2><span id="tcH">台風情報</span> <small id="tcTime"></small></h2>
+    <div id="typhoons"><span class="muted">読み込み中…</span></div>
   </section>
 
   <section class="card wide">
@@ -618,7 +625,7 @@ function renderWeather(w, demo){
       <div class="now-row"><div class="icon">${ic}</div><div class="wx">${tx}</div></div>
       <div class="nw-grid">
         <div class="nw-l nw-temp">${ICO.temp}<span class="temp">${Math.round(c.temperature_2m*10)/10}℃</span></div>
-        <div class="nw-r"><span class="k">${ICO.hum}湿度</span><b>${c.relative_humidity_2m}%</b></div>
+        <div class="nw-r nw-temp nw-hum">${ICO.hum}<span class="temp">${c.relative_humidity_2m}%</span></div>
         <div class="nw-l"><span class="k">体感温度</span><b>${Math.round(c.apparent_temperature)}℃</b></div>
         <div class="nw-r"><span class="k">${ICO.rain}雨量(直近1h)</span><b>${c.precipitation} mm</b></div>
         <div class="nw-l"><span class="k">最低/最高</span><b><span class="lo">${Math.round(d.temperature_2m_min[0])}</span>/<span class="hi">${Math.round(d.temperature_2m_max[0])}</span>℃</b></div>
@@ -1203,6 +1210,7 @@ const ICO = (() => {
     gust: w('<path d="M3 7h9a2 2 0 1 0-2-2"/><path d="M3 11h14a3 3 0 1 1-3 3"/><path d="M3 15h6"/><path d="M17 4l2-1.5M19.5 7.5H22"/>'),
     press: w('<path d="M4.5 16a8 8 0 1 1 15 0"/><path d="M12 13l3.5-4"/><circle cx="12" cy="13.5" r="1.3" fill="currentColor"/><path d="M6 19h12"/>'),
     face: w('<circle cx="12" cy="12" r="8.5"/><path d="M9 10h.01M15 10h.01"/><path d="M8.8 15.3h6.4"/>'),
+    tc: w('<path d="M12 4.5a7.5 7.5 0 0 1 7.3 5.8"/><path d="M12 19.5a7.5 7.5 0 0 1-7.3-5.8"/><path d="M19.5 12c-2.5-1-5-1.4-7.5-1.4M4.5 12c2.5 1 5 1.4 7.5 1.4"/><circle cx="12" cy="12" r="2.6"/>'),
     uv: w('<circle cx="12" cy="12" r="3.8"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>')
   };
 })();
@@ -1344,6 +1352,57 @@ async function loadQuakes(){
       el.hidden = false;
     }else el.hidden = true;
   }catch(e){}
+}
+
+/* ---------- 台風（気象庁）：「浮遊島ぐらし」の読み取り方を流用 ---------- */
+function tcNoOf(v){ if(v == null) return null; const s2 = String(v).trim(); const m = s2.match(/台風第\s*(\d+)\s*号/); if(m) return +m[1]; if(/^\d{3,4}$/.test(s2)) return +s2.slice(-2) || null; if(/^\d{1,2}$/.test(s2) && +s2 > 0 && +s2 <= 40) return +s2; return null; }
+function tcFindNo(o, depth = 0){ if(!o || typeof o !== "object" || depth > 6) return null;
+  for(const k in o){ const v = o[k]; if(/typhoonNumber|typhoon_number|typhoonNo/i.test(k)){ const n = tcNoOf(v); if(n) return n; } if(typeof v === "string"){ const m = v.match(/台風第\s*(\d+)\s*号/); if(m) return +m[1]; } }
+  for(const k in o){ const v = o[k]; if(v && typeof v === "object"){ const n = tcFindNo(v, depth + 1); if(n) return n; } } return null; }
+function tcScan(o, acc){ if(!o || typeof o !== "object") return;
+  if(Array.isArray(o)){ if(o.length === 2 && typeof o[0] === "number" && typeof o[1] === "number" && o[0] > 0 && o[0] < 60 && o[1] > 100 && o[1] < 190 && !acc.pos) acc.pos = o; for(const v of o) tcScan(v, acc); return; }
+  for(const k in o){ const v = o[k];
+    if(typeof v === "string"){
+      if(!acc.name && /^[ァ-ヶー]+$/.test(v) && k.toLowerCase().indexOf("kana") < 0 && v.length >= 3) acc.name = v;
+      if(!acc.str && /^(強い|非常に強い|猛烈な)$/.test(v)) acc.str = v;
+      if(!acc.size && /^(大型|超大型)$/.test(v)) acc.size = v;
+      if(!acc.dir && /^(北|北北東|北東|東北東|東|東南東|南東|南南東|南|南南西|南西|西南西|西|西北西|北西|北北西)$/.test(v) && /course|direction|移動/i.test((acc._ctx || "") + "/" + k)) acc.dir = v;
+      if(!acc.area && v.length <= 20 && (/(付近|海上|近海)$/.test(v) || (/location|area|place/i.test(k) && /[一-龯]/.test(v)))) acc.area = v;
+    }else if(typeof v === "number"){ const ctx = (acc._ctx || "") + "/" + k;
+      if(/pressure|hpa/i.test(ctx) && !acc.p && v > 850 && v < 1020) acc.p = v;
+      if(/wind/i.test(ctx) && /m\/s|ms|sustain|max/i.test(ctx) && !acc.w && v > 5 && v < 120) acc.w = v;
+      if(/speed/i.test(ctx) && /km|course|move/i.test(ctx) && acc.spd == null && v >= 0 && v < 150) acc.spd = v; }
+    if(v && typeof v === "object"){ const o0 = acc._ctx; acc._ctx = (o0 || "") + "/" + k; tcScan(v, acc); acc._ctx = o0; } } }
+function bearing(a, b){ const y = Math.sin((b[1]-a[1])*Math.PI/180)*Math.cos(b[0]*Math.PI/180), x = Math.cos(a[0]*Math.PI/180)*Math.sin(b[0]*Math.PI/180) - Math.sin(a[0]*Math.PI/180)*Math.cos(b[0]*Math.PI/180)*Math.cos((b[1]-a[1])*Math.PI/180); return (Math.atan2(y, x)*180/Math.PI + 360) % 360; }
+const DEMO_TC = [{ id:"TC2625", no:25, name:"サンプル", str:"強い", size:"大型", p:965, w:35, pos:[24.1, 131.8], area:"沖縄の南", dir:"北北西", spd:15, demo:true }];
+async function loadTyphoons(){
+  let list, demo = false;
+  try{
+    const L = await getJSON("https://www.jma.go.jp/bosai/typhoon/data/targetTc.json", { proxy:true });
+    const arr = Array.isArray(L) ? L : []; list = [];
+    for(const x of arr.slice(0, 6)){
+      const id = typeof x === "string" ? x : x && (x.tropicalCyclone || x.tc || x.id); if(!id) continue;
+      let d = null; try{ d = await getJSON(`https://www.jma.go.jp/bosai/typhoon/data/${id}/specifications.json`, { proxy:true }); }catch(_){}
+      if(!d) continue;
+      const acc = {}; tcScan(d, acc);
+      list.push({ id, no:(typeof x === "object" ? tcFindNo(x) : null) || tcFindNo(d), ...acc });
+    }
+  }catch(e){ list = DEMO_TC; demo = true; }
+  const here = [S.lat ?? DEMO_PLACE.lat, S.lon ?? DEMO_PLACE.lon];
+  const box = $("#typhoons");
+  if(!list.length){ box.innerHTML = '<div class="okline">✓ 現在、発生している台風はありません</div><div style="margin-top:6px"><a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon" target="_blank" rel="noopener">気象庁の台風情報 →</a></div>'; }
+  else box.innerHTML = '<ul class="list">' + list.map(t => {
+    const km = t.pos ? Math.round(distKm(here[0], here[1], t.pos[0], t.pos[1])) : null, dir = t.pos ? dirName(bearing(here, t.pos)) : "";
+    const title = t.no ? `台風第${t.no}号` : "熱帯低気圧";
+    const tags = [t.size, t.str].filter(Boolean).map(x => `<span class="tc-tag">${esc(x)}</span>`).join("");
+    const facts = [t.p ? `中心気圧 ${t.p}hPa` : "", t.w ? `最大風速 ${t.w}m/s` : "", t.dir ? `${t.dir}へ${t.spd != null ? ` ${t.spd}km/h` : ""}` : ""].filter(Boolean).join("・");
+    return `<li><div><b>${ICO.tc}${title}</b>${t.name && !t.demo ? `（${esc(t.name)}）` : t.demo ? "（サンプル）" : ""} ${tags}</div>
+      <div class="muted">${facts || "詳しい数値は気象庁の発表で確認してください"}</div>
+      ${km != null ? `<div class="muted">${t.area ? esc(t.area) + "・" : ""}現在地から${dir}へ約${km.toLocaleString()}km</div>` : ""}
+      <div><a href="https://www.jma.go.jp/bosai/map.html#contents=typhoon" target="_blank" rel="noopener">進路予想図・詳細（気象庁）→</a>　<a href="https://tenki.jp/bousai/typhoon/" target="_blank" rel="noopener">tenki.jp →</a></div></li>`;
+  }).join("") + "</ul>";
+  $("#tcTime").textContent = list.length ? `${list.length}個` : "";
+  markDemo("tc", "#tcH", demo);
 }
 
 /* ---------- 鉄道 (鉄道遅延情報のJSON) ---------- */
@@ -2498,7 +2557,7 @@ async function loadAll(){
   })();
   await Promise.allSettled([
     loadWeather(),
-    pPlace.then(() => Promise.allSettled([loadWarnings(), loadPops(), loadTrains(), loadQuakes()]))
+    pPlace.then(() => Promise.allSettled([loadWarnings(), loadPops(), loadTrains(), loadQuakes(), loadTyphoons()]))
   ]);
   loading = false;
   $("#refresh").disabled = false;
