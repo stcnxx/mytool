@@ -162,9 +162,10 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 #skyv:fullscreen{height:100%;border-radius:0}
 #skyv:fullscreen .sv-top,#skyv.pseudo-full .sv-top{top:calc(env(safe-area-inset-top,0px) + 44px);font-size:14px}
 #skyv:-webkit-full-screen .sv-top{top:calc(env(safe-area-inset-top,0px) + 44px);font-size:14px}
-#skyv:fullscreen .sv-bar,#skyv.pseudo-full .sv-bar{bottom:calc(env(safe-area-inset-bottom,0px) + 20px)}
-#skyv:fullscreen .sv-hint,#skyv.pseudo-full .sv-hint{bottom:calc(env(safe-area-inset-bottom,0px) + 66px)}#skyv:-webkit-full-screen{height:100%}
-#skyv.pseudo-full{position:fixed;inset:0;height:auto;z-index:50}
+/* 全画面ではスマホの戻る・ホームなどのボタン（約48px）に重ならないよう高めに置く */
+#skyv:fullscreen .sv-bar,#skyv.pseudo-full .sv-bar,#skyv:-webkit-full-screen .sv-bar{bottom:calc(max(env(safe-area-inset-bottom,0px), 56px) + 16px)}
+#skyv:fullscreen .sv-hint,#skyv.pseudo-full .sv-hint,#skyv:-webkit-full-screen .sv-hint{bottom:calc(max(env(safe-area-inset-bottom,0px), 56px) + 62px)}#skyv:-webkit-full-screen{height:100%}
+#skyv.pseudo-full{position:fixed;inset:0;height:100vh;height:100dvh;z-index:50}
 #skyv canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none}
 #skyv .sv-top{position:absolute;top:8px;left:0;right:0;text-align:center;color:#fff;font-size:12px;font-weight:600;letter-spacing:.06em;text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:none}
 #skyv .sv-bar{position:absolute;left:8px;right:8px;bottom:12px;display:flex;gap:6px}
@@ -726,6 +727,8 @@ function renderFashion(w, demo){
   list.push(hNow < 18 ? ["今日", 0] : ["明日", 1]);   // 絵と同じ日だけ
   $("#fashion").innerHTML = `<div class="fash">${list.map(([lab, di]) => {
     const pl = outfitPlan(w, di), f = pl.f;
+    if(pl.rn.now){ const [, tx] = wmo(w.current.weather_code); f.tips = f.tips.filter(t => t[0] !== "☂️" && t[0] !== "🌂"); f.tips.unshift(["☂️", `いま${tx}が降っています（${w.current.precipitation} mm）。傘を持って出かけましょう`]); }
+    else if(pl.rn.soon) f.tips.unshift(["🌂", "このあと3時間以内に雨の予報。折りたたみ傘があると安心"]);
     return `<div class="fash-d"><div class="fash-top"><span class="fash-ico">${f.lv[1]}</span><div><div class="muted">${lab}・日中の体感 約${Math.round(f.feel)}℃</div><div class="fash-name">${f.lv[2]}</div></div></div>
       <div class="fash-desc"><b>男性</b> ${esc(pl.desc.m)}<br><b>女性</b> ${esc(pl.desc.f)}</div>
       ${f.tips.length ? `<ul class="fash-tips">${f.tips.map(t => `<li><span>${t[0]}</span>${esc(t[1])}</li>`).join("")}</ul>` : ""}</div>`;
@@ -1055,8 +1058,23 @@ return { figure, LOOK, DESC, dailyLook, umbrellaColors };
 })();
 
 // 絵と文字が必ず同じ内容になるよう、服装の決定はここ1か所で行う
+// いま雨や雪が降っているか（霧雨も含む）。降っていれば日付に関係なく傘を持たせる
+function rainingNow(w){
+  const c = w.current || {}, code = c.weather_code, mm = c.precipitation || 0;
+  return mm >= 0.1 || (code >= 51 && code <= 67) || (code >= 71 && code <= 86) || code >= 95;
+}
+// 今から3時間以内に雨が降るか
+function rainSoon(w){
+  const h = w.hourly, t0 = Date.now();
+  return h.time.some((t, i) => { const dt = new Date(t) - t0; return dt > -3600e3 && dt <= 3*3600e3 && (h.precipitation[i] || 0) >= 0.2; });
+}
 function outfitPlan(w, di){
-  const f = fashionDay(w, di), lvI = FASH.indexOf(f.lv), rn = f.rn, sunny = f.sunny;
+  const f = fashionDay(w, di), lvI = FASH.indexOf(f.lv), sunny = f.sunny;
+  let rn = f.rn;
+  const now = rainingNow(w), soon = !now && rainSoon(w);
+  if(now) rn = { kind:"umbrella", now:true };
+  else if(soon && rn.kind === "none") rn = { kind:"folding", soon:true };
+  f.rn = rn;
   const key = w.daily.time[di], uc = Outfit.umbrellaColors(key);
   const extra = rn.kind === "umbrella" ? "umbrella" : rn.kind === "folding" ? "folding" : "";
   const look = k => { const o = { ...Outfit.dailyLook(k, lvI, key) };
