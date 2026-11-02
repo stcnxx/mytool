@@ -953,7 +953,54 @@ const DESC = {
   m:["タンクトップ＋ハーフパンツ＋サンダル、帽子・サングラス","Tシャツ＋チノパン","長袖シャツ＋パンツ","Tシャツ＋カーディガン＋パンツ","ニット＋ジャケット＋パンツ","ニット＋コート＋パンツ","ニット＋冬のコート＋ブーツ、マフラー","ニット＋ダウン＋ブーツ、マフラー・手袋・ニット帽"],
   f:["キャミソール＋ミニスカート＋サンダル、帽子・サングラス","Tシャツ＋スカート","ブラウス＋ワイドパンツ","ブラウス＋カーディガン＋スカート","ニット＋トレンチコート＋パンツ","ニット＋コート＋スカート＋タイツ・ブーツ","ニット＋冬のコート＋ブーツ、マフラー","ニット＋ロングダウン＋ブーツ、マフラー・手袋・ニット帽"]
 };
-return { figure, LOOK, DESC };
+// ===== 日替わりの配色（同じ日は同じ色。おかしな組み合わせにならないよう、落ち着いた色の中から明暗差をつけて選ぶ） =====
+function rng(seedStr){ let h = 1779033703 ^ seedStr.length; for(let i=0; i<seedStr.length; i++){ h = Math.imul(h ^ seedStr.charCodeAt(i), 3432918353); h = h << 13 | h >>> 19; }
+  return () => { h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0)/4294967296; }; }
+const lum = hex => { const n = parseInt(hex.slice(1), 16); return ((n>>16)*.299 + ((n>>8)&255)*.587 + (n&255)*.114); };
+const PAL = {
+  tank:{ m:["#f8fafc","#38bdf8","#9ca3af","#1e3a5f","#cfdccb"], f:["#fbcfe8","#ffffff","#fbefc4","#d1f0e0","#cfe3f7"] },
+  tee:{ m:["#f8fafc","#f3efe6","#e5e7eb","#bfdbfe","#1e3a5f","#cfdccb"], f:["#ffffff","#f3efe6","#fde2e4","#e9d5ff","#cfe3f7","#d1f0e0","#fbefc4"] },
+  shirt:{ m:["#f8fafc","#a9c8ea","#dbe7f3","#f4d6dc","#e5e7eb"], f:["#ffffff","#cfe3f7"] },
+  blouse:{ m:["#ffffff"], f:["#ffffff","#fde2e4","#f3efe6","#e9d5ff","#cfe3f7","#fbefc4"] },
+  knit:{ m:["#e7dcc8","#c9ccd1","#33415c","#f5f0e6","#8b6b4f","#4f6b52"], f:["#f5f0e6","#e7dcc8","#c9ccd1","#7b2d3b","#d9c2e0","#33415c"] },
+  cardigan:{ m:["#6b7a8f","#33415c","#cdbb9a","#6b7350","#3f4550"], f:["#f4a6c6","#efe6d2","#9aa3ad","#d4a73c","#9cc3e6","#c9b6e4"] },
+  jacket:{ m:["#5b6b4e","#2f3a55","#b08d5b","#6b7280","#2b2b2e","#6d4c3d"], f:["#5b6b4e","#2f3a55","#b08d5b","#6b7280"] },
+  trench:{ m:["#cdb48a","#b9a27a","#3a3f47"], f:["#cdb48a","#b9a27a","#a8a092","#2f3a55"] },
+  coat:{ m:["#b48a5a","#24304a","#3a3f47","#6d4c3d","#8c8f94","#1f2124"], f:["#9f8170","#24304a","#3a3f47","#6e2a36","#e8dcc4","#8c8f94","#b48a5a"] },
+  down:{ m:["#1f2937","#1e2a44","#4b5638","#d6c7a8","#6b2d2d"], f:["#f1f5f9","#1f2937","#d6c7a8","#6e2a36","#e7c6cf","#1e2a44"] },
+  pants:{ m:["#2f3a4f","#3b5a85","#374151","#1f2023","#c8b48a","#d9cbb0","#6b7280"], f:["#2f3a4f","#3b5a85","#374151","#1f2023","#d9cbb0","#f3f0ea"] },
+  wide:{ m:["#c8b48a"], f:["#e7dcc8","#f3f0ea","#2f3a4f","#1f2023","#c8b48a","#6b7280"] },
+  shorts:{ m:["#c8b48a","#2f3a4f","#3b5a85","#6b7280","#6b7350"], f:["#c8b48a","#3b5a85","#f3f0ea"] },
+  skirt:{ m:["#2f3a4f"], f:["#2f3a4f","#6b7a8f","#d8c7a6","#1f2023","#93c5fd","#e0aab5","#8b6b4f","#fef3c7"] },
+  sneaker:["#f1f5f9","#9ca3af","#334155","#1f2937"], loafer:["#5a3d2b","#1f1f1f","#a8794f"], boots:["#3a2a20","#1c1c1c","#8b5e3c"], sandals:["#7c5a3a","#c08a5a","#1f1f1f"],
+  accent:["#b91c1c","#7f1d1d","#c9962b","#9ca3af","#1e3a8a","#3f6b4a","#b08d5b","#efe6d2","#be123c","#c2410c"],
+  cap:["#f8fafc","#1e3a5f","#1f2937","#d9cbb0"], hat:["#f5deb3","#e8d3a8","#f8fafc"]
+};
+function dailyLook(k, i, key){
+  const r = rng(`${key}|${k}|${i}`), pick = a => a[Math.floor(r()*a.length)];
+  const base = LOOK[k][i], o = JSON.parse(JSON.stringify(base));
+  const far = (a, ref, d) => { const c = a.filter(x => Math.abs(lum(x) - lum(ref)) >= d); return pick(c.length ? c : a); };
+  // ボトムス → トップス（明暗差40以上）→ 上着（トップスと差30以上）の順に決める
+  const bt = o.bottom.type; o.bottom.col = pick(PAL[bt][k]);
+  const tt = o.top.type; o.top.col = far(PAL[tt][k], o.bottom.col, 40);
+  if(o.outer){
+    const ot = o.outer.type === "open" ? (o.outer.lapel ? "jacket" : "cardigan") : o.outer.type === "coat" ? (o.outer.belt ? "trench" : "coat") : "down";
+    o.outer.col = far(PAL[ot][k], o.top.col, 30);
+    if(Math.abs(lum(o.outer.col) - lum(o.bottom.col)) < 18 && o.outer.len === "hip") o.bottom.col = far(PAL[bt][k], o.outer.col, 30);
+  }
+  o.shoeCol = pick(PAL[o.shoes] || PAL.sneaker);
+  const coatC = o.outer ? o.outer.col : o.top.col;
+  if(o.scarf) o.scarf = far(PAL.accent, coatC, 35);
+  if(o.beanie) o.beanie = r() < .5 && o.scarf ? o.scarf : far(PAL.accent, coatC, 30);
+  if(o.gloves) o.gloves = r() < .6 && o.scarf ? o.scarf : (o.beanie || far(PAL.accent, coatC, 30));
+  if(o.tights) o.tights = pick(["#2b2b2b","#3a3330","#1f2937"]);
+  if(o.cap) o.cap = pick(PAL.cap);
+  if(o.hat) o.hat = pick(PAL.hat);
+  return o;
+}
+// 傘の色：男女で別々（同じ日は同じ色）
+function umbrellaColors(key){ const r = rng(key + "|umb"), a = Math.floor(r()*UMB.length); let b = Math.floor(r()*UMB.length); if(b === a) b = (b + 3) % UMB.length; return { m:UMB[a], f:UMB[b] }; }
+return { figure, LOOK, DESC, dailyLook, umbrellaColors };
 })();
 
 function outfitBox(w){
@@ -962,8 +1009,10 @@ function outfitBox(w){
     const pop = w.daily.precipitation_probability_max[di] ?? 0, uv = w.daily.uv_index_max ? w.daily.uv_index_max[di] : 0;
     const rn = rainNeed(w, di), extra = rn.kind === "umbrella" ? { umbrella:true } : rn.kind === "folding" ? { folding:true } : {};
     const sunny = uv >= 6 && f.feel >= 21 && lvI > 0 && !extra.umbrella;
+    const key = w.daily.time[di], uc = Outfit.umbrellaColors(key);
     const add = (k) => {
-      const o = { ...Outfit.LOOK[k][lvI], ...extra };
+      const o = { ...Outfit.dailyLook(k, lvI, key) };
+      if(extra.umbrella) o.umbrella = uc[k]; if(extra.folding) o.folding = uc[k];
       if(sunny){ if(k === "m") o.cap = "#f8fafc"; else o.hat = "#f5deb3"; o.sunglasses = 1; }
       return o;
     };
