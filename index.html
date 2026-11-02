@@ -615,6 +615,23 @@ async function loadPops(){
 }
 
 /* ---------- 服装の目安（日中の体感温度・朝晩の差・雨・風・紫外線から） ---------- */
+// 傘の判定：出かける時間帯（7〜21時。今日は今から）の1時間ごとの雨量と降水確率から
+// ・傘：1mm/h以上の雨がある、または雨が3時間以上続く、または合計3mm以上
+// ・折りたたみ傘：弱い雨（0.2mm/h以上）や、降水確率40%以上の時間がある
+function rainNeed(w, di){
+  const h = w.hourly, day = w.daily.time[di], nowH = new Date().getHours();
+  const idx = h.time.map((t, i) => [t, i]).filter(([t]) => t.startsWith(day)).map(([, i]) => i)
+    .filter(i => { const hr = +h.time[i].slice(11, 13); return hr >= 7 && hr <= 21 && (di > 0 || hr >= nowH); });
+  const mm = i => h.precipitation[i] || 0, pp = i => h.precipitation_probability ? (h.precipitation_probability[i] ?? 0) : 0;
+  const wet = idx.filter(i => mm(i) >= 0.5 || (mm(i) >= 0.2 && pp(i) >= 50));
+  const maybe = idx.filter(i => mm(i) >= 0.2 || pp(i) >= 40);
+  const max = idx.reduce((m, i) => Math.max(m, mm(i)), 0), total = idx.reduce((s2, i) => s2 + mm(i), 0);
+  const span = a => { if(!a.length) return ""; const f = +h.time[a[0]].slice(11, 13), l = +h.time[a[a.length-1]].slice(11, 13) + 1; return l - f <= 1 ? `${f}時ごろ` : `${f}〜${l}時`; };
+  const strength = max >= 10 ? "強い雨" : max >= 3 ? "やや強い雨" : max >= 1 ? "雨" : "弱い雨";
+  if(max >= 1 || wet.length >= 3 || total >= 3) return { kind:"umbrella", when:span(wet.length ? wet : maybe), max, strength };
+  if(maybe.length) return { kind:"folding", when:span(maybe), max, strength };
+  return { kind:"none" };
+}
 const FASH = [
   [30, "🎽", "真夏の服装", "半袖・ノースリーブ。通気性のよい素材で、こまめに水分補給を"],
   [25, "👕", "半袖", "半袖シャツやTシャツ1枚で過ごせます"],
@@ -641,8 +658,9 @@ function fashionDay(w, di){
   const pop = d.precipitation_probability_max[di] ?? 0, code = d.weather_code[di];
   const snow = (code >= 71 && code <= 77) || code === 85 || code === 86;
   if(snow) tips.push(["🥾", "雪の予報。滑りにくく防水の靴を"]);
-  if(pop >= 50) tips.push(["☂️", `降水確率${pop}%。傘を持って出かけましょう`]);
-  else if(pop >= 30) tips.push(["🌂", `降水確率${pop}%。折りたたみ傘があると安心`]);
+  const rn = rainNeed(w, di);
+  if(rn.kind === "umbrella") tips.push(["☂️", `${rn.when}に${rn.strength}（最大${rn.max.toFixed(1)}mm/h）。傘を持って出かけましょう`]);
+  else if(rn.kind === "folding") tips.push(["🌂", `${rn.when}に${rn.max >= .2 ? "弱い雨" : "雨"}の可能性。折りたたみ傘があると安心`]);
   const wind = d.wind_speed_10m_max[di] ?? 0;
   if(wind >= 10) tips.push(["💨", `風が強め（最大${Math.round(wind)}m/s）。風を通しにくい上着を。スカートや帽子に注意`]);
   else if(wind >= 7 && feel < 21) tips.push(["💨", `風があり体感より寒く感じます（最大${Math.round(wind)}m/s）`]);
@@ -942,19 +960,20 @@ function outfitBox(w){
   try{
     const di = new Date().getHours() < 18 ? 0 : 1, f = fashionDay(w, di), lvI = FASH.indexOf(f.lv);
     const pop = w.daily.precipitation_probability_max[di] ?? 0, uv = w.daily.uv_index_max ? w.daily.uv_index_max[di] : 0;
-    const extra = pop >= 50 ? { umbrella:true } : pop >= 30 ? { folding:true } : {};
+    const rn = rainNeed(w, di), extra = rn.kind === "umbrella" ? { umbrella:true } : rn.kind === "folding" ? { folding:true } : {};
     const sunny = uv >= 6 && f.feel >= 21 && lvI > 0 && !extra.umbrella;
     const add = (k) => {
       const o = { ...Outfit.LOOK[k][lvI], ...extra };
       if(sunny){ if(k === "m") o.cap = "#f8fafc"; else o.hat = "#f5deb3"; o.sunglasses = 1; }
       return o;
     };
-    const tail = extra.umbrella ? "＋傘" : extra.folding ? "（折りたたみ傘）" : "";
+    const tail = extra.umbrella ? "＋傘" : extra.folding ? "＋折りたたみ傘" : "";
+    const rainNote = rn.kind === "umbrella" ? `☂️ ${rn.when} ${rn.strength}（最大${rn.max.toFixed(1)}mm/h）` : rn.kind === "folding" ? `🌂 ${rn.when} 雨の可能性` : "";
     const sun = sunny ? "、帽子・サングラス" : "";
     const svg = k => Outfit.figure(add(k)).replace("<svg ", `<svg class="${extra.umbrella ? "umb" : ""}" `);
     return `<div class="ofit"><div class="ofit-h">${di ? "明日の" : ""}服装の目安</div>
       <div class="ofit-figs">${svg("m")}${svg("f")}</div>
-      <div class="ofit-txt"><b>男性</b> ${esc(Outfit.DESC.m[lvI] + sun + tail)}<br><b>女性</b> ${esc(Outfit.DESC.f[lvI] + sun + tail)}</div></div>`;
+      <div class="ofit-txt"><b>男性</b> ${esc(Outfit.DESC.m[lvI] + sun + tail)}<br><b>女性</b> ${esc(Outfit.DESC.f[lvI] + sun + tail)}${rainNote ? `<br>${esc(rainNote)}` : ""}</div></div>`;
   }catch(e){ console.error(e); return ""; }
 }
 
