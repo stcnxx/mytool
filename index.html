@@ -54,8 +54,8 @@ a{color:var(--accent)}
 .t-row{margin-top:2px}
 .t-sub{font-size:.95rem;line-height:1.3;font-weight:600}
 .t-sub .muted{font-size:.82rem;font-weight:normal}
-.now-list{display:grid;grid-template-columns:auto 1fr;gap:3px 8px;margin:8px 0 0;font-size:.9rem}
-.now-list dt{color:var(--muted);white-space:nowrap;font-size:.82rem;align-self:center}.now-list dd{margin:0;font-weight:600;white-space:nowrap}
+.now-list{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;margin:8px 0 0;font-size:.86rem;line-height:1.45}
+.now-list dt{color:var(--muted);white-space:nowrap;font-size:.78rem;align-self:center}.now-list dd{margin:0;font-weight:600;white-space:nowrap}
 .now .temp{font-size:clamp(1.9rem,9vw,2.3rem);font-weight:700;white-space:nowrap;line-height:1.15}
 .ofit{flex:0 0 156px;text-align:center}
 .ofit-h{font-size:.75rem;font-weight:700;color:var(--title)}
@@ -543,6 +543,7 @@ function renderWeather(w, demo){
           <dt>湿度</dt><dd>${c.relative_humidity_2m}%</dd>
           <dt>雨量(直近1時間)</dt><dd>${c.precipitation} mm</dd>
           <dt>今日の降水</dt><dd>${d.precipitation_sum[0]} mm・${d.precipitation_probability_max[0] ?? "—"}%</dd>
+          <dt>日の出/日の入</dt><dd>${hm(d.sunrise[0])} / ${hm(d.sunset[0])}</dd>
         </dl>
       </div>
       ${outfitBox(w)}
@@ -553,8 +554,6 @@ function renderWeather(w, demo){
       <div class="stat"><div class="k">風</div><div class="v"><span class="arrow" style="transform:rotate(${c.wind_direction_10m}deg)">↓</span> ${dirName(c.wind_direction_10m)} ${c.wind_speed_10m} m/s</div></div>
       <div class="stat"><div class="k">最大瞬間風速</div><div class="v">${c.wind_gusts_10m} m/s</div></div>
       <div class="stat"><div class="k">気圧(海面)</div><div class="v">${Math.round(c.pressure_msl)} hPa</div></div>
-      <div class="stat"><div class="k">日の出</div><div class="v">🌅 ${hm(d.sunrise[0])}</div></div>
-      <div class="stat"><div class="k">日の入</div><div class="v">🌇 ${hm(d.sunset[0])}</div></div>
       ${extraStats(c, d)}
     </div>
     <div class="sub-h">大気の状態</div>
