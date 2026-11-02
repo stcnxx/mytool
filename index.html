@@ -234,7 +234,7 @@ footer{background:none!important}
 .slot-pts{list-style:none;margin:4px 0 0;padding:0;font-size:.8rem;line-height:1.5}.slot-pts li{display:flex;gap:4px}.slot-pts span{flex:none;text-shadow:none}
 .slot.big .ofit-figs svg{height:118px}.slot.big .ofit-figs svg.umb{height:128px}
 .slot-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px;border-top:1px solid var(--line);margin-top:4px}
-.slot.half{padding-top:8px}.slot.half .slot-h{font-size:.8rem}.slot.half .slot-row{flex-direction:column-reverse;align-items:stretch}
+.slot.half{padding-top:8px}.slot.half .slot-h{font-size:.8rem}.slot.half .slot-h span{display:block;white-space:nowrap;font-size:.68rem}.slot.half .slot-row{flex-direction:column-reverse;align-items:stretch}
 .slot.half .slot-lv{font-size:.85rem}.slot.half .slot-desc{font-size:.68rem}.slot.half .slot-pts{font-size:.68rem}
 .ofit-figs.xs{justify-content:flex-start}.ofit-figs.xs svg{height:66px}.ofit-figs.xs svg.umb{height:72px}
 .half-top{display:flex;align-items:center;gap:6px;margin:2px 0 4px}
@@ -780,28 +780,39 @@ function fashionDay(w, di){
   return { day, feel, lv, tips, rn, sunny };
 }
 // ===== 時間帯ごとの服装の目安：①いまの時間帯（横いっぱい）②③その次の2つ（半分ずつ） =====
-const PERIODS = [["午前中", 6, 12], ["午後", 12, 18], ["夜", 18, 30]];
-function periodSlots(now){
-  const h = now.getHours(), base = new Date(now); base.setHours(0,0,0,0);
-  let day = 0, p = h >= 18 ? 2 : h >= 12 ? 1 : h >= 6 ? 0 : 2;
-  if(h < 6) day = -1;                                  // 0〜6時は前日の「夜」の続き
-  const out = [];
-  for(let k=0; k<3; k++){
-    const d = new Date(base.getTime() + day*86400e3), [name, a, b] = PERIODS[p];
-    const isToday = day === 0 || (day === -1 && p === 2), isTomorrow = day === 1 || (day === 0 && h < 6);
-    const label = p === 2 ? (day === 0 ? "今晩" : day === -1 ? "今夜" : "明日の夜") : ((day === 1 || (h < 6 && day === 0)) && h >= 6 ? "明日の" + name : (day === 0 ? name : name));
-    out.push({ label: k === 0 ? label : label, name, a, b, start:new Date(d.getTime() + a*3600e3), end:new Date(d.getTime() + b*3600e3), key:d.toISOString().slice(0,10) + "-" + p, day, p });
-    p++; if(p > 2){ p = 0; day++; }
+// 時間帯：日の出〜正午（午前中）、正午〜日の入（午後）、日の入〜翌日の日の出（夜）
+function periodSlots(w, now){
+  const d = w.daily, day0 = new Date(now); day0.setHours(0,0,0,0);
+  const ok = t => t instanceof Date && !isNaN(t);
+  // k日目（0=今日）の日の出・正午・日の入。取れないとき（白夜・極夜など）は6時・18時で代用
+  const sun = k => {
+    const base = new Date(day0.getTime() + k*86400e3), noon = new Date(base.getTime() + 12*3600e3);
+    let r = d && d.sunrise && d.sunrise[k] ? new Date(d.sunrise[k]) : null, st = d && d.sunset && d.sunset[k] ? new Date(d.sunset[k]) : null;
+    if(!ok(r) || r >= noon) r = new Date(base.getTime() + 6*3600e3);
+    if(!ok(st) || st <= noon) st = new Date(base.getTime() + 18*3600e3);
+    return { base, rise:r, noon, set:st };
+  };
+  const hm2 = t => `${pad(t.getHours())}:${pad(t.getMinutes())}`;
+  const name = (p, k) => p === 0 ? (k === 0 ? "午前中" : k === 1 ? "明日の午前中" : `${sun(k).base.getMonth()+1}/${sun(k).base.getDate()}の午前中`)
+    : p === 1 ? (k === 0 ? "午後" : k === 1 ? "明日の午後" : `${sun(k).base.getMonth()+1}/${sun(k).base.getDate()}の午後`)
+    : (k === -1 ? "今夜" : k === 0 ? "今晩" : k === 1 ? "明日の夜" : `${sun(k).base.getMonth()+1}/${sun(k).base.getDate()}の夜`);
+  const list = [];
+  for(let k=-1; k<=3; k++){
+    const a = sun(k), b = sun(k + 1);
+    if(k >= 0){
+      list.push({ p:0, k, start:a.rise, end:a.noon, range:`日の出 ${hm2(a.rise)} - 12:00` });
+      list.push({ p:1, k, start:a.noon, end:a.set, range:`12:00 - 日の入 ${hm2(a.set)}` });
+    }
+    // 前日の夜は、今日の日の入りから24時間引いて開始時刻を見積もる
+    const st = k === -1 ? new Date(sun(0).set.getTime() - 86400e3) : a.set;
+    list.push({ p:2, k, start:st, end:b.rise, range:`日の入 ${hm2(st)} - 翌日の出 ${hm2(b.rise)}` });
   }
-  // 名前を整える
-  for(const sl of out){
-    const today0 = base.getTime(), sd = new Date(sl.start); sd.setHours(0,0,0,0);
-    const rel = Math.round((sd - today0)/86400e3) + (h < 6 ? 0 : 0);
-    const tm = `${pad(sl.a)}:00-${sl.p === 2 ? "" : pad(sl.b) + ":00"}`;
-    sl.title = sl.p === 2 ? (rel <= 0 ? "今晩" : "明日の夜") : ((rel >= 1 && h >= 6) || (rel >= 1 && h < 6 && false) ? "明日の" + sl.name : sl.name);
-    sl.range = sl.p === 2 ? "18:00以降" : tm;
-  }
-  return out;
+  const t0 = now.getTime();
+  let i = list.findIndex(x => x.end.getTime() > t0); if(i < 0) i = 0;
+  // いまの時間帯は、もう過ぎた時間を除いて（今の1時間から）判定する
+  const h0 = new Date(now); h0.setMinutes(0,0,0);
+  return list.slice(i, i + 3).map((x, n) => ({ ...x, start:n === 0 && x.start < h0 ? h0 : x.start, title:name(x.p, x.k), name:["午前中","午後","夜"][x.p],
+    key:new Date(day0.getTime() + x.k*86400e3).toISOString().slice(0,10) + "-" + x.p }));
 }
 function periodPlan(w, sl, cur){
   const h = w.hourly, idx = h.time.map((t, i) => [new Date(t), i]).filter(([t]) => t >= sl.start && t < sl.end).map(([, i]) => i);
@@ -826,14 +837,15 @@ function periodPlan(w, sl, cur){
   pts.push(["🌡️", `体感 約${Math.round(feel)}℃（${Math.round(low)}〜${Math.round(high)}℃）`]);
   if(nowRain) pts.push(["☂️", `いま${wmo(w.current.weather_code)[1]}が降っています`]);
   else pts.push(kind === "umbrella" ? ["☂️", `${span(wet.length ? wet : maybe)} 雨 最大${max.toFixed(1)}mm/h`] : kind === "folding" ? ["🌂", `${span(maybe)} 雨の可能性`] : ["🌤️", "雨の心配なし"]);
-  if(uv != null && uv >= 3) pts.push(["🧴", `UV最大${Math.round(uv)}${sunny ? "・帽子とサングラス" : "・日焼け止め"}`]);
+  // UVは必ず表示（夜や弱いときも）
+  pts.push(["🧴", uv == null ? "UV —" : uv >= 3 ? `UV最大${Math.round(uv)}${sunny ? "・帽子とサングラス" : "・日焼け止め"}` : `UV最大${Math.round(uv)}・弱い（対策はほぼ不要）`]);
   if(uv != null && uv >= 8) pts.push(["☀️", "紫外線が非常に強い。長袖や日傘も"]);
   if(wind >= 8) pts.push(["💨", `風 最大${Math.round(wind)}m/s`]);
   if(high - low >= 5) pts.push(["🔁", "時間で気温差あり。脱ぎ着しやすく"]);
   // 小さい枠用の短い表記
   const short = [["🌡️", `体感${Math.round(feel)}℃`, `${Math.round(low)}〜${Math.round(high)}℃`],
     nowRain ? ["☂️", "いま雨", ""] : kind === "umbrella" ? ["☂️", span(wet.length ? wet : maybe), `最大${max.toFixed(1)}mm`] : kind === "folding" ? ["🌂", span(maybe), "雨の可能性"] : ["🌤️", "雨なし", ""]];
-  if(uv != null && uv >= 1) short.push(["🧴", `UV${Math.round(uv)}`, uv >= 8 ? "非常に強い" : uv >= 6 ? "強い・帽子" : uv >= 3 ? "中程度" : "弱い"]);
+  short.push(["🧴", uv == null ? "UV —" : `UV${Math.round(uv)}`, uv == null ? "" : uv >= 8 ? "非常に強い" : uv >= 6 ? "強い・帽子" : uv >= 3 ? "中程度" : "弱い"]);
   return { lv, lvI, kind, look, pts, short, desc:{ m:Outfit.DESC.m[lvI] + sunT("m") + tail, f:Outfit.DESC.f[lvI] + sunT("f") + tail } };
 }
 function slotHTML(w, sl, big){
@@ -854,7 +866,7 @@ function slotHTML(w, sl, big){
     ${extra.length ? `<ul class="slot-pts">${extra.map(([e, t]) => `<li><span>${e}</span>${esc(t)}</li>`).join("")}</ul>` : ""}</div>`;
 }
 function renderFashion(w, demo){
-  const sl = periodSlots(new Date());
+  const sl = periodSlots(w, new Date());
   $("#fashion").innerHTML = slotHTML(w, sl[0], true) + `<div class="slot-pair">${slotHTML(w, sl[1], false)}${slotHTML(w, sl[2], false)}</div>`;
   markDemo("fash", "#fashH", demo);
 }
