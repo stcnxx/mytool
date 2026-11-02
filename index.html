@@ -270,7 +270,7 @@ footer{background:none!important}
 </header>
 
 <div id="mapSheet" hidden>
-  <div class="map-head"><b id="mapTitle">現在位置と昼夜</b><span style="display:flex;gap:6px"><button id="mapNear">周辺</button><button id="mapWorld">世界</button><button id="mapClose">閉じる</button></span></div>
+  <div class="map-head"><b id="mapTitle">現在位置と昼夜</b><span style="display:flex;gap:6px"><button id="mapHere" title="現在地を画面の中央に戻します">📍 現在地</button><button id="mapClose">閉じる</button></span></div>
   <div id="mapBox"></div>
   <div id="rainBar" hidden><button id="rainPlay" aria-label="再生">▶</button><input type="range" id="rainSlider" min="0" max="0" value="0"><span id="rainTime"></span></div>
   <div id="rainLegend" hidden><span>弱</span><i style="background:#f2f2ff"></i><i style="background:#a0d2ff"></i><i style="background:#218cff"></i><i style="background:#0041ff"></i><i style="background:#fff500"></i><i style="background:#ff9900"></i><i style="background:#ff2800"></i><i style="background:#b40068"></i><span>強</span><span class="muted" style="margin-left:6px">1〜80mm/h以上</span></div>
@@ -2297,10 +2297,11 @@ async function openMap(opts){
         { pane:"earth", maxNativeZoom:8, maxZoom:19, attribution:'Blue Marble: NASA' }).addTo(m);
       m.createPane("nightTint").style.zIndex = 300;
       const bases = MAP.bases = {}; for(const k in BASES) bases[BASES[k].name] = L.tileLayer(BASES[k].url, { ...BASES[k].opt, detectRetina:false });
-      let pick = "std"; try{ pick = localStorage.getItem("mapBase") || "std"; }catch(_){}
-      (bases[(BASES[pick] || BASES.std).name]).addTo(m);
+      bases[BASES.std.name].addTo(m);
       MAP.ctl = L.control.layers(bases, null, { position:"topright", collapsed:true }).addTo(m);
-      m.on("baselayerchange", e => { const k = Object.keys(BASES).find(k => BASES[k].name === e.name); try{ localStorage.setItem("mapBase", k); }catch(_){} });
+      // 表示タイプと縮尺を、地図ビュー・雨雲ビューそれぞれで記憶する
+      m.on("baselayerchange", () => { viewSave(); rainBaseTune(); });
+      m.on("zoomend", viewSave);
       // 夜側の街明かり（NASA Black Marble）
       MAP.lights = L.tileLayer("https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_Black_Marble/default/2016-01-01/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png",
         { pane:"lights", maxNativeZoom:8, maxZoom:19, opacity:.95, attribution:'夜の明かり: NASA Earth Observatory' }).addTo(m);
@@ -2308,23 +2309,52 @@ async function openMap(opts){
       // 拡大したら街明かりを消し、夜の影も薄くして道や地名を読めるようにする
       const fade = () => { const z = m.getZoom(); MAP.lights.setOpacity(z <= 4 ? .95 : z >= 7 ? 0 : .95*(7 - z)/3); MAP.earth.setOpacity(z <= 4 ? 1 : z >= 7 ? 0 : (7 - z)/3); m.getPane("nightTint").style.opacity = z >= 9 ? .4 : z >= 6 ? .7 : 1; };
       m.on("zoomend", fade); fade();
-      // 雨雲（気象庁）
+      // 雨雲を重ねる層（雨雲ビューのときだけ使う）
       m.createPane("rain").style.zIndex = 320;
-      RAIN.toggle = L.layerGroup();
-      MAP.ctl.addOverlay(RAIN.toggle, "雨雲（気象庁）");
-      m.on("layeradd", e => { if(e.layer === RAIN.toggle) rainOn(); });
-      m.on("layerremove", e => { if(e.layer === RAIN.toggle) rainOff(); });
     }
     const m = MAP.map; m.invalidateSize();
     if(MAP.marker) MAP.marker.remove(); if(MAP.acc) MAP.acc.remove();
     if(S.acc && S.acc < 5000) MAP.acc = L.circle([lat, lon], { radius:S.acc, color:"#e53935", weight:1, fillColor:"#e53935", fillOpacity:.08, interactive:false }).addTo(m);
     MAP.marker = L.marker([lat, lon], { icon:L.divIcon({ className:"pin-ico", html:'<span class="pulse"></span>' + PIN_SVG, iconSize:[32,40], iconAnchor:[16,38] }) })
       .addTo(m).bindTooltip("現在位置", { direction:"top", offset:[0,-36] });
-    m.setView([lat, lon], m.getZoom());
-    drawDayNight();
-    clearInterval(MAP.timer); MAP.timer = setInterval(drawDayNight, 60000);
-    if(opts && opts.rain){ m.setView([lat, lon], inJapan() ? 10 : 7, { animate:false }); if(!m.hasLayer(RAIN.toggle)) RAIN.toggle.addTo(m); else rainOn(); }
+    const rain = !!(opts && opts.rain);
+    if(!rain && RAIN.on) rainOff();
+    MAP.view = rain ? "rain" : "map";
+    // 地理院の淡色地図は日本だけなので、日本の外では選択肢から外す
+    const paleL = MAP.bases[BASES.pale.name];
+    MAP.ctl.removeLayer(paleL); if(inJapan()) MAP.ctl.addBaseLayer(paleL, BASES.pale.name);
+    const v = viewLoad(MAP.view); if(v.base === "pale" && !inJapan()) v.base = "std";
+    MAP.restoring = true;
+    viewBase(v.base);
+    m.setView([lat, lon], v.zoom, { animate:false });
+    MAP.restoring = false;
+    if(rain) rainOn();
+    else{ rainMode(false); clearInterval(MAP.timer); MAP.timer = setInterval(drawDayNight, 60000); }
   }catch(e){ drawMapFallback(lat, lon); if(opts && opts.rain) $("#mapNote").textContent += "（雨雲は地図が読み込めるときに表示できます）"; }
+}
+function viewLoad(view){
+  let v = null; try{ v = JSON.parse(localStorage.getItem("mapView_" + view)); }catch(_){}
+  let legacy = null; try{ legacy = localStorage.getItem("mapBase"); }catch(_){}
+  const defZoom = view === "rain" ? (inJapan() ? 10 : 7) : 3;
+  return { base:(v && BASES[v.base]) ? v.base : (view === "map" && BASES[legacy] ? legacy : "std"), zoom:(v && v.zoom >= 1 && v.zoom <= 19) ? v.zoom : defZoom };
+}
+function viewSave(){
+  if(!MAP.map || !MAP.view || MAP.restoring) return;
+  const k = Object.keys(BASES).find(k => MAP.map.hasLayer(MAP.bases[BASES[k].name])) || "std";
+  try{ localStorage.setItem("mapView_" + MAP.view, JSON.stringify({ base:k, zoom:MAP.map.getZoom() })); }catch(_){}
+}
+function viewBase(key){
+  const m = MAP.map, want = MAP.bases[(BASES[key] || BASES.std).name];
+  for(const l of Object.values(MAP.bases)) if(l !== want && m.hasLayer(l)) m.removeLayer(l);
+  if(!m.hasLayer(want)) want.addTo(m);
+  rainBaseTune();
+}
+// 衛星写真の上では雨雲が見えにくいので、色を濃くする
+function rainBaseTune(){
+  const m = MAP.map; if(!m) return; const pane = m.getPane("rain"); if(!pane) return;
+  const sat = m.hasLayer(MAP.bases[BASES.sat.name]);
+  pane.style.filter = sat ? "saturate(1.6) contrast(1.15)" : "";
+  for(const k in RAIN.layers) if(+k === RAIN.idx) RAIN.layers[k].setOpacity(sat ? .92 : .8);
 }
 function mapZoom(z){ if(!MAP.map) return; const lat = S.lat ?? DEMO_PLACE.lat, lon = S.lon ?? DEMO_PLACE.lon; MAP.map.flyTo([lat, lon], z, { duration:.8 }); }
 function closeMapReal(){ $("#mapSheet").hidden = true; clearInterval(MAP.timer); rainStop(); }
@@ -2396,7 +2426,7 @@ function rainLayer(i){
 function rainShow(i){
   const n = RAIN.frames.length; if(!n) return;
   RAIN.idx = i = (i + n) % n;
-  rainLayer(i).setOpacity(.8);
+  rainLayer(i).setOpacity(MAP.map && MAP.map.hasLayer(MAP.bases[BASES.sat.name]) ? .92 : .8);
   for(const k in RAIN.layers) if(+k !== i) RAIN.layers[k].setOpacity(0);
   if(i + 1 < n) rainLayer(i + 1);                     // 次のコマを先読み
   const f = RAIN.frames[i], t = f.t;
@@ -2415,16 +2445,9 @@ function rainMode(on){
   const m = MAP.map; if(!m) return;
   for(const p of ["earth", "lights", "nightTint"]){ const el = m.getPane(p); if(el) el.style.display = on ? "none" : ""; }
   const sun = MAP.sunMk && MAP.sunMk.getElement(); if(sun) sun.style.display = on ? "none" : "";
-  const std = MAP.bases[BASES.std.name];
   $("#mapTitle").textContent = on ? "雨雲の動き" : "現在位置と昼夜";
-  if(on){
-    MAP.prevBase = Object.values(MAP.bases).find(l => m.hasLayer(l));
-    if(MAP.prevBase !== std){ if(MAP.prevBase) m.removeLayer(MAP.prevBase); std.addTo(m); }
-    $("#mapNote").textContent = RAIN.world ? "RainViewer の雨雲レーダー（過去2時間・10分ごと）を表示しています。" : "気象庁の高解像度降水ナウキャストを表示しています（日本国内のみ）。";
-  }else{
-    if(MAP.prevBase && MAP.prevBase !== std && !m.hasLayer(MAP.prevBase)){ m.removeLayer(std); MAP.prevBase.addTo(m); }
-    MAP.prevBase = null; drawDayNight();
-  }
+  if(on) $("#mapNote").textContent = RAIN.world ? "RainViewer の雨雲レーダー（過去2時間・10分ごと）を表示しています。" : "気象庁の高解像度降水ナウキャストを表示しています（日本国内のみ）。";
+  else drawDayNight();
 }
 async function rainOn(){
   const world = !inJapan();
@@ -2439,8 +2462,6 @@ async function rainOn(){
     }
     if(!RAIN.on) return;
     $("#rainSlider").max = RAIN.frames.length - 1;
-    // 雨雲データが一番細かく見える拡大率（約250m単位）で現在地を表示
-    MAP.map.setView([S.lat ?? DEMO_PLACE.lat, S.lon ?? DEMO_PLACE.lon], world ? 7 : RAIN_Z[RAIN_Z.length-1], { animate:false });
     rainShow(RAIN.frames.filter(f => !f.fc).length - 1);   // 最新の実況から
   }catch(e){
     $("#rainTime").textContent = "雨雲のデータを取得できませんでした";
@@ -2655,7 +2676,7 @@ bgInit();
 setupOdptUI();
 $("#mapBtn").onclick = () => openMap(); $("#rainBtn").onclick = () => openMap({ rain:true }); $("#mapClose").onclick = closeMap;
 $("#rainPlay").onclick = rainPlay; $("#rainSlider").oninput = e => { rainStop(); rainShow(+e.target.value); };
-$("#mapNear").onclick = () => mapZoom(14); $("#mapWorld").onclick = () => mapZoom(2);
+$("#mapHere").onclick = () => { if(!MAP.map) return; MAP.map.flyTo([S.lat ?? DEMO_PLACE.lat, S.lon ?? DEMO_PLACE.lon], MAP.map.getZoom(), { duration:.6 }); };
 wcSetup(); tickClock(); setInterval(tickClock, 1000);
 locate();
 </script>
