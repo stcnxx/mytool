@@ -2413,7 +2413,7 @@ function bgFrame(t){
     x.globalAlpha = 1;
   }
   // 月（月が地平線より上のとき。昼は薄く）
-  if(clearish){ try{ const m = Sky.moonInfo(); if(m.alt > 0){ const wc = document.getElementById('wclocks'), wr = wc ? wc.getBoundingClientRect() : null, right = wr ? wr.right : W*.7, r = Math.max(26, Math.min(50, (W - right - 6)/2)), cy = wr ? (wr.top + wr.bottom)/2 + scrollY : 220; Sky.bgMoon(x, Math.min(W - r - 3, right + 4 + r), cy, r, (kind === "cloudy" ? .6 : 1)*(dark > 0 ? 1 : .7), dark < .3); } }catch(_){} }
+  { try{ { const wc = document.getElementById('wclocks'), wr = wc ? wc.getBoundingClientRect() : null, right = wr ? wr.right : W*.7, r = Math.max(26, Math.min(50, (W - right - 6)/2)), cy = wr ? (wr.top + wr.bottom)/2 + scrollY : 220; Sky.bgMoon(x, Math.min(W - r - 3, right + 4 + r), cy, r, (kind === "clear" ? 1 : kind === "cloudy" ? .65 : .45)*(dark > 0 ? 1 : .7), dark < .3); } }catch(_){} }
   // 雲
   const nC = { clear:dark > 0 ? 2 : 4, cloudy:10, rain:12, thunder:12, snow:9, fog:0 }[kind] ?? 4;
   const col = wet ? (dark > .5 ? "#2a3040" : "#6b7480") : kind === "snow" ? "#e6eaef" : dark > .5 ? "#3a4466" : kind === "cloudy" ? "#e9edf2" : "#ffffff";
