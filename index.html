@@ -24,6 +24,7 @@
 html,body{margin:0;background:var(--bg);color:var(--text);
   font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP","Yu Gothic UI",sans-serif;line-height:1.5}
 header{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--card) 82%,transparent);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);padding:12px 16px 8px;border-bottom:1px solid var(--line)}
+#bg::after{content:"";position:absolute;inset:0;background:var(--veil,transparent);transition:background 2s;pointer-events:none}
 #bg{position:fixed;top:0;left:0;width:100%;height:100vh;height:100lvh;z-index:-1;transition:background 2s}
 .card{background:color-mix(in srgb,var(--card) 90%,transparent)}
 #bgc{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -189,16 +190,16 @@ footer{max-width:928px;margin:0 auto 30px;padding:12px 16px;font-size:.75rem;col
 .spin{display:inline-block;animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 /* ===== 枠なし・背景が見えるレイアウト（背景の明るさで文字色を切り替え） ===== */
-html.light-bg{--title:#1e3a8a;--text:#0b1324;--muted:#334155;--line:rgba(15,23,42,.16);--chip:rgba(255,255,255,.38);--card:#ffffff}
+html.light-bg{--title:#0f2a6e;--text:#0b1324;--muted:#1f2a3a;--line:rgba(15,23,42,.16);--chip:rgba(255,255,255,.38);--card:#ffffff}
 html.dark-bg{--title:#fcd34d;--text:#f1f5f9;--muted:#cbd5e1;--line:rgba(255,255,255,.18);--chip:rgba(255,255,255,.1);--card:#111827;--ok:#86efac}
-html.light-bg body{text-shadow:0 1px 1px rgba(255,255,255,.55)}
+html.light-bg body{text-shadow:0 0 6px rgba(255,255,255,.55),0 1px 1px rgba(255,255,255,.6)}
 html.dark-bg body{text-shadow:0 1px 2px rgba(0,0,0,.55)}
 html.dark-bg a{color:#9cc9ff}
 html.dark-bg .err{color:#fecaca}
 html.dark-bg .hi,html.dark-bg .sun{color:#fda4af}
 html.dark-bg .lo,html.dark-bg .sat{color:#93c5fd}
 html.dark-bg .anv-d{color:#a5d8f0}
-html.light-bg .anv-d{color:#1d5f80}
+html.light-bg .anv-d{color:#0c3d57}
 html.light-bg header{background:rgba(255,255,255,.5)}
 html.dark-bg header{background:rgba(8,12,28,.45)}
 header{border-bottom:none}
@@ -2421,7 +2422,11 @@ function updateBg(){
   if(kind === "snow"){ top = mx(gray(top, .6), [225,230,238], .45*day); bot = mx(gray(bot, .5), [238,242,247], .55*day); }
   if(kind === "fog"){ top = mx(top, [200,206,214], .55*day + .2); bot = mx(bot, [215,220,226], .6*day + .2); }
   $("#bg").style.background = `linear-gradient(180deg, ${css(top)} 0%, ${css(mx(top, bot, .55))} 55%, ${css(bot)} 100%)`;
-  const isDark = lum(mx(top, bot, .45)) < 120;
+  const L = lum(mx(top, bot, .45)), isDark = L < 120;
+  // 夕方・明け方などの中間の明るさは文字が読みにくいので、薄い白のベールで背景を明るくする
+  // 暗い側の中間（夕暮れなど）は黒いベールで暗くして白い文字を読みやすくする
+  const veil = !isDark && L < 185 ? `rgba(255,255,255,${((185 - L)/65*.32).toFixed(2)})` : isDark && L > 60 ? `rgba(8,12,30,${Math.min(.45, (L - 60)/60*.45).toFixed(2)})` : "transparent";
+  document.getElementById("bg").style.setProperty("--veil", veil);
   document.documentElement.classList.toggle("dark-bg", isDark); document.documentElement.classList.toggle("light-bg", !isDark);
 }
 setInterval(updateBg, 60000);
