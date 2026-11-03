@@ -262,6 +262,7 @@ footer{background:none!important}
 #skyCard h2{padding:0}
 #skyInfo{padding:0 0 8px}
 #skyv{border-radius:14px}
+.hw{white-space:nowrap}.hw .ico{width:1em;height:1em;margin-right:1px;vertical-align:-.15em}
 </style>
 </head>
 <body>
@@ -363,7 +364,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-03 09:33</div>
+  <div style="margin-bottom:4px">版：2026-11-03 11:08</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -677,7 +678,7 @@ function renderWeather(w, demo){
       <div><b>${Math.round(h.temperature_2m[i])}°</b></div>
       <div class="muted">☂${h.precipitation_probability[i] ?? "—"}%</div>
       <div class="muted">${h.precipitation[i]}mm</div>
-      <div class="muted"><span class="arrow" style="transform:rotate(${h.wind_direction_10m[i]}deg)">↓</span>${Math.round(h.wind_speed_10m[i])}</div></div>`;
+      <div class="muted hw">${ICO.wind}<span class="arrow" style="transform:rotate(${h.wind_direction_10m[i]}deg)">↓</span>${Math.round(h.wind_speed_10m[i])}</div></div>`;
   }
   $("#hourly").innerHTML = hs;
 
@@ -721,7 +722,7 @@ async function loadPops(){
   $("#popTime").textContent = data.at ? fmtTime(data.at) + " 発表" : "";
   $("#pops").innerHTML = `<div class="hours">${data.list.map(x => { const p = +x.p, h = x.t.getHours();
       return `<div class="hour" style="flex-basis:78px"><div>${dayName(x.t)}</div><div class="muted">${h}–${h+6}時</div>
-        <div style="font-size:1.25rem;font-weight:700;margin-top:2px">☂ ${p}%</div>
+        <div style="font-size:1.25rem;font-weight:700;margin-top:2px">${p}%</div>
         <div style="height:4px;border-radius:2px;margin:4px 6px 0;background:linear-gradient(90deg,${col(p) === "transparent" ? "rgba(96,165,250,.35)" : col(p)} ${p}%,rgba(127,127,127,.18) ${p}%)"></div></div>`; }).join("")}</div>`
     + `<div class="muted" style="margin-top:6px;font-size:.8rem">対象：${esc(data.area)}。6時間のうちに1mm以上の雨か雪が降る確率です。</div>`;
   markDemo("pops", "#popH", demo);
