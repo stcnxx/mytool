@@ -68,7 +68,7 @@ a{color:var(--accent)}
 .nw-temp .ico{width:22px;height:22px;opacity:.8;align-self:center}
 .nw-hum .ico{width:20px;height:20px}
 .nw-temp .temp{font-size:clamp(2rem,10vw,2.5rem);font-weight:700;line-height:1.1}
-.nw-sun{font-size:.8rem;color:var(--muted);margin-top:4px}.nw-sun b{color:var(--text)}
+.nw-feel{display:flex;flex-wrap:nowrap;gap:clamp(12px,5vw,28px);align-items:baseline;margin-top:2px;white-space:nowrap}.nw-feel>span{display:flex;align-items:baseline;gap:6px}.nw-feel .k{font-size:.9rem;color:var(--muted)}.nw-feel b{font-size:clamp(1.05rem,5vw,1.3rem)}
 .now .wx{font-size:1.05rem;font-weight:600}
 .t-row{margin-top:2px}
 .t-sub{font-size:.95rem;line-height:1.3;font-weight:600}
@@ -370,7 +370,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-03 19:58</div>
+  <div style="margin-bottom:4px">版：2026-11-03 20:22</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -659,14 +659,14 @@ function renderWeather(w, demo){
       <div class="nw-grid">
         <div class="nw-l nw-temp">${ICO.temp}<span class="temp">${Math.round(c.temperature_2m*10)/10}℃</span></div>
         <div class="nw-r nw-temp nw-hum">${ICO.hum}<span class="temp">${c.relative_humidity_2m}%</span></div>
-        <div class="nw-l"><span class="k">体感温度</span><b>${Math.round(c.apparent_temperature)}℃</b></div>
-        <div class="nw-r"><span class="k">${ICO.rain}雨量(直近1h)</span><b>${c.precipitation} mm</b></div>
-        <div class="nw-l"><span class="k">最低/最高</span><b><span class="lo">${Math.round(d.temperature_2m_min[0])}</span>/<span class="hi">${Math.round(d.temperature_2m_max[0])}</span>℃</b></div>
-        <div class="nw-r"><span class="k">${ICO.umb}今日の降水</span><b>${d.precipitation_sum[0]} mm・${d.precipitation_probability_max[0] ?? "—"}%</b></div>
       </div>
-      <div class="nw-sun">${ICO.sun}日の出 <b>${hm(d.sunrise[0])}</b>　日の入 <b>${hm(d.sunset[0])}</b></div>
+      <div class="nw-feel"><span><span class="k">体感温度</span><b>${Math.round(c.apparent_temperature)}℃</b></span><span><span class="k">最低/最高</span><b><span class="lo">${Math.round(d.temperature_2m_min[0])}</span>/<span class="hi">${Math.round(d.temperature_2m_max[0])}</span>℃</b></span></div>
     </div>
     <div class="grid">
+      <div class="stat"><div class="k">${ICO.rain}雨量(直近1h)</div><div class="v">${c.precipitation} mm</div></div>
+      <div class="stat"><div class="k">${ICO.umb}今日の降水</div><div class="v">${d.precipitation_sum[0]} mm・${d.precipitation_probability_max[0] ?? "—"}%</div></div>
+      <div class="stat"><div class="k">${ICO.sun}日の出</div><div class="v">${hm(d.sunrise[0])}</div></div>
+      <div class="stat"><div class="k">${ICO.sun}日の入</div><div class="v">${hm(d.sunset[0])}</div></div>
       <div class="stat"><div class="k">${ICO.wind}風</div><div class="v"><span class="arrow" style="transform:rotate(${c.wind_direction_10m}deg)">↓</span> ${dirName(c.wind_direction_10m)} ${c.wind_speed_10m} m/s</div></div>
       <div class="stat"><div class="k">${ICO.gust}最大瞬間風速</div><div class="v">${c.wind_gusts_10m} m/s</div></div>
       <div class="stat"><div class="k">${ICO.press}気圧(海面)</div><div class="v">${Math.round(c.pressure_msl)} hPa</div></div>
