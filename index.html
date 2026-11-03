@@ -369,7 +369,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-03 18:55</div>
+  <div style="margin-bottom:4px">版：2026-11-03 19:05</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2022,7 +2022,8 @@ function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
   const sk=skyNow(),k='clear',sa=SKYV.night?-90:sk.sun.alt,hy=Hc*(TERR.prof?.8:.86),kk=Wc/SKYV.fov;
   const P=(az,alt)=>{const d=((az-SKYV.A0+540)%360)-180;return{x:Wc/2+d*kk,y:hy-alt*kk,d};};
   // 描いた文字の場所（天の川の名前を重ねないため）
-  const LB=[],addLB=(tx,px,py,al,fs)=>{const w=x.measureText(tx).width;LB.push({x:al==='center'?px-w/2:al==='right'?px-w:px,y:py-fs,w,h:fs+3});};
+  const LB=[],SN=[],CN=[],AN=[],hitLB=(a,b)=>a.x<b.x+b.w+3&&b.x<a.x+a.w+3&&a.y<b.y+b.h+2&&b.y<a.y+a.h+2;
+  {const hn=ov.querySelector('#svHint'),hb=Math.round(Hc-hy+8)+'px';if(hn&&hn.style.bottom!==hb)hn.style.bottom=hb;}
   const clr=k==='clear',cld=k==='cloudy',wet=k==='rain'||k==='thunder'||k==='snow';
   // sky
   const sc2=skyCols(sa,k),gr=x.createLinearGradient(0,0,0,hy);gr.addColorStop(0,rgbS(sc2.top));gr.addColorStop(.75,rgbS(mixRgb(sc2.top,sc2.hor,.55)));gr.addColorStop(1,rgbS(sc2.hor));x.fillStyle=gr;x.fillRect(0,0,Wc,Hc);
@@ -2042,16 +2043,27 @@ function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
     if(SKYV.lines&&starA>.15){x.lineWidth=1;x.strokeStyle=`rgba(150,190,255,${.38*starA})`;x.beginPath();
       for(const[,ls]of CONST)for(const[a1,b1]of ls){const A1=SP[a1],B1=SP[b1];if(A1.alt<-3||B1.alt<-3||Math.abs(A1.d)>100||Math.abs(B1.d)>100||Math.abs(A1.x-B1.x)>Wc*.8)continue;x.moveTo(A1.x,A1.y);x.lineTo(B1.x,B1.y);}x.stroke();
       x.setLineDash([3,4]);x.strokeStyle=`rgba(255,215,140,${.4*starA})`;x.beginPath();for(const[,ks]of ASTERISM){for(let i=0;i<3;i++){const A1=SP[ks[i]],B1=SP[ks[(i+1)%3]];if(A1.alt<0||B1.alt<0||Math.abs(A1.x-B1.x)>Wc*.9)continue;x.moveTo(A1.x,A1.y);x.lineTo(B1.x,B1.y);}}x.stroke();x.setLineDash([]);
-      x.font='600 10.5px "Zen Maru Gothic",sans-serif';x.textAlign='center';x.fillStyle=`rgba(195,215,255,${.82*starA})`;
-      for(const[n,ls]of CONST){const ks=[...new Set(ls.flat())],pts=ks.map(q=>SP[q]);if(pts.some(p=>p.alt<0))continue;const mx=pts.reduce((a,p)=>a+p.x,0)/pts.length,my=Math.max(...pts.map(p=>p.y))+14;if(mx<-20||mx>Wc+20||Math.max(...pts.map(p=>p.x))-Math.min(...pts.map(p=>p.x))>Wc*.8)continue;x.fillText(n,mx,my);addLB(n,mx,my,'center',11);}
-      x.fillStyle=`rgba(255,225,160,${.75*starA})`;x.font='600 10px "Zen Maru Gothic",sans-serif';for(const[n,ks]of ASTERISM){const pts=ks.map(q=>SP[q]);if(pts.some(p=>p.alt<3))continue;const mx=pts.reduce((a,p)=>a+p.x,0)/3,my=pts.reduce((a,p)=>a+p.y,0)/3;if(mx<0||mx>Wc||Math.max(...pts.map(p=>p.x))-Math.min(...pts.map(p=>p.x))>Wc*.9)continue;x.fillText(n,mx,my);addLB(n,mx,my,'center',10);}
+      // 星座名：星座の星の重心（見えている星だけ）。大きな星座でも名前が星座から離れないようにする
+      for(const[n,ls]of CONST){const ks=[...new Set(ls.flat())],all=ks.map(q=>SP[q]),pts=all.filter(p=>p.alt>0);if(pts.length<Math.max(2,all.length/2))continue;if(Math.max(...pts.map(p=>p.x))-Math.min(...pts.map(p=>p.x))>Wc*1.6)continue;
+        const cx=pts.reduce((a,p)=>a+p.x,0)/pts.length,cy=pts.reduce((a,p)=>a+p.y,0)/pts.length;if(cx<-20||cx>Wc+20)continue;CN.push({n,cx,cy,y0:Math.min(...pts.map(p=>p.y)),y1:Math.max(...pts.map(p=>p.y))});}
+      for(const[n,ks]of ASTERISM){const pts=ks.map(q=>SP[q]);if(pts.some(p=>p.alt<3))continue;if(Math.max(...pts.map(p=>p.x))-Math.min(...pts.map(p=>p.x))>Wc*.9)continue;AN.push({n,cx:pts.reduce((a,p)=>a+p.x,0)/3,cy:pts.reduce((a,p)=>a+p.y,0)/3});}
 }
     for(const key in SP){const p=SP[key],s=p.s;if(p.alt<0||Math.abs(p.d)>SKYV.fov/2+3||s[2]>magLim+.5)continue;const r=Math.max(.6,(5.4-s[2])*.55),tw=.72+.28*Math.sin(t*(1.6+(key.charCodeAt(0)%7)*.3)+key.length*7),col=STARCOL[s[3]]||'#fff';
       if(s[2]<2.2){const rg=x.createRadialGradient(p.x,p.y,0,p.x,p.y,r*5);rg.addColorStop(0,col);rg.addColorStop(.2,col.replace('#','#'));rg.addColorStop(1,'rgba(255,255,255,0)');x.globalAlpha=starA*.32*tw;x.fillStyle=rg;x.beginPath();x.arc(p.x,p.y,r*5,0,TAU);x.fill();}
       x.globalAlpha=starA*tw;x.fillStyle=col;x.beginPath();x.arc(p.x,p.y,r,0,TAU);x.fill();
       if(s[2]<1.2){x.globalAlpha=starA*tw*.55;x.strokeStyle=col;x.lineWidth=.6;x.beginPath();x.moveTo(p.x-r*5,p.y);x.lineTo(p.x+r*5,p.y);x.moveTo(p.x,p.y-r*5);x.lineTo(p.x,p.y+r*5);x.stroke();}
-      if(s[4]&&SKYV.lines&&p.alt>1){x.globalAlpha=starA*.85;x.fillStyle='rgba(255,240,200,.9)';x.font='10px "Zen Maru Gothic",sans-serif';x.textAlign='left';x.fillText(s[4],p.x+r+4,p.y-r-2);addLB(s[4],p.x+r+4,p.y-r-2,'left',10);}}
-    x.globalAlpha=1;}
+      if(s[4]&&SKYV.lines&&p.alt>1)SN.push({t:s[4],x:p.x,y:p.y,r});}
+    x.globalAlpha=1;
+    // 名前の配置：星の名前 → 星群（夏の大三角など）→ 星座名の順に、ほかの文字と重ならない場所を選んで描く（置けなければ省く）
+    if(SN.length||CN.length||AN.length){const yTop=SKYV.sat?60:28;
+      const place=(tx,font,fs,cands,fill)=>{x.font=font;const w=x.measureText(tx).width;
+        for(const[cx,cy,al]of cands){const r={x:al==='center'?cx-w/2:al==='right'?cx-w:cx,y:cy-fs,w,h:fs+3};
+          if(r.x<2||r.x+r.w>Wc-2||r.y<yTop||r.y+r.h>hy-3||LB.some(q=>hitLB(r,q)))continue;
+          LB.push(r);x.textAlign=al;x.lineWidth=3;x.strokeStyle='rgba(0,0,0,.45)';x.strokeText(tx,cx,cy);x.fillStyle=fill;x.fillText(tx,cx,cy);return true;}return false;};
+      for(const o of SN)place(o.t,'10px "Zen Maru Gothic",sans-serif',10,[[o.x+o.r+4,o.y-o.r-2,'left'],[o.x+o.r+4,o.y+o.r+11,'left'],[o.x-o.r-4,o.y-o.r-2,'right'],[o.x-o.r-4,o.y+o.r+11,'right']],`rgba(255,240,200,${.8*starA})`);
+      for(const o of AN)place(o.n,'600 10px "Zen Maru Gothic",sans-serif',10,[[o.cx,o.cy+4,'center'],[o.cx,o.cy+18,'center'],[o.cx,o.cy-10,'center']],`rgba(255,225,160,${.8*starA})`);
+      for(const o of CN)place(o.n,'600 10.5px "Zen Maru Gothic",sans-serif',11,[[o.cx,o.cy+4,'center'],[o.cx,o.cy+18,'center'],[o.cx,o.cy-10,'center'],[o.cx,o.y1+15,'center'],[o.cx,o.y0-7,'center'],[o.cx-36,o.cy+4,'center'],[o.cx+36,o.cy+4,'center']],`rgba(195,215,255,${.85*starA})`);}
+    }
   // sun
   if(sa>-3&&!wet){const p=P(sk.sun.az,sa);if(Math.abs(p.d)<SKYV.fov/2+40)sunDraw(x,p.x,p.y,11,cld?.55:1,sa<14?(14-Math.max(0,sa))/14:0,t);}
   // moon (drawn a few times larger than life so its face can be seen)
@@ -2059,14 +2071,14 @@ function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
     moonDraw(x,p.x,p.y,r,{frac:sk.frac,limb:sk.q-sk.chi,rot:sk.q,day,glow:day?.3:1,alpha:(day?Math.max(.35,.85-sa/60):1)*(cld?.75:1),ts:192,pxs:dpr});SKYV.moonP={x:p.x,y:p.y,r};}}
   if(SKYV.sat)SAT.draw(x,P,Wc,hy,kk,sk,sa,LB);
   // 天の川の名前（星座線オンのとき）：空の決まった場所（銀河の帯の上、20°おき）に付け、ほかの文字と重ならない候補を選ぶ
-  if(SKYV.lines&&starA>.15){x.font='600 11px "Zen Maru Gothic",sans-serif';const tw=x.measureText('天の川').width,hit=(a,b)=>a.x<b.x+b.w+4&&b.x<a.x+a.w+4&&a.y<b.y+b.h+3&&b.y<a.y+a.h+3;let best=null;
-    MWAY.band.forEach((b,i)=>{if(i%5)return;const h=starHor(b[0],b[1],sk);if(h.alt<8||h.alt>75)return;const p=P(h.az,h.alt);if(Math.abs(p.d)>SKYV.fov/2-10||p.x<tw/2+8||p.x>Wc-tw/2-8||p.y<44||p.y>hy-30)return;
+  if(SKYV.lines&&starA>.15){x.font='600 11px "Zen Maru Gothic",sans-serif';const tw=x.measureText('天の川').width,hit=hitLB;let best=null;
+    MWAY.band.forEach((b,i)=>{if(i%5)return;const h=starHor(b[0],b[1],sk);if(h.alt<8||h.alt>75)return;const p=P(h.az,h.alt);if(Math.abs(p.d)>SKYV.fov/2-10||p.x<tw/2+8||p.x>Wc-tw/2-8||p.y<(SKYV.sat?72:40)||p.y>hy-30)return;
       const r={x:p.x-tw/2,y:p.y-11,w:tw,h:14};if(LB.some(q=>hit(r,q)))return;const sc=b[2]*10+i/1000;if(!best||sc>best.sc)best={sc,p};});
     if(best){x.textAlign='center';x.lineWidth=3;x.strokeStyle='rgba(0,0,0,.45)';x.strokeText('天の川',best.p.x,best.p.y);x.fillStyle=`rgba(255,214,70,${.9*starA})`;x.fillText('天の川',best.p.x,best.p.y);}}
   // 周囲の地形（取れたときだけ。取れなければ地平線は描かない）
   drawTerrain(x,Wc,Hc,hy,kk,sc2,sa);
   // compass on the horizon
-  x.font='600 11px "Zen Maru Gothic",sans-serif';x.textAlign='center';for(let a=0;a<360;a+=45){const p=P(a,0);if(p.x<-20||p.x>Wc+20)continue;x.fillStyle=a===0?'rgba(255,140,120,.95)':'rgba(255,255,255,.85)';x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=3;x.strokeText(AZ_JP[a/22.5],p.x,hy-14);x.fillText(AZ_JP[a/22.5],p.x,hy-14);addLB(AZ_JP[a/22.5],p.x,hy-14,'center',11);x.fillRect(p.x-.5,hy-9,1,5);}
+  x.font='600 11px "Zen Maru Gothic",sans-serif';x.textAlign='center';for(let a=0;a<360;a+=45){const p=P(a,0);if(p.x<-20||p.x>Wc+20)continue;x.fillStyle=a===0?'rgba(255,140,120,.95)':'rgba(255,255,255,.85)';x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=3;x.strokeText(AZ_JP[a/22.5],p.x,hy+16);x.fillText(AZ_JP[a/22.5],p.x,hy+16);x.fillRect(p.x-.5,hy,1,4);}
   ov.querySelector('#svDir').textContent=`${azName(SKYV.A0)}の空を見ています`;
   if(SKYV.zoom)skyvZoom(x,Wc,Hc,sk,t);}
 function skyvZoom(x,Wc,Hc,sk,t){x.fillStyle='rgba(2,3,10,.95)';x.fillRect(0,0,Wc,Hc);
