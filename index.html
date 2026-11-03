@@ -192,6 +192,7 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 #skyv .sv-bar button{font-size:clamp(7.5px,2.4vw,10.5px)}#skyv .sv-bar button b{display:inline;font-size:1em;font-weight:700;letter-spacing:0}#skyv .sv-bar button i{display:inline;font-style:normal;font-size:1em;font-weight:500;opacity:.85;letter-spacing:0}
 #skyv .sv-sat{position:absolute;top:30px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);box-sizing:border-box;padding:4px 12px;border-radius:12px;background:rgba(20,24,40,.75);border:1px solid rgba(255,210,90,.6);color:#ffe9a8;font-size:clamp(10px,2.9vw,11.5px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 #skyv:fullscreen .sv-sat,#skyv.pseudo-full .sv-sat,#skyv:-webkit-full-screen .sv-sat{top:calc(env(safe-area-inset-top,0px) + 68px)}
+#skyv .sv-toast{position:absolute;left:50%;bottom:calc(14% + 34px);transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);box-sizing:border-box;padding:7px 12px;border-radius:10px;background:rgba(20,24,40,.85);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:12px;line-height:1.45;text-align:center;white-space:pre-line;pointer-events:none;z-index:2}
 #skyv .sv-bar button[aria-pressed=true]{background:rgba(96,140,255,.75);border-color:rgba(190,210,255,.95);box-shadow:0 0 0 1px rgba(190,210,255,.35) inset}
 #skyv .sv-hint{position:absolute;bottom:46px;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:11px;text-shadow:0 1px 3px #000;transition:opacity 1.2s;pointer-events:none}
 footer{max-width:928px;margin:0 auto 30px;padding:12px 16px;font-size:.75rem;color:var(--muted);background:color-mix(in srgb,var(--card) 85%,transparent);border-radius:14px}
@@ -357,9 +358,10 @@ footer{background:none!important}
       <canvas id="skyc"></canvas>
       <div class="sv-top" id="svDir"></div>
       <div class="sv-sat" id="svSatInfo" hidden></div>
+      <div class="sv-toast" id="svToast" hidden></div>
       <div class="sv-hint" id="svHint">左右にドラッグで見回す・月をタップで拡大</div>
       <div class="sv-bar">
-        <button type="button" id="svMoon"><b>月へ</b></button>
+        <button type="button" id="svMoon"><b>月の方角</b></button>
         <button type="button" id="svNight" aria-pressed="false"><b>夜</b></button>
         <button type="button" id="svLines" aria-pressed="true"><b>星座</b><i>ON</i></button>
         <button type="button" id="svSat" aria-pressed="false"><b>人工衛星</b><i>OFF</i></button>
@@ -370,7 +372,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-03 20:22</div>
+  <div style="margin-bottom:4px">版：2026-11-03 21:09</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2206,7 +2208,15 @@ function setupUI(){
   new MutationObserver(syncFull).observe(ov, { attributes:true, attributeFilter:['class'] });
   const onFs = () => { syncFull(); if(!isFull() && OVS.some(o => o.name === 'sky')) ovForget('sky'); };
   document.addEventListener('fullscreenchange', onFs); document.addEventListener('webkitfullscreenchange', onFs);
-  ov.querySelector('#svMoon').onclick = () => { const sk = skyNow(); SKYV.A0 = sk.moon.az; };
+  // 月の方角へ向ける。地平線の下にあるときは、その旨と次の月の出を知らせる
+  let toastT = 0;
+  const toast = msg => { const el = ov.querySelector('#svToast'); el.textContent = msg; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { el.hidden = true; }, 4000); };
+  ov.querySelector('#svMoon').onclick = () => { const sk = skyNow(); SKYV.A0 = sk.moon.az;
+    if(sk.moon.alt > 0){ ov.querySelector('#svToast').hidden = true; return; }
+    const { lat, lon } = astroLoc(), jd0 = asJd(now()); let rise = null;
+    for(let m=5; m<=36*60; m+=5){ if(moonAltAt(jd0 + m/1440, lat, lon) + .3 >= 0){ rise = new Date(now().getTime() + m*60e3); break; } }
+    const day = rise ? (rise.getDate() !== now().getDate() ? "明日 " : "") : "";
+    toast(`月は地平線の下で見えません（${azName(sk.moon.az)}）` + (rise ? `\n次の月の出 ${day}${rise.getHours()}:${pad(rise.getMinutes())}ごろ` : "")); };
   ov.querySelector('#svNight').onclick = e => { SKYV.night = !SKYV.night; e.currentTarget.setAttribute('aria-pressed', SKYV.night); infoAt = 0; updateInfo(); SAT.info(true); };
   const h = ov.querySelector('#svHint'); setTimeout(() => { h.style.opacity = '0'; }, 6000);
   new IntersectionObserver(es => { visible = es[0].isIntersecting; loop(); }, { threshold:0.05 }).observe(ov);
