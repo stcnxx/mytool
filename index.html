@@ -153,6 +153,10 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 .wc:hover{background:var(--chip)}
 #wcSheet{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 16px 16px;text-shadow:none}
 #wcSheet[hidden]{display:none}
+#locSheet{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 16px 16px;text-shadow:none}#locSheet[hidden]{display:none}
+.locs-cur{font-weight:700}.locs-h{font-size:.72rem;color:#64748b;padding:8px 6px 2px;cursor:default!important;border-bottom:none!important}.locs-h:hover{background:none!important}
+.chosen-tag{display:inline-block;font-size:.7rem;padding:1px 6px;border-radius:6px;border:1px solid var(--line);color:var(--muted);vertical-align:1px}
+.locbtn{flex:none;margin-left:auto;padding:2px 10px;font-size:.78rem;border-radius:8px;white-space:nowrap;align-self:center}
 .wcs-box{background:#fff;color:#0f172a;border-radius:14px;width:100%;max-width:420px;padding:14px;max-height:80vh;display:flex;flex-direction:column}
 .wcs-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .wcs-box input{font:inherit;border:1px solid #cbd5e1;border-radius:10px;padding:8px 10px;width:100%}
@@ -274,7 +278,7 @@ footer{background:none!important}
 <div id="bg"><canvas id="bgc"></canvas></div>
 <header>
   <h1 class="sr-only">My Spot</h1>
-  <div class="place-row"><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.6 2 4 5.5 4 9.9c0 5.6 6.6 11.3 7.3 11.9.4.3 1 .3 1.4 0 .7-.6 7.3-6.3 7.3-11.9C20 5.5 16.4 2 12 2z" fill="#e53935"/><circle cx="12" cy="9.8" r="3.2" fill="#fff"/></svg><div id="place">位置情報を取得しています…</div></div>
+  <div class="place-row"><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.6 2 4 5.5 4 9.9c0 5.6 6.6 11.3 7.3 11.9.4.3 1 .3 1.4 0 .7-.6 7.3-6.3 7.3-11.9C20 5.5 16.4 2 12 2z" fill="#e53935"/><circle cx="12" cy="9.8" r="3.2" fill="#fff"/></svg><div id="place">位置情報を取得しています…</div><button id="locBtn" class="locbtn" type="button" aria-label="表示する場所を選ぶ">変更</button></div>
   <div class="btn-row"><button id="mapBtn" class="mapbtn">🗺️ 地図を見る</button><button id="rainBtn" class="mapbtn">☔ 雨雲を見る</button><button id="refresh" class="mapbtn refresh">⟳ 更新</button></div>
 </header>
 
@@ -284,6 +288,14 @@ footer{background:none!important}
   <div id="rainBar" hidden><button id="rainPlay" aria-label="再生">▶</button><input type="range" id="rainSlider" min="0" max="0" value="0"><span id="rainTime"></span></div>
   <div id="rainLegend" hidden><span>弱</span><i style="background:#f2f2ff"></i><i style="background:#a0d2ff"></i><i style="background:#218cff"></i><i style="background:#0041ff"></i><i style="background:#fff500"></i><i style="background:#ff9900"></i><i style="background:#ff2800"></i><i style="background:#b40068"></i><span>強</span><span class="muted" style="margin-left:6px">1〜80mm/h以上</span></div>
   <div id="mapNote" class="muted"></div>
+</div>
+<div id="locSheet" class="pick-sheet" hidden>
+  <div class="wcs-box">
+    <div class="wcs-head"><b>表示する場所</b><button id="locsClose">閉じる</button></div>
+    <input type="search" id="locsInput" placeholder="地名で検索（例：札幌、那覇、Paris）" autocomplete="off">
+    <ul id="locsList" class="wcs-list"></ul>
+    <div class="muted" style="font-size:.72rem;margin-top:6px">検索：<a href="https://open-meteo.com/en/docs/geocoding-api" target="_blank" rel="noopener">Open-Meteo Geocoding</a></div>
+  </div>
 </div>
 <div id="wcSheet" hidden>
   <div class="wcs-box">
@@ -372,7 +384,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-03 21:46</div>
+  <div style="margin-bottom:4px">版：2026-11-04 07:52</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -553,6 +565,47 @@ function demoTrains(){
 }
 
 /* ---------- 位置情報 ---------- */
+// 表示する場所：既定は現在地（GPS）。選んだ場所はこの画面を開いている間だけ使い、最近の場所に残す
+function useChosen(c){
+  S.chosen = c; S.lat = c.lat; S.lon = c.lon; S.acc = null; S.gpsAlt = null; S.demoLoc = false; S.locMsg = "";
+  const rec = (load("recentLocs") || []).filter(r => !(Math.abs(r.lat - c.lat) < 1e-3 && Math.abs(r.lon - c.lon) < 1e-3));
+  rec.unshift(c); store("recentLocs", rec.slice(0, 6));
+  loadAll();
+}
+function useHere(){ S.chosen = null; S.locMsg = ""; locate(); }
+function locOpen(){ ovOpen("loc", () => { $("#locSheet").hidden = true; }); $("#locSheet").hidden = false; $("#locsInput").value = ""; locSearch(""); setTimeout(() => $("#locsInput").focus(), 50); }
+function locClose(){ ovClose("loc"); }
+function locItem(c, sub){ return `<li data-loc="${esc(JSON.stringify(c))}"><span>${esc(c.name)} <span class="sub">${esc(sub || c.sub || "")}</span></span>${S.chosen && Math.abs(S.chosen.lat - c.lat) < 1e-3 && Math.abs(S.chosen.lon - c.lon) < 1e-3 ? '<span class="tm">表示中</span>' : ""}</li>`; }
+let LOC_T = 0;
+function locBase(){
+  const rec = load("recentLocs") || [];
+  return `<li data-here="1" class="locs-cur"><span>${ICO.gps}現在地（GPS）</span>${!S.chosen ? '<span class="tm">表示中</span>' : ""}</li>`
+    + (rec.length ? '<li class="locs-h">最近選んだ場所</li>' + rec.map(c => locItem(c)).join("") : "");
+}
+function locSearch(q){
+  q = q.trim(); const list = $("#locsList");
+  clearTimeout(LOC_T);
+  if(q.length < 1){ list.innerHTML = locBase(); return; }
+  list.innerHTML = '<li class="locs-h">検索中…</li>';
+  LOC_T = setTimeout(async () => {
+    try{
+      const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=12&language=ja&format=json`);
+      if($("#locsInput").value.trim() !== q) return;
+      const rs = (j.results || []).map(r => ({ name:r.name, sub:[r.admin1, r.country].filter(Boolean).join("・"), lat:+(+r.latitude).toFixed(4), lon:+(+r.longitude).toFixed(4) }));
+      list.innerHTML = rs.length ? rs.map(c => locItem(c)).join("") : '<li class="locs-h">見つかりませんでした</li>';
+    }catch(e){ list.innerHTML = '<li class="locs-h">検索できませんでした（通信を確認してください）</li>'; }
+  }, 350);
+}
+function locSetup(){
+  $("#locBtn").onclick = locOpen; $("#locsClose").onclick = locClose;
+  $("#locSheet").addEventListener("click", e => { if(e.target.id === "locSheet") locClose(); });
+  $("#locsInput").addEventListener("input", e => locSearch(e.target.value));
+  $("#locsList").addEventListener("click", e => {
+    const li = e.target.closest("li[data-loc],li[data-here]"); if(!li) return;
+    locClose();
+    if(li.dataset.here) useHere(); else useChosen(JSON.parse(li.dataset.loc));
+  });
+}
 function locate(){
   if(FORCE_DEMO){ useDemoLoc("デモモード"); return; }
   $("#place").innerHTML = '<span class="spin">⏳</span> 位置情報を取得しています…';
@@ -632,7 +685,8 @@ function applyDemoPlace(){ Object.assign(S, { abroad:false, country:"日本", co
 
 function renderPlace(placeDemo){
   const name = (S.abroad ? [S.country, S.prefName, S.city, S.town] : [S.prefName, S.city, S.town]).filter((v, i, a) => v && a.indexOf(v) === i).join(" ");
-  let html = `${esc(name || "現在地")}${S.elevText ? ` <b>標高 ${esc(S.elevText)}</b>` : ""} <span class="muted">(${S.lat}, ${S.lon}${S.acc ? ` ±${S.acc}m` : ""})</span>`;
+  let html = `${esc(name || (S.chosen && S.chosen.name) || "現在地")}${S.elevText ? ` <b>標高 ${esc(S.elevText)}</b>` : ""} <span class="muted">(${S.lat}, ${S.lon}${S.acc ? ` ±${S.acc}m` : ""})</span>`;
+  if(S.chosen) html += ' <span class="chosen-tag">選んだ場所</span>';
   if(placeDemo || S.demoLoc) html += DEMO_TAG;
   if(S.locMsg) html += `<div class="err" style="font-size:.8rem">${esc(S.locMsg)} <button id="retryLoc" style="padding:2px 8px">再取得</button></div>`;
   $("#place").innerHTML = html;
@@ -1289,6 +1343,7 @@ const ICO = (() => {
     press: w('<path d="M4.5 16a8 8 0 1 1 15 0"/><path d="M12 13l3.5-4"/><circle cx="12" cy="13.5" r="1.3" fill="currentColor"/><path d="M6 19h12"/>'),
     face: w('<circle cx="12" cy="12" r="8.5"/><path d="M9 10h.01M15 10h.01"/><path d="M8.8 15.3h6.4"/>'),
     tc: w('<path d="M12 4.5a7.5 7.5 0 0 1 7.3 5.8"/><path d="M12 19.5a7.5 7.5 0 0 1-7.3-5.8"/><path d="M19.5 12c-2.5-1-5-1.4-7.5-1.4M4.5 12c2.5 1 5 1.4 7.5 1.4"/><circle cx="12" cy="12" r="2.6"/>'),
+    gps: w('<circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/>'),
     uv: w('<circle cx="12" cy="12" r="3.8"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>'),
     // 持ち物（モノトーン）
     fold: w('<path d="M12 2.5v2M12 4.5c2.6 4 2.9 8.2 1.6 12.5h-3.2C9.1 12.7 9.4 8.5 12 4.5Z"/><path d="M12 17v3a1.6 1.6 0 0 1-3.2 0"/><path d="M10.8 9.5h2.4"/>'),
@@ -2941,7 +2996,7 @@ async function loadAll(){
   $("#refresh").disabled = false;
 }
 
-$("#refresh").onclick = () => { S.locMsg = ""; locate(); };
+$("#refresh").onclick = () => { S.locMsg = ""; if(S.chosen) loadAll(); else locate(); };
 setInterval(() => { if(document.visibilityState === "visible" && S.lat != null) loadAll(); }, 10*60*1000);
 Sky.init();
 updateBg();
@@ -2950,7 +3005,7 @@ setupOdptUI();
 $("#mapBtn").onclick = () => openMap(); $("#rainBtn").onclick = () => openMap({ rain:true }); $("#mapClose").onclick = closeMap;
 $("#rainPlay").onclick = rainPlay; $("#rainSlider").oninput = e => { rainStop(); rainShow(+e.target.value); };
 $("#mapHere").onclick = () => { if(!MAP.map) return; MAP.map.flyTo([S.lat ?? DEMO_PLACE.lat, S.lon ?? DEMO_PLACE.lon], MAP.map.getZoom(), { duration:.6 }); };
-wcSetup(); tickClock(); setInterval(tickClock, 1000);
+wcSetup(); locSetup(); tickClock(); setInterval(tickClock, 1000);
 locate();
 </script>
 </body>
