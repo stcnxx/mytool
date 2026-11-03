@@ -369,7 +369,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-03 19:05</div>
+  <div style="margin-bottom:4px">版：2026-11-03 19:19</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -399,6 +399,10 @@ addEventListener("popstate", () => { if(OVS_SKIP > 0){ OVS_SKIP--; return; } con
 const $ = s => document.querySelector(s);
 const S = { lat:null, lon:null, acc:null, prefCode:null, prefName:null, city:null, town:"", class20:null, class10:null, office:null, demoLoc:false };
 const FORCE_DEMO = /[?&]demo\b/.test(location.search);
+// エラーは画面やコンソールに大きく出さず、静かに記録だけする（window.__errs で確認できる）
+function quiet(...a){ try{ const L = window.__errs || (window.__errs = []); if(L.length < 50) L.push(a.map(v => v && v.message ? v.message : String(v)).join(" ")); }catch(_){} }
+window.addEventListener("unhandledrejection", e => { quiet("promise", e.reason); e.preventDefault(); });
+window.addEventListener("error", e => { if(e.error){ quiet("error", e.error); e.preventDefault(); } });
 const DEMO_USED = new Set();
 
 const PREFS = ["","北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
@@ -1242,7 +1246,7 @@ function outfitBox(w){
     const pl = outfitPlan(w, 0, true);   // 気温の横はいまの服装
     const svg = k => Outfit.figure(pl.look(k)).replace("<svg ", `<svg class="${pl.extra === "umbrella" ? "umb" : ""}" `);
     return `<div class="ofit"><div class="ofit-figs">${svg("m")}${svg("f")}</div></div>`;
-  }catch(e){ console.error(e); return ""; }
+  }catch(e){ quiet(e); return ""; }
 }
 
 /* ---------- モノクロのシンプルなアイコン ---------- */
@@ -1941,7 +1945,7 @@ const SAT = (() => {
       }
       recs = LIST.filter(o => raw[o.id]).map(o => ({ ...o, s:parse(raw[o.id][0], raw[o.id][1]) }));
       state = recs.length ? "ok" : "error"; passC.at = 0;
-    }catch(e){ console.warn("衛星", e); state = "error"; }
+    }catch(e){ quiet("衛星", e); state = "error"; }
     info(true);
   }
   // ISSが次に見える通過（暗い空・衛星に日が当たっている・高度10°以上）を24時間先まで探す
@@ -2022,7 +2026,11 @@ function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
   const sk=skyNow(),k='clear',sa=SKYV.night?-90:sk.sun.alt,hy=Hc*(TERR.prof?.8:.86),kk=Wc/SKYV.fov;
   const P=(az,alt)=>{const d=((az-SKYV.A0+540)%360)-180;return{x:Wc/2+d*kk,y:hy-alt*kk,d};};
   // 描いた文字の場所（天の川の名前を重ねないため）
-  const LB=[],SN=[],CN=[],AN=[],hitLB=(a,b)=>a.x<b.x+b.w+3&&b.x<a.x+a.w+3&&a.y<b.y+b.h+2&&b.y<a.y+a.h+2;
+  const LB=[],SN=[],CN=[],AN=[],SEG=[],STP=[],hitLB=(a,b)=>a.x<b.x+b.w+3&&b.x<a.x+a.w+3&&a.y<b.y+b.h+2&&b.y<a.y+a.h+2;
+  // 文字の四角が線分と交わるか（端が中にある・辺と交差する）
+      const segHit=(r,g)=>{const X0=r.x-2,Y0=r.y-2,X1=r.x+r.w+2,Y1=r.y+r.h+2;let t0=0,t1=1;const dx=g[2]-g[0],dy=g[3]-g[1];
+        for(const[pp,qq]of[[-dx,g[0]-X0],[dx,X1-g[0]],[-dy,g[1]-Y0],[dy,Y1-g[1]]]){if(pp===0){if(qq<0)return false;}else{const u=qq/pp;if(pp<0){if(u>t1)return false;if(u>t0)t0=u;}else{if(u<t0)return false;if(u<t1)t1=u;}}}return true;};
+  const starHit=(r,own,mg=9)=>STP.some(q=>q!==own&&q.m<mg&&q.x>r.x-q.r&&q.x<r.x+r.w+q.r&&q.y>r.y-q.r&&q.y<r.y+r.h+q.r);
   {const hn=ov.querySelector('#svHint'),hb=Math.round(Hc-hy+8)+'px';if(hn&&hn.style.bottom!==hb)hn.style.bottom=hb;}
   const clr=k==='clear',cld=k==='cloudy',wet=k==='rain'||k==='thunder'||k==='snow';
   // sky
@@ -2041,28 +2049,30 @@ function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
     x.globalAlpha=1;
     const SP={};for(const key in BSTAR){const s=BSTAR[key],h=starHor(s[0],s[1],sk);SP[key]={...P(h.az,h.alt),alt:h.alt,s};}
     if(SKYV.lines&&starA>.15){x.lineWidth=1;x.strokeStyle=`rgba(150,190,255,${.38*starA})`;x.beginPath();
-      for(const[,ls]of CONST)for(const[a1,b1]of ls){const A1=SP[a1],B1=SP[b1];if(A1.alt<-3||B1.alt<-3||Math.abs(A1.d)>100||Math.abs(B1.d)>100||Math.abs(A1.x-B1.x)>Wc*.8)continue;x.moveTo(A1.x,A1.y);x.lineTo(B1.x,B1.y);}x.stroke();
-      x.setLineDash([3,4]);x.strokeStyle=`rgba(255,215,140,${.4*starA})`;x.beginPath();for(const[,ks]of ASTERISM){for(let i=0;i<3;i++){const A1=SP[ks[i]],B1=SP[ks[(i+1)%3]];if(A1.alt<0||B1.alt<0||Math.abs(A1.x-B1.x)>Wc*.9)continue;x.moveTo(A1.x,A1.y);x.lineTo(B1.x,B1.y);}}x.stroke();x.setLineDash([]);
+      for(const[,ls]of CONST)for(const[a1,b1]of ls){const A1=SP[a1],B1=SP[b1];if(A1.alt<-3||B1.alt<-3||Math.abs(A1.d)>100||Math.abs(B1.d)>100||Math.abs(A1.x-B1.x)>Wc*.8)continue;x.moveTo(A1.x,A1.y);x.lineTo(B1.x,B1.y);SEG.push([A1.x,A1.y,B1.x,B1.y]);}x.stroke();
+      x.setLineDash([3,4]);x.strokeStyle=`rgba(255,215,140,${.4*starA})`;x.beginPath();for(const[,ks]of ASTERISM){for(let i=0;i<3;i++){const A1=SP[ks[i]],B1=SP[ks[(i+1)%3]];if(A1.alt<0||B1.alt<0||Math.abs(A1.x-B1.x)>Wc*.9)continue;x.moveTo(A1.x,A1.y);x.lineTo(B1.x,B1.y);SEG.push([A1.x,A1.y,B1.x,B1.y]);}}x.stroke();x.setLineDash([]);
       // 星座名：星座の星の重心（見えている星だけ）。大きな星座でも名前が星座から離れないようにする
       for(const[n,ls]of CONST){const ks=[...new Set(ls.flat())],all=ks.map(q=>SP[q]),pts=all.filter(p=>p.alt>0);if(pts.length<Math.max(2,all.length/2))continue;if(Math.max(...pts.map(p=>p.x))-Math.min(...pts.map(p=>p.x))>Wc*1.6)continue;
-        const cx=pts.reduce((a,p)=>a+p.x,0)/pts.length,cy=pts.reduce((a,p)=>a+p.y,0)/pts.length;if(cx<-20||cx>Wc+20)continue;CN.push({n,cx,cy,y0:Math.min(...pts.map(p=>p.y)),y1:Math.max(...pts.map(p=>p.y))});}
+        const cx=pts.reduce((a,p)=>a+p.x,0)/pts.length,cy=pts.reduce((a,p)=>a+p.y,0)/pts.length;if(cx<-20||cx>Wc+20)continue;CN.push({n,cx,cy,y0:Math.min(...pts.map(p=>p.y)),y1:Math.max(...pts.map(p=>p.y)),x0:Math.min(...pts.map(p=>p.x)),x1:Math.max(...pts.map(p=>p.x))});}
       for(const[n,ks]of ASTERISM){const pts=ks.map(q=>SP[q]);if(pts.some(p=>p.alt<3))continue;if(Math.max(...pts.map(p=>p.x))-Math.min(...pts.map(p=>p.x))>Wc*.9)continue;AN.push({n,cx:pts.reduce((a,p)=>a+p.x,0)/3,cy:pts.reduce((a,p)=>a+p.y,0)/3});}
 }
     for(const key in SP){const p=SP[key],s=p.s;if(p.alt<0||Math.abs(p.d)>SKYV.fov/2+3||s[2]>magLim+.5)continue;const r=Math.max(.6,(5.4-s[2])*.55),tw=.72+.28*Math.sin(t*(1.6+(key.charCodeAt(0)%7)*.3)+key.length*7),col=STARCOL[s[3]]||'#fff';
       if(s[2]<2.2){const rg=x.createRadialGradient(p.x,p.y,0,p.x,p.y,r*5);rg.addColorStop(0,col);rg.addColorStop(.2,col.replace('#','#'));rg.addColorStop(1,'rgba(255,255,255,0)');x.globalAlpha=starA*.32*tw;x.fillStyle=rg;x.beginPath();x.arc(p.x,p.y,r*5,0,TAU);x.fill();}
-      x.globalAlpha=starA*tw;x.fillStyle=col;x.beginPath();x.arc(p.x,p.y,r,0,TAU);x.fill();
+      x.globalAlpha=starA*tw;x.fillStyle=col;x.beginPath();x.arc(p.x,p.y,r,0,TAU);x.fill();const sp={x:p.x,y:p.y,r:Math.max(2.5,r*1.6),m:s[2]};STP.push(sp);
       if(s[2]<1.2){x.globalAlpha=starA*tw*.55;x.strokeStyle=col;x.lineWidth=.6;x.beginPath();x.moveTo(p.x-r*5,p.y);x.lineTo(p.x+r*5,p.y);x.moveTo(p.x,p.y-r*5);x.lineTo(p.x,p.y+r*5);x.stroke();}
-      if(s[4]&&SKYV.lines&&p.alt>1)SN.push({t:s[4],x:p.x,y:p.y,r});}
+      if(s[4]&&SKYV.lines&&p.alt>1)SN.push({t:s[4],x:p.x,y:p.y,r,sp});}
     x.globalAlpha=1;
     // 名前の配置：星の名前 → 星群（夏の大三角など）→ 星座名の順に、ほかの文字と重ならない場所を選んで描く（置けなければ省く）
     if(SN.length||CN.length||AN.length){const yTop=SKYV.sat?60:28;
-      const place=(tx,font,fs,cands,fill)=>{x.font=font;const w=x.measureText(tx).width;
-        for(const[cx,cy,al]of cands){const r={x:al==='center'?cx-w/2:al==='right'?cx-w:cx,y:cy-fs,w,h:fs+3};
+      const place=(tx,font,fs,cands,fill,own)=>{x.font=font;const w=x.measureText(tx).width;
+        for(const lv of[0,1,2])for(const[cx,cy,al]of cands){const r={x:al==='center'?cx-w/2:al==='right'?cx-w:cx,y:cy-fs,w,h:fs+3};
           if(r.x<2||r.x+r.w>Wc-2||r.y<yTop||r.y+r.h>hy-3||LB.some(q=>hitLB(r,q)))continue;
+          // 0：星と線を避ける 1：明るい星だけ避ける 2：文字どうしだけ避ける
+          if(lv<2&&starHit(r,own,lv?2.5:9))continue;if(lv===0&&SEG.some(g=>segHit(r,g)))continue;
           LB.push(r);x.textAlign=al;x.lineWidth=3;x.strokeStyle='rgba(0,0,0,.45)';x.strokeText(tx,cx,cy);x.fillStyle=fill;x.fillText(tx,cx,cy);return true;}return false;};
-      for(const o of SN)place(o.t,'10px "Zen Maru Gothic",sans-serif',10,[[o.x+o.r+4,o.y-o.r-2,'left'],[o.x+o.r+4,o.y+o.r+11,'left'],[o.x-o.r-4,o.y-o.r-2,'right'],[o.x-o.r-4,o.y+o.r+11,'right']],`rgba(255,240,200,${.8*starA})`);
-      for(const o of AN)place(o.n,'600 10px "Zen Maru Gothic",sans-serif',10,[[o.cx,o.cy+4,'center'],[o.cx,o.cy+18,'center'],[o.cx,o.cy-10,'center']],`rgba(255,225,160,${.8*starA})`);
-      for(const o of CN)place(o.n,'600 10.5px "Zen Maru Gothic",sans-serif',11,[[o.cx,o.cy+4,'center'],[o.cx,o.cy+18,'center'],[o.cx,o.cy-10,'center'],[o.cx,o.y1+15,'center'],[o.cx,o.y0-7,'center'],[o.cx-36,o.cy+4,'center'],[o.cx+36,o.cy+4,'center']],`rgba(195,215,255,${.85*starA})`);}
+      for(const o of SN){const g=Math.max(3,o.r*1.6)+3;place(o.t,'10px "Zen Maru Gothic",sans-serif',10,[[o.x+g,o.y-g+2,'left'],[o.x+g,o.y+g+8,'left'],[o.x-g,o.y-g+2,'right'],[o.x-g,o.y+g+8,'right'],[o.x+g+2,o.y+4,'left'],[o.x-g-2,o.y+4,'right'],[o.x,o.y-g-2,'center'],[o.x,o.y+g+11,'center']],`rgba(255,240,200,${.8*starA})`,o.sp);}
+      for(const o of AN)place(o.n,'600 10px "Zen Maru Gothic",sans-serif',10,[[o.cx,o.cy+4,'center'],[o.cx,o.cy+18,'center'],[o.cx,o.cy-10,'center'],[o.cx,o.cy+32,'center'],[o.cx,o.cy-24,'center']],`rgba(255,225,160,${.8*starA})`);
+      for(const o of CN){const c=[[o.cx,o.cy+4,'center']];for(const k of[0,1,2])c.push([o.cx,o.y1+15+k*12,'center'],[o.cx,o.y0-7-k*12,'center'],[o.x1+8+k*10,o.cy+4,'left'],[o.x0-8-k*10,o.cy+4,'right']);place(o.n,'600 10.5px "Zen Maru Gothic",sans-serif',11,c,`rgba(195,215,255,${.85*starA})`);}}
     }
   // sun
   if(sa>-3&&!wet){const p=P(sk.sun.az,sa);if(Math.abs(p.d)<SKYV.fov/2+40)sunDraw(x,p.x,p.y,11,cld?.55:1,sa<14?(14-Math.max(0,sa))/14:0,t);}
@@ -2073,7 +2083,7 @@ function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
   // 天の川の名前（星座線オンのとき）：空の決まった場所（銀河の帯の上、20°おき）に付け、ほかの文字と重ならない候補を選ぶ
   if(SKYV.lines&&starA>.15){x.font='600 11px "Zen Maru Gothic",sans-serif';const tw=x.measureText('天の川').width,hit=hitLB;let best=null;
     MWAY.band.forEach((b,i)=>{if(i%5)return;const h=starHor(b[0],b[1],sk);if(h.alt<8||h.alt>75)return;const p=P(h.az,h.alt);if(Math.abs(p.d)>SKYV.fov/2-10||p.x<tw/2+8||p.x>Wc-tw/2-8||p.y<(SKYV.sat?72:40)||p.y>hy-30)return;
-      const r={x:p.x-tw/2,y:p.y-11,w:tw,h:14};if(LB.some(q=>hit(r,q)))return;const sc=b[2]*10+i/1000;if(!best||sc>best.sc)best={sc,p};});
+      const r={x:p.x-tw/2,y:p.y-11,w:tw,h:14};if(LB.some(q=>hit(r,q))||starHit(r)||SEG.some(g=>segHit(r,g)))return;const sc=b[2]*10+i/1000;if(!best||sc>best.sc)best={sc,p};});
     if(best){x.textAlign='center';x.lineWidth=3;x.strokeStyle='rgba(0,0,0,.45)';x.strokeText('天の川',best.p.x,best.p.y);x.fillStyle=`rgba(255,214,70,${.9*starA})`;x.fillText('天の川',best.p.x,best.p.y);}}
   // 周囲の地形（取れたときだけ。取れなければ地平線は描かない）
   drawTerrain(x,Wc,Hc,hy,kk,sc2,sa);
@@ -2203,7 +2213,7 @@ function setupUI(){
 }
 function loop(){
   const want = visible && document.visibilityState === 'visible';
-  if(want && !running){ running = true; const step = () => { if(!running) return; try{ skyvDraw(performance.now()/1000); updateInfo(); }catch(e){ console.error(e); } SKYV.raf = requestAnimationFrame(step); }; step(); }
+  if(want && !running){ running = true; const step = () => { if(!running) return; try{ skyvDraw(performance.now()/1000); updateInfo(); }catch(e){ quiet(e); } SKYV.raf = requestAnimationFrame(step); }; step(); }
   else if(!want && running){ running = false; cancelAnimationFrame(SKYV.raf); }
 }
 let infoAt = 0;
@@ -2350,7 +2360,7 @@ function renderMoon(){
     x.setTransform(1,0,0,1,0,0); x.clearRect(0, 0, c.width, c.height); x.setTransform(2,0,0,2,0,0);
     Sky.iconMoon(x, 23, 23, 21);
     $("#moonTxt").innerHTML = `月齢 <b>${age.toFixed(1)}</b> <span class="muted">${m.name}・光っている部分 ${Math.round(m.frac*100)}%</span>`;
-  }catch(e){ console.error(e); }
+  }catch(e){ quiet(e); }
 }
 function renderCal(d){
   const wd = d.getDay(), hol = Cal.holidayOf(d), l = Cal.lunarOf(d);
@@ -2845,7 +2855,7 @@ function bgLoop(){
   cancelAnimationFrame(BGA.raf);
   if(BGA.reduce || document.visibilityState !== "visible"){ bgFrame(performance.now()); return; }
   let prev = 0;
-  const step = t => { if(t - prev >= 33){ prev = t; try{ bgFrame(t); }catch(e){ console.error(e); } } BGA.raf = requestAnimationFrame(step); };
+  const step = t => { if(t - prev >= 33){ prev = t; try{ bgFrame(t); }catch(e){ quiet(e); } } BGA.raf = requestAnimationFrame(step); };
   BGA.raf = requestAnimationFrame(step);
 }
 function bgInit(){
