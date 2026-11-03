@@ -183,14 +183,17 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 #skyv:-webkit-full-screen .sv-top{top:calc(env(safe-area-inset-top,0px) + 44px);font-size:14px}
 /* 全画面ではスマホの戻る・ホームなどのボタン（約48px）に重ならないよう高めに置く */
 #skyv:fullscreen .sv-bar,#skyv.pseudo-full .sv-bar,#skyv:-webkit-full-screen .sv-bar{bottom:calc(max(env(safe-area-inset-bottom,0px), 56px) + 16px)}
-#skyv:fullscreen .sv-hint,#skyv.pseudo-full .sv-hint,#skyv:-webkit-full-screen .sv-hint{bottom:calc(max(env(safe-area-inset-bottom,0px), 56px) + 62px)}#skyv:-webkit-full-screen{height:100%}
+#skyv:fullscreen .sv-hint,#skyv.pseudo-full .sv-hint,#skyv:-webkit-full-screen .sv-hint{bottom:calc(max(env(safe-area-inset-bottom,0px), 56px) + 52px)}#skyv:-webkit-full-screen{height:100%}
 #skyv.pseudo-full{position:fixed;inset:0;height:100vh;height:100dvh;z-index:50}
 #skyv canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none}
 #skyv .sv-top{position:absolute;top:8px;left:0;right:0;text-align:center;color:#fff;font-size:12px;font-weight:600;letter-spacing:.06em;text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:none}
-#skyv .sv-bar{position:absolute;left:8px;right:8px;bottom:12px;display:flex;gap:6px}
-#skyv .sv-bar button{flex:1 1 0;min-width:0;white-space:nowrap;background:rgba(24,22,44,.6);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:17px;padding:7px 4px;font-size:12px;font-weight:600;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+#skyv .sv-bar{position:absolute;left:8px;right:8px;bottom:12px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+#skyv .sv-bar button{min-width:0;height:26px;margin:0;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;overflow:hidden;white-space:nowrap;line-height:1.15;background:rgba(24,22,44,.6);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:5px;padding:0 2px;font-size:12px;font-weight:600;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+#skyv .sv-bar button{font-size:clamp(7.5px,2.4vw,10.5px)}#skyv .sv-bar button b{display:inline;font-size:1em;font-weight:700;letter-spacing:0}#skyv .sv-bar button i{display:inline;font-style:normal;font-size:1em;font-weight:500;opacity:.85;letter-spacing:0}
+#skyv .sv-sat{position:absolute;top:30px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);box-sizing:border-box;padding:4px 12px;border-radius:12px;background:rgba(20,24,40,.75);border:1px solid rgba(255,210,90,.6);color:#ffe9a8;font-size:clamp(10px,2.9vw,11.5px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+#skyv:fullscreen .sv-sat,#skyv.pseudo-full .sv-sat,#skyv:-webkit-full-screen .sv-sat{top:calc(env(safe-area-inset-top,0px) + 68px)}
 #skyv .sv-bar button[aria-pressed=true]{background:rgba(96,140,255,.75);border-color:rgba(190,210,255,.95);box-shadow:0 0 0 1px rgba(190,210,255,.35) inset}
-#skyv .sv-hint{position:absolute;bottom:56px;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:11px;text-shadow:0 1px 3px #000;transition:opacity 1.2s;pointer-events:none}
+#skyv .sv-hint{position:absolute;bottom:46px;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:11px;text-shadow:0 1px 3px #000;transition:opacity 1.2s;pointer-events:none}
 footer{max-width:928px;margin:0 auto 30px;padding:12px 16px;font-size:.75rem;color:var(--muted);background:color-mix(in srgb,var(--card) 85%,transparent);border-radius:14px}
 @media (max-width:960px){footer{margin:0 16px 30px}}
 .spin{display:inline-block;animation:sp 1s linear infinite}
@@ -352,19 +355,21 @@ footer{background:none!important}
     <div id="skyv">
       <canvas id="skyc"></canvas>
       <div class="sv-top" id="svDir"></div>
+      <div class="sv-sat" id="svSatInfo" hidden></div>
       <div class="sv-hint" id="svHint">左右にドラッグで見回す・月をタップで拡大</div>
       <div class="sv-bar">
-        <button type="button" id="svMoon">月の方へ</button>
-        <button type="button" id="svNight" aria-pressed="false">夜にする</button>
-        <button type="button" id="svLines" aria-pressed="true">星座線</button>
-        <button type="button" id="svFull" aria-pressed="false">全画面</button>
+        <button type="button" id="svMoon"><b>月へ</b></button>
+        <button type="button" id="svNight" aria-pressed="false"><b>夜</b></button>
+        <button type="button" id="svLines" aria-pressed="true"><b>星座</b><i>ON</i></button>
+        <button type="button" id="svSat" aria-pressed="false"><b>人工衛星</b><i>OFF</i></button>
+        <button type="button" id="svFull" aria-pressed="false"><b>全画面</b><i>OFF</i></button>
       </div>
     </div>
   </section>
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-03 11:08</div>
+  <div style="margin-bottom:4px">版：2026-11-03 18:34</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1864,6 +1869,152 @@ function seaStrip(c,layer){const key=layer+'|'+c.join(',');if(SEA[key])return SE
   x.globalCompositeOperation='destination-out';const fd=x.createLinearGradient(0,h*.6,0,h);fd.addColorStop(0,'rgba(0,0,0,0)');fd.addColorStop(1,'rgba(0,0,0,1)');x.fillStyle=fd;x.fillRect(0,h*.6,w,h*.4);
   SEA[key]=cv2;return cv2;}
 /* --- main drawing --- */
+/* ---------- 人工衛星（ISS・天宮・ハッブル）：軌道データ(TLE)から現在地の空での位置を計算 ----------
+   軌道は TLE の平均要素に地球の扁平（J2）による永年変化と大気抵抗による加速を入れた簡易計算。
+   データが新しい（1日以内）うちは、空の上での誤差は1度未満に収まる。 */
+const SAT = (() => {
+  const LIST = [
+    { id:25544, name:"ISS", label:"ISS 国際宇宙ステーション", col:"#ffd25a", ticks:true },
+    { id:48274, name:"天宮", label:"天宮（中国の宇宙ステーション）", col:"#7fe3c4" },
+    { id:20580, name:"ハッブル", label:"ハッブル宇宙望遠鏡", col:"#c9b6ff" }
+  ];
+  // デモ表示用の仮の軌道（?demo のときだけ使う）
+  const DEMO_TLE = {
+    25544:["1 25544U 98067A   26307.37500000  .00012000 00000+0  21000-3 0  9990","2 25544  51.6380 175.0000 0005200  85.1000   0.0000 15.50120000500000"],
+    48274:["1 48274U 21035A   26307.37500000  .00020000 00000+0  21000-3 0  9990","2 48274  41.4700 301.2000 0004100  40.5000 150.3000 15.60100000500000"],
+    20580:["1 20580U 90037B   26307.37500000  .00002000 00000+0  21000-3 0  9990","2 20580  28.4700 110.6000 0002400 190.2000 220.7000 15.28500000500000"]
+  };
+  const RE = 6378.135, KE = 0.0743669161, J2 = 1.082616e-3, T2 = Math.PI*2;
+  let recs = null, state = "idle", passC = { at:0, v:null }, infoAt = 0;
+  function parse(l1, l2){
+    const yy = +l1.slice(18,20), doy = +l1.slice(20,32), Y = yy < 57 ? 2000 + yy : 1900 + yy;
+    const jdE = Date.UTC(Y,0,1)/864e5 + 2440587.5 + doy - 1, nd2 = +l1.slice(33,43) || 0;
+    const i = +l2.slice(8,16)*D2R, O = +l2.slice(17,25)*D2R, e = +("." + l2.slice(26,33).trim()), w = +l2.slice(34,42)*D2R, M = +l2.slice(43,51)*D2R, n0 = +l2.slice(52,63)*T2/1440;
+    if(!(n0 > 0) || isNaN(i)) throw new Error("TLE");
+    const ci = Math.cos(i), b = 1 - e*e, k2 = .5*J2, a1 = Math.pow(KE/n0, 2/3);
+    const d1 = 1.5*k2*(3*ci*ci - 1)/(a1*a1*Math.pow(b,1.5)), a0 = a1*(1 - d1/3 - d1*d1 - 134/81*d1*d1*d1);
+    const d0 = 1.5*k2*(3*ci*ci - 1)/(a0*a0*Math.pow(b,1.5)), n = n0/(1 + d0), a = a0/(1 - d0), f = J2/Math.pow(a*b, 2);
+    return { jdE, i, O, e, w, M, n, a, nd:nd2*T2/(1440*1440), Od:-1.5*n*f*ci, wd:.75*n*f*(5*ci*ci - 1), Md:.75*n*f*Math.sqrt(b)*(3*ci*ci - 1) };
+  }
+  // 地心の座標（km、赤道座標系）
+  function eci(s, jd){
+    const t = (jd - s.jdE)*1440, nn = s.n + 2*s.nd*t, a = s.a*Math.pow(s.n/nn, 2/3), e = s.e;
+    const M = ((s.M + (s.n + s.Md)*t + s.nd*t*t) % T2 + T2) % T2, O = s.O + s.Od*t, w = s.w + s.wd*t;
+    let E = M; for(let k=0; k<8; k++) E -= (E - e*Math.sin(E) - M)/(1 - e*Math.cos(E));
+    const xv = a*(Math.cos(E) - e), yv = a*Math.sqrt(1 - e*e)*Math.sin(E);
+    const cO = Math.cos(O), sO = Math.sin(O), cw = Math.cos(w), sw = Math.sin(w), ci = Math.cos(s.i), si = Math.sin(s.i);
+    return [((cO*cw - sO*sw*ci)*xv + (-cO*sw - sO*cw*ci)*yv)*RE, ((sO*cw + cO*sw*ci)*xv + (-sO*sw + cO*cw*ci)*yv)*RE, (sw*si*xv + cw*si*yv)*RE];
+  }
+  // 現在地から見た方位・高度と、太陽の光が当たっているか（地球の影に入っていないか）
+  function look(s, jd, lat, lon){
+    const r = eci(s, jd), th = (gmstDeg(jd) + lon)*D2R, f = lat*D2R, ee = .00669438, N = 6378.137/Math.sqrt(1 - ee*Math.sin(f)**2);
+    const q = [r[0] - N*Math.cos(f)*Math.cos(th), r[1] - N*Math.cos(f)*Math.sin(th), r[2] - N*(1 - ee)*Math.sin(f)], d = Math.hypot(q[0], q[1], q[2]);
+    const h = eqToHor(Math.atan2(q[1], q[0])*R2D, Math.asin(q[2]/d)*R2D, jd, lat, lon);
+    const se = sunEq(jd), cd = Math.cos(se.dec*D2R), u = [cd*Math.cos(se.ra*D2R), cd*Math.sin(se.ra*D2R), Math.sin(se.dec*D2R)];
+    const sp = r[0]*u[0] + r[1]*u[1] + r[2]*u[2], lit = sp > 0 || Math.hypot(r[0] - sp*u[0], r[1] - sp*u[1], r[2] - sp*u[2]) > 6371;
+    return { az:h.az, alt:h.alt, lit, d };
+  }
+  const sunAlt = (jd, lat, lon) => { const se = sunEq(jd); return eqToHor(se.ra, se.dec, jd, lat, lon).alt; };
+  async function getText(url){
+    const tries = [url, "https://corsproxy.io/?url=" + encodeURIComponent(url), "https://api.allorigins.win/raw?url=" + encodeURIComponent(url)];
+    let err; for(const u of tries){ try{ const t = await fetchText(u); if(/^1 \d{5}/m.test(t)) return t; err = new Error("TLE"); }catch(e){ err = e; } }
+    throw err;
+  }
+  async function load(){
+    if(state === "loading" || (recs && state === "ok")) return;
+    state = "loading"; info(true);
+    try{
+      let raw = null;
+      if(FORCE_DEMO) raw = DEMO_TLE;
+      else{
+        try{ const c = JSON.parse(localStorage.getItem("satTLE") || "null"); if(c && Date.now() - c.at < 12*3600e3) raw = c.tle; }catch(_){}
+        if(!raw){
+          raw = {};
+          await Promise.all(LIST.map(async o => { try{
+            const t = await getText(`https://celestrak.org/NORAD/elements/gp.php?CATNR=${o.id}&FORMAT=TLE`);
+            const L = t.split(/\r?\n/), l1 = L.find(x => x.startsWith("1 ")), l2 = L.find(x => x.startsWith("2 "));
+            if(l1 && l2) raw[o.id] = [l1.trim(), l2.trim()];
+          }catch(_){} }));
+          if(!Object.keys(raw).length) throw new Error("取得失敗");
+          try{ localStorage.setItem("satTLE", JSON.stringify({ at:Date.now(), tle:raw })); }catch(_){}
+        }
+      }
+      recs = LIST.filter(o => raw[o.id]).map(o => ({ ...o, s:parse(raw[o.id][0], raw[o.id][1]) }));
+      state = recs.length ? "ok" : "error"; passC.at = 0;
+    }catch(e){ console.warn("衛星", e); state = "error"; }
+    info(true);
+  }
+  // ISSが次に見える通過（暗い空・衛星に日が当たっている・高度10°以上）を24時間先まで探す
+  function nextPass(o, jd0, lat, lon){
+    let cur = null;
+    for(let k=0; k<=2880; k++){
+      const jd = jd0 + k*30/86400, L = look(o.s, jd, lat, lon);
+      const ok = L.alt >= 10 && L.lit && sunAlt(jd, lat, lon) < -6;
+      if(ok){ if(!cur) cur = { jd1:jd, az1:L.az, max:L.alt, now:k === 0 }; cur.jd2 = jd; cur.az2 = L.az; if(L.alt > cur.max) cur.max = L.alt; }
+      else if(cur) return cur;
+    }
+    return cur;
+  }
+  const hhmm = jd => { const d = new Date((jd - 2440587.5)*864e5); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+  const dayW = jd => { const d = new Date((jd - 2440587.5)*864e5), t = new Date(); t.setHours(0,0,0,0); const n = Math.round((new Date(d).setHours(0,0,0,0) - t)/864e5); return n === 0 ? "" : n === 1 ? "明日 " : `${d.getMonth()+1}/${d.getDate()} `; };
+  function info(force){
+    const el = document.getElementById("svSatInfo"); if(!el) return;
+    if(!SKYV.sat){ el.hidden = true; return; }
+    const tn = performance.now(); if(!force && tn - infoAt < 1000) return; infoAt = tn;
+    el.hidden = false;
+    if(state === "loading" || state === "idle"){ el.textContent = "衛星データを読み込み中…"; return; }
+    if(state === "error"){ el.textContent = "衛星データを取得できませんでした"; return; }
+    const sk = skyNow(), jd = sk.jd, { lat, lon } = sk, dark = SKYV.night || sk.sun.alt < -4;
+    const nowVis = recs.map(o => ({ o, L:look(o.s, jd, lat, lon) })).filter(v => v.L.alt > 0 && v.L.lit && dark);
+    const iss = recs.find(o => o.id === 25544);
+    if(iss && (!passC.v || tn - passC.at > 60e3)){ passC = { at:tn, v:nextPass(iss, jd, lat, lon) }; }
+    const ps = passC.v;
+    if(nowVis.length){
+      const names = nowVis.map(v => v.o.name).join("・");
+      el.textContent = ps && ps.now && nowVis.some(v => v.o.id === 25544) ? `ISS 見える！ 〜${hhmm(ps.jd2)}　${azName(ps.az1)} → ${azName(ps.az2)}　最大高度 ${Math.round(ps.max)}°` + (nowVis.length > 1 ? `　ほか ${nowVis.filter(v => v.o.id !== 25544).map(v => v.o.name).join("・")}` : "")
+        : `いま見える衛星：${names}`;
+    }else if(ps) el.textContent = `次のISS ${dayW(ps.jd1)}${hhmm(ps.jd1)}〜${hhmm(ps.jd2)}　${azName(ps.az1)} → ${azName(ps.az2)}　最大 ${Math.round(ps.max)}°`;
+    else el.textContent = "24時間以内にISSが見える通過はありません";
+  }
+  function draw(x, P, Wc, hy, kk, sk, sa){
+    if(state !== "ok") return;
+    const jd = sk.jd, { lat, lon } = sk, half = SKYV.fov/2 + 20, dark = sa < -4;
+    const inView = p => Math.abs(p.d) < half;
+    for(const o of recs){
+      const L = look(o.s, jd, lat, lon);
+      // 前後の通り道（過去3分は実線、この先6分は点線）
+      const pts = [];
+      for(let m=-3; m<=6; m+=.25){ const q = look(o.s, jd + m/1440, lat, lon); pts.push({ m, q, p:P(q.az, q.alt) }); }
+      x.save(); x.lineWidth = 1.4; x.strokeStyle = o.col; x.lineCap = "round";
+      for(const fut of [false, true]){
+        x.globalAlpha = fut ? .85 : .5; x.setLineDash(fut ? [4,4] : []); x.beginPath(); let pen = false;
+        for(let k=1; k<pts.length; k++){ const A = pts[k-1], B = pts[k];
+          if((B.m <= 0) === fut && !(fut && A.m === 0)){ pen = false; continue; }
+          if(A.q.alt < -1 || B.q.alt < -1 || !inView(A.p) || !inView(B.p) || Math.abs(A.p.x - B.p.x) > Wc*.5){ pen = false; continue; }
+          if(!pen){ x.moveTo(A.p.x, A.p.y); pen = true; } x.lineTo(B.p.x, B.p.y); }
+        x.stroke();
+      }
+      x.setLineDash([]);
+      // 1分ごとの目盛り（ISSは時刻も）
+      const m0 = Math.ceil((jd*1440) % 1 === 0 ? 1 : 1 - ((jd*1440) % 1));
+      for(let k=0; k<5; k++){ const m = m0 + k, q = look(o.s, jd + m/1440, lat, lon), p = P(q.az, q.alt);
+        if(q.alt < 0 || !inView(p)) continue; x.globalAlpha = .9; x.fillStyle = o.col; x.beginPath(); x.arc(p.x, p.y, 1.8, 0, TAU); x.fill();
+        if(o.ticks){ x.font = '700 10px "Zen Maru Gothic",sans-serif'; x.textAlign = "left"; x.lineWidth = 3; x.strokeStyle = "rgba(0,0,0,.55)"; const tx = hhmm(jd + m/1440); x.strokeText(tx, p.x + 6, p.y + 12); x.fillStyle = "#ffe9a8"; x.fillText(tx, p.x + 6, p.y + 12); } }
+      // 衛星の印
+      if(L.alt > -1){ const p = P(L.az, L.alt); if(inView(p)){
+        const vis = L.lit && dark, big = o.id === 25544;
+        x.globalAlpha = vis ? 1 : .45; x.fillStyle = o.col;
+        x.globalAlpha *= .2; x.beginPath(); x.arc(p.x, p.y, big ? 9 : 6, 0, TAU); x.fill(); x.globalAlpha = vis ? 1 : .45;
+        x.beginPath(); x.arc(p.x, p.y, big ? 3.2 : 2.3, 0, TAU); x.fill();
+        x.strokeStyle = o.col; x.lineWidth = 1.6; const g = big ? 8 : 6; x.beginPath(); x.moveTo(p.x - g, p.y); x.lineTo(p.x - g - 3, p.y); x.moveTo(p.x + g, p.y); x.lineTo(p.x + g + 3, p.y); x.stroke();
+        const lb = o.label + (!L.lit ? "（地球の影）" : !dark ? "（空が明るく見えない）" : "");
+        x.font = '700 11px "Zen Maru Gothic",sans-serif'; x.textAlign = p.x > Wc*.62 ? "right" : "left"; const lx = p.x + (x.textAlign === "right" ? -12 : 12);
+        x.lineWidth = 3; x.strokeStyle = "rgba(0,0,0,.55)"; x.strokeText(lb, lx, p.y - 8); x.fillStyle = o.col; x.fillText(lb, lx, p.y - 8); } }
+      x.restore();
+    }
+  }
+  return { load, draw, info, look, parse, recs:() => recs };
+})();
 function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
   const Wc=c.clientWidth||360,Hc=c.clientHeight||420,dpr=Math.min(2,DPR||1);if(c.width!==Math.round(Wc*dpr)||c.height!==Math.round(Hc*dpr)){c.width=Math.round(Wc*dpr);c.height=Math.round(Hc*dpr);}
   const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';
@@ -1890,7 +2041,10 @@ function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
       x.setLineDash([3,4]);x.strokeStyle=`rgba(255,215,140,${.4*starA})`;x.beginPath();for(const[,ks]of ASTERISM){for(let i=0;i<3;i++){const A1=SP[ks[i]],B1=SP[ks[(i+1)%3]];if(A1.alt<0||B1.alt<0||Math.abs(A1.x-B1.x)>Wc*.9)continue;x.moveTo(A1.x,A1.y);x.lineTo(B1.x,B1.y);}}x.stroke();x.setLineDash([]);
       x.font='600 10.5px "Zen Maru Gothic",sans-serif';x.textAlign='center';x.fillStyle=`rgba(195,215,255,${.82*starA})`;
       for(const[n,ls]of CONST){const ks=[...new Set(ls.flat())],pts=ks.map(q=>SP[q]);if(pts.some(p=>p.alt<0))continue;const mx=pts.reduce((a,p)=>a+p.x,0)/pts.length,my=Math.max(...pts.map(p=>p.y))+14;if(mx<-20||mx>Wc+20||Math.max(...pts.map(p=>p.x))-Math.min(...pts.map(p=>p.x))>Wc*.8)continue;x.fillText(n,mx,my);}
-      x.fillStyle=`rgba(255,225,160,${.75*starA})`;x.font='600 10px "Zen Maru Gothic",sans-serif';for(const[n,ks]of ASTERISM){const pts=ks.map(q=>SP[q]);if(pts.some(p=>p.alt<3))continue;const mx=pts.reduce((a,p)=>a+p.x,0)/3,my=pts.reduce((a,p)=>a+p.y,0)/3;if(mx<0||mx>Wc||Math.max(...pts.map(p=>p.x))-Math.min(...pts.map(p=>p.x))>Wc*.9)continue;x.fillText(n,mx,my);}}
+      x.fillStyle=`rgba(255,225,160,${.75*starA})`;x.font='600 10px "Zen Maru Gothic",sans-serif';for(const[n,ks]of ASTERISM){const pts=ks.map(q=>SP[q]);if(pts.some(p=>p.alt<3))continue;const mx=pts.reduce((a,p)=>a+p.x,0)/3,my=pts.reduce((a,p)=>a+p.y,0)/3;if(mx<0||mx>Wc||Math.max(...pts.map(p=>p.x))-Math.min(...pts.map(p=>p.x))>Wc*.9)continue;x.fillText(n,mx,my);}
+      // 天の川の名前：画面内で見えている帯のうち、いちばん濃いところに表示
+      {let best=null;for(const b of MWAY.band){const h=starHor(b[0],b[1],sk);if(h.alt<8||h.alt>75)continue;const p=P(h.az,h.alt);if(Math.abs(p.d)>SKYV.fov/2-12||p.x<40||p.x>Wc-40||p.y<30||p.y>hy-30)continue;const sc=b[2]-Math.abs(p.d)/(SKYV.fov*2);if(!best||sc>best.sc)best={sc,p};}
+       if(best){x.font='600 11px "Zen Maru Gothic",sans-serif';x.textAlign='center';x.fillStyle=`rgba(255,214,70,${.9*starA})`;x.fillText('天の川',best.p.x,best.p.y);}}}
     for(const key in SP){const p=SP[key],s=p.s;if(p.alt<0||Math.abs(p.d)>SKYV.fov/2+3||s[2]>magLim+.5)continue;const r=Math.max(.6,(5.4-s[2])*.55),tw=.72+.28*Math.sin(t*(1.6+(key.charCodeAt(0)%7)*.3)+key.length*7),col=STARCOL[s[3]]||'#fff';
       if(s[2]<2.2){const rg=x.createRadialGradient(p.x,p.y,0,p.x,p.y,r*5);rg.addColorStop(0,col);rg.addColorStop(.2,col.replace('#','#'));rg.addColorStop(1,'rgba(255,255,255,0)');x.globalAlpha=starA*.32*tw;x.fillStyle=rg;x.beginPath();x.arc(p.x,p.y,r*5,0,TAU);x.fill();}
       x.globalAlpha=starA*tw;x.fillStyle=col;x.beginPath();x.arc(p.x,p.y,r,0,TAU);x.fill();
@@ -1902,6 +2056,7 @@ function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
   // moon (drawn a few times larger than life so its face can be seen)
   SKYV.moonP=null;if(sk.moon.alt>-3&&!wet){const p=P(sk.moon.az,sk.moon.alt);if(Math.abs(p.d)<SKYV.fov/2+30){const day=sa>-4,r=16;
     moonDraw(x,p.x,p.y,r,{frac:sk.frac,limb:sk.q-sk.chi,rot:sk.q,day,glow:day?.3:1,alpha:(day?Math.max(.35,.85-sa/60):1)*(cld?.75:1),ts:192,pxs:dpr});SKYV.moonP={x:p.x,y:p.y,r};}}
+  if(SKYV.sat)SAT.draw(x,P,Wc,hy,kk,sk,sa);
   // 周囲の地形（取れたときだけ。取れなければ地平線は描かない）
   drawTerrain(x,Wc,Hc,hy,kk,sc2,sa);
   // compass on the horizon
@@ -2000,7 +2155,13 @@ function setupUI(){
     if(SKYV.zoom){ ovClose('moon'); return; }
     const m = SKYV.moonP; if(m && Math.hypot(x-m.x, y-m.y) < m.r + 26){ SKYV.zoom = true; SKYV.zoomReady = false; ovOpen('moon', () => { SKYV.zoom = false; }); } });
   c.addEventListener('pointercancel', () => { SKYV.ptr = null; });
-  ov.querySelector('#svLines').onclick = e => { SKYV.lines = !SKYV.lines; e.currentTarget.setAttribute('aria-pressed', SKYV.lines); };
+  // トグルボタン：押した状態は青、ON/OFFの文字だけ切り替える（ボタンの大きさと位置は変えない）
+  const setTog = (b, on) => { b.setAttribute('aria-pressed', on); const i = b.querySelector('i'); if(i) i.textContent = on ? 'ON' : 'OFF'; };
+  ov.querySelector('#svLines').onclick = e => { SKYV.lines = !SKYV.lines; setTog(e.currentTarget, SKYV.lines); };
+  const sb = ov.querySelector('#svSat');
+  sb.onclick = () => { SKYV.sat = !SKYV.sat; setTog(sb, SKYV.sat); try{ localStorage.setItem('skySat', SKYV.sat ? '1' : '0'); }catch(_){} if(SKYV.sat) SAT.load(); SAT.info(true); };
+  try{ SKYV.sat = localStorage.getItem('skySat') === '1'; }catch(_){}
+  setTog(sb, SKYV.sat); if(SKYV.sat) SAT.load();
   const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement || ov.classList.contains('pseudo-full'));
   const exitFull = () => { const d = document; if(d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d); ov.classList.remove('pseudo-full'); };
   ov.querySelector('#svFull').onclick = () => {
@@ -2012,12 +2173,12 @@ function setupUI(){
   // システム側（戻るボタン・Escキー）で全画面が解除されたときは、積んだ履歴だけ取り除く
   // 全画面ボタンの色（押した状態）を、実際の全画面の状態に合わせる
   const fb = ov.querySelector('#svFull');
-  const syncFull = () => fb.setAttribute('aria-pressed', isFull());
+  const syncFull = () => setTog(fb, isFull());
   new MutationObserver(syncFull).observe(ov, { attributes:true, attributeFilter:['class'] });
   const onFs = () => { syncFull(); if(!isFull() && OVS.some(o => o.name === 'sky')) ovForget('sky'); };
   document.addEventListener('fullscreenchange', onFs); document.addEventListener('webkitfullscreenchange', onFs);
   ov.querySelector('#svMoon').onclick = () => { const sk = skyNow(); SKYV.A0 = sk.moon.az; };
-  ov.querySelector('#svNight').onclick = e => { SKYV.night = !SKYV.night; e.currentTarget.setAttribute('aria-pressed', SKYV.night); e.currentTarget.textContent = SKYV.night ? '実際の空' : '夜にする'; infoAt = 0; updateInfo(); };
+  ov.querySelector('#svNight').onclick = e => { SKYV.night = !SKYV.night; e.currentTarget.setAttribute('aria-pressed', SKYV.night); infoAt = 0; updateInfo(); SAT.info(true); };
   const h = ov.querySelector('#svHint'); setTimeout(() => { h.style.opacity = '0'; }, 6000);
   new IntersectionObserver(es => { visible = es[0].isIntersecting; loop(); }, { threshold:0.05 }).observe(ov);
   document.addEventListener('visibilitychange', loop);
@@ -2034,6 +2195,7 @@ function updateInfo(){
   ov.querySelector('#svDir').textContent = `${azName(SKYV.A0)}の空を見ています`;
   const age = moonAge(now()), sa = SKYV.night ? -90 : sk.sun.alt;
   const phase = SKYV.night ? '夜にした表示（太陽なし）' : sa > 0 ? '昼' : sa > -6 ? '薄明' : sa > -18 ? (new Date().getHours() < 12 ? '明け方' : '夕暮れ') : '夜';
+  SAT.info();
   document.getElementById('skyInfo').textContent =
     `${phase}・月齢${age.toFixed(1)}（${moonName(age)}）・月は${sk.moon.alt > 0 ? `${azName(sk.moon.az)}の空 高さ${Math.round(sk.moon.alt)}°` : '地平線の下'}`;
 }
