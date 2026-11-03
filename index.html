@@ -261,6 +261,7 @@ footer{background:none!important}
 .tc-tag{display:inline-block;font-size:.68rem;font-weight:700;color:#fff;background:#b45309;border-radius:999px;padding:0 7px;margin-left:3px;text-shadow:none;vertical-align:2px}
 .sub-h{font-weight:700;color:var(--title);margin:14px 0 0;font-size:.95rem}
 .stat .k+.v+.k{margin-top:1px}
+.di-stat{padding:4px 10px}.di-stat .v{display:flex;align-items:baseline;gap:8px;line-height:1.25}.di-note{font-size:.78rem;font-weight:600;color:var(--muted)}
 #skyCard{padding:4px 2px}
 #skyCard h2{padding:0}
 #skyInfo{padding:0 0 8px}
@@ -369,7 +370,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-03 19:19</div>
+  <div style="margin-bottom:4px">版：2026-11-03 19:58</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -665,14 +666,14 @@ function renderWeather(w, demo){
       </div>
       <div class="nw-sun">${ICO.sun}日の出 <b>${hm(d.sunrise[0])}</b>　日の入 <b>${hm(d.sunset[0])}</b></div>
     </div>
-    <div class="sub-h"><span id="fashH">服装の目安</span></div>
-    <div id="fashion"></div>
     <div class="grid">
       <div class="stat"><div class="k">${ICO.wind}風</div><div class="v"><span class="arrow" style="transform:rotate(${c.wind_direction_10m}deg)">↓</span> ${dirName(c.wind_direction_10m)} ${c.wind_speed_10m} m/s</div></div>
       <div class="stat"><div class="k">${ICO.gust}最大瞬間風速</div><div class="v">${c.wind_gusts_10m} m/s</div></div>
       <div class="stat"><div class="k">${ICO.press}気圧(海面)</div><div class="v">${Math.round(c.pressure_msl)} hPa</div></div>
       ${extraStats(c, d)}
     </div>
+    <div class="sub-h"><span id="fashH">服装の目安</span></div>
+    <div id="fashion"></div>
     <div class="sub-h">大気の状態</div>
     <div class="grid" id="aqGrid"><div class="muted">読み込み中…</div></div>`;
   loadAir(demo);
@@ -1327,7 +1328,7 @@ function uvLabel(v){ return v < 3 ? "弱い" : v < 6 ? "中程度" : v < 8 ? "�
 const stat = (k, v, note) => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${note ? `<div class="k">${note}</div>` : ""}</div>`;
 function extraStats(c, d){
   const di = discomfort(c.temperature_2m, c.relative_humidity_2m);
-  let h = stat(ICO.face + "不快指数", Math.round(di), diLabel(di));
+  let h = `<div class="stat di-stat"><div class="k">${ICO.face}不快指数</div><div class="v">${Math.round(di)}<span class="di-note">${diLabel(di)}</span></div></div>`;
   if(c.uv_index != null) h += uvArt(+c.uv_index, d.uv_index_max ? d.uv_index_max[0] : null);
   return h;
 }
