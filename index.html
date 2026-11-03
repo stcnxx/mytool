@@ -235,7 +235,7 @@ footer{background:none!important}
 .slot{padding:8px 0}
 .slot-h{font-weight:700;color:var(--title);font-size:.95rem}.slot-h span{font-weight:normal;font-size:.72rem;color:var(--muted)}
 .slot-row{display:flex;align-items:flex-start;gap:6px}.slot-txt{flex:1;min-width:0}
-.slot-lv{font-weight:700;font-size:1.05rem;text-shadow:none;display:flex;align-items:center}.slot-lv .ico{width:1.4em;height:1.4em;margin-right:5px;opacity:.9}.slot-pts .ico,.half-key .ico{width:1.3em;height:1.3em;margin:0 2px 0 0;vertical-align:-.3em}
+.slot-lv{font-weight:700;font-size:1.05rem;text-shadow:none;display:flex;align-items:center}.slot-lv .clo{width:1.9em;height:1.9em;margin-right:6px;opacity:1}.slot-pts .ico,.half-key .ico{width:1.3em;height:1.3em;margin:0 2px 0 0;vertical-align:-.3em}
 .slot-desc{font-size:.82rem;line-height:1.45;margin-top:2px}
 .slot-pts{list-style:none;margin:4px 0 0;padding:0;font-size:.8rem;line-height:1.5}.slot-pts li{display:flex;gap:4px}.slot-pts span{flex:none;text-shadow:none}
 .slot.big .ofit-figs svg{height:118px}.slot.big .ofit-figs svg.umb{height:128px}
@@ -363,7 +363,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-03 10:30</div>
+  <div style="margin-bottom:4px">版：2026-11-03 09:33</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -858,14 +858,14 @@ function slotHTML(w, sl, big){
   const pts = `<ul class="slot-pts">${pl.pts.map(([e, t]) => `<li><span>${ic(e)}</span>${esc(t)}</li>`).join("")}</ul>`;
   if(big) return `<div class="slot big">
     <div class="slot-h">${sl.title}<span>（${sl.range}）</span></div>
-    <div class="slot-row"><div class="slot-txt"><div class="slot-lv">${ICO[pl.lv[1]]}${pl.lv[2]}</div>
+    <div class="slot-row"><div class="slot-txt"><div class="slot-lv">${CLO[pl.lv[1]]}${pl.lv[2]}</div>
       <div class="slot-desc"><b>男</b> ${esc(pl.desc.m)}<br><b>女</b> ${esc(pl.desc.f)}</div>${pts}</div>${figs}</div></div>`;
   // 小さい枠：人形の右に体感・雨・UV、下に服装と脱ぎ着などのポイント
   const main = new Set(["🌡️","☂️","🌂","🌤️","🧴"]), extra = pl.pts.filter(([e]) => !main.has(e));
   return `<div class="slot half">
     <div class="slot-h">${sl.title}<span>（${sl.range}）</span></div>
     <div class="half-top">${figs}<ul class="half-key">${pl.short.map(([e, a, b]) => `<li><span>${ic(e)}</span><div><b>${esc(a)}</b>${b ? `<i>${esc(b)}</i>` : ""}</div></li>`).join("")}</ul></div>
-    <div class="slot-lv">${ICO[pl.lv[1]]}${pl.lv[2]}</div>
+    <div class="slot-lv">${CLO[pl.lv[1]]}${pl.lv[2]}</div>
     <div class="slot-desc"><b>男</b> ${esc(pl.desc.m)}<br><b>女</b> ${esc(pl.desc.f)}</div>
     ${extra.length ? `<ul class="slot-pts">${extra.map(([e, t]) => `<li><span>${ic(e)}</span>${esc(t)}</li>`).join("")}</ul>` : ""}</div>`;
 }
@@ -1241,7 +1241,7 @@ function outfitBox(w){
 
 /* ---------- モノクロのシンプルなアイコン ---------- */
 const ICO = (() => {
-  const w = b => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${b}</svg>`;
+  const w = b => `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${b}</svg>`;
   return {
     temp: w('<path d="M10 4a2 2 0 0 1 4 0v9.5a4 4 0 1 1-4 0Z"/><path d="M12 9v7"/><circle cx="12" cy="17" r="1.2" fill="currentColor"/>'),
     hum: w('<path d="M12 3.5s-6 6.6-6 10.7a6 6 0 0 0 12 0C18 10.1 12 3.5 12 3.5Z"/><path d="M9 14.5a3 3 0 0 0 3 3"/>'),
@@ -1254,21 +1254,27 @@ const ICO = (() => {
     face: w('<circle cx="12" cy="12" r="8.5"/><path d="M9 10h.01M15 10h.01"/><path d="M8.8 15.3h6.4"/>'),
     tc: w('<path d="M12 4.5a7.5 7.5 0 0 1 7.3 5.8"/><path d="M12 19.5a7.5 7.5 0 0 1-7.3-5.8"/><path d="M19.5 12c-2.5-1-5-1.4-7.5-1.4M4.5 12c2.5 1 5 1.4 7.5 1.4"/><circle cx="12" cy="12" r="2.6"/>'),
     uv: w('<circle cx="12" cy="12" r="3.8"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M5.6 18.4 7 17M17 7l1.4-1.4"/>'),
-    // 服装・持ち物（モノトーン）
-    tank: w('<path d="M8.5 3c0 3 1.5 4.5 3.5 4.5S15.5 6 15.5 3l2 1c-.6 2.6 0 4.6 1 6V21h-13V10c1-1.4 1.6-3.4 1-6Z"/>'),
-    tee: w('<path d="M9 3.5c1.5 1.8 4.5 1.8 6 0l5.5 3-2 4-2-1V21h-9V9.5l-2 1-2-4Z"/>'),
-    shirt: w('<path d="M8.5 3.5 12 6l3.5-2.5L19 5.5l2 12.5-2.8.6L17 10.5V21H7V10.5l-1.2 8.1L3 18 5 5.5Z"/><path d="M8.5 3.5 10 7.5 12 6l2 1.5 1.5-4M12 7.5V21"/>'),
-    cardi: w('<path d="M8.5 3.5 12 4l3.5-.5L19 5.5l2 12.5-2.8.6L17 10.5V21H7V10.5l-1.2 8.1L3 18 5 5.5Z"/><path d="M9 4l3 8.5L15 4M12 12.5V21M7 19h10"/><circle cx="12" cy="14.6" r=".6" fill="currentColor"/><circle cx="12" cy="17" r=".6" fill="currentColor"/>'),
-    jacket: w('<path d="M8.5 3.5 12 4.2l3.5-.7 4 2L21 16h-2.7l-.8-5.5V19h-11v-8.5L5.7 16H3L4.5 5.5Z"/><path d="M8.5 3.5l2 5.5L9 10l3 4.5 3-4.5-1.5-1 2-5.5"/><circle cx="12" cy="16.6" r=".7" fill="currentColor"/><path d="M7.9 14.6h2.2M13.9 14.6h2.2"/>'),
-    coat: w('<path d="M8.5 3.5 12 4l3.5-.5L19 5.5l1.8 12-2.8.5-.9-6 1 10H5.9l1-10-.9 6-2.8-.5L5 5.5Z"/><path d="M9 4l3 4 3-4M12 8v14"/><circle cx="10.3" cy="11" r=".6" fill="currentColor"/><circle cx="13.7" cy="11" r=".6" fill="currentColor"/><circle cx="10.3" cy="15" r=".6" fill="currentColor"/><circle cx="13.7" cy="15" r=".6" fill="currentColor"/>'),
-    scarf: w('<path d="M5 7.5c3.5 2.6 10.5 2.6 14 0M5 7.5c3.5-2.6 10.5-2.6 14 0"/><path d="M13.5 9.4l1 10.6h3.5L16.4 9"/><path d="M15 20v1.5M16.5 20v1.5M18 20v1.5"/>'),
-    down: w('<path d="M8.5 3.5Q12 5.5 15.5 3.5L19.5 6Q21.3 12 20.3 19H17.5v2h-11v-2H3.7Q2.7 12 4.5 6Z"/><path d="M6.6 9.5h10.8M6.4 13.5h11.2M6.5 17.5h11M12 5v16"/>'),
+    // 持ち物（モノトーン）
     fold: w('<path d="M12 2.5v2M12 4.5c2.6 4 2.9 8.2 1.6 12.5h-3.2C9.1 12.7 9.4 8.5 12 4.5Z"/><path d="M12 17v3a1.6 1.6 0 0 1-3.2 0"/><path d="M10.8 9.5h2.4"/>'),
     clear: w('<circle cx="8.5" cy="8.5" r="3"/><path d="M8.5 2.8v1M2.8 8.5h1M4.5 4.5l.7.7M12.5 4.5l-.7.7"/><path d="M8.5 20a3.5 3.5 0 1 1 .8-6.9A5 5 0 0 1 18.5 13.6 3.2 3.2 0 0 1 18 20Z"/>'),
     screen: w('<path d="M10 2.5h4v3h-4Z"/><path d="M9 5.5h6l1 3V21H8V8.5Z"/><path d="M10.5 13h3M12 11.5v3"/>'),
     swap: w('<path d="M4 8.5h14l-3-3M20 15.5H6l3 3"/>'),
     boot: w('<path d="M7.5 3h5v9l5.5 3.2a2 2 0 0 1 1 1.7V20.5H6.5Z"/><path d="M6.5 17.5h12.5"/>'),
     cap: w('<path d="M4.5 15.5a7.5 7.5 0 0 1 15 0Z"/><path d="M19.5 15.5h2.5M12 8v7.5"/><circle cx="12" cy="7.6" r=".7" fill="currentColor"/>')
+  };
+})();
+// 服装レベルのアイコン（カラー）
+const CLO = (() => {
+  const c = (fill, line, body, det = "") => `<svg class="ico clo" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g fill="${fill}" stroke="${line}" stroke-width="1.1">${body}</g><g fill="none" stroke="${line}" stroke-width="1">${det}</g></svg>`;
+  return {
+    tank: c("#38bdf8", "#0c6b96", '<path d="M8.5 3c0 3 1.5 4.5 3.5 4.5S15.5 6 15.5 3l2 1c-.6 2.6 0 4.6 1 6V21h-13V10c1-1.4 1.6-3.4 1-6Z"/>'),
+    tee: c("#f87171", "#a53a3a", '<path d="M9 3.5c1.5 1.8 4.5 1.8 6 0l5.5 3-2 4-2-1V21h-9V9.5l-2 1-2-4Z"/>', '<path d="M9.4 4.2c1.5 1.4 3.7 1.4 5.2 0"/>'),
+    shirt: c("#93c5fd", "#3b6ea8", '<path d="M8.5 3.5 12 6l3.5-2.5L19 5.5l2 12.5-2.8.6L17 10.5V21H7V10.5l-1.2 8.1L3 18 5 5.5Z"/><path d="M8.5 3.5 10 7.5 12 6Z M15.5 3.5 14 7.5 12 6Z" fill="#fff"/>', '<path d="M12 6.5V21"/><circle cx="12" cy="10" r=".5" fill="#3b6ea8"/><circle cx="12" cy="13.5" r=".5" fill="#3b6ea8"/><circle cx="12" cy="17" r=".5" fill="#3b6ea8"/>'),
+    cardi: c("#e0b04a", "#8a6416", '<path d="M8.5 3.5 12 4l3.5-.5L19 5.5l2 12.5-2.8.6L17 10.5V21H7V10.5l-1.2 8.1L3 18 5 5.5Z"/><path d="M9 4l3 8.5L15 4Z" fill="#fff"/>', '<path d="M12 12.5V21M7 19h10M3.4 16.6l2.6.4M20.6 16.6l-2.6.4"/><circle cx="12" cy="14.6" r=".55" fill="#8a6416"/><circle cx="12" cy="17" r=".55" fill="#8a6416"/>'),
+    jacket: c("#3f5a8a", "#1f2f4f", '<path d="M8.5 3.5 12 4.2l3.5-.7 4 2L21 16h-2.7l-.8-5.5V19h-11v-8.5L5.7 16H3L4.5 5.5Z"/><path d="M10 6.5 12 13.5 14 6.5Z" fill="#f8fafc"/><path d="M8.5 3.5l2 5.5L9 10l3 4.5-2-8Z M15.5 3.5l-2 5.5L15 10l-3 4.5 2-8Z" fill="#2c4470"/>', '<circle cx="12" cy="16.6" r=".6" fill="#f8fafc" stroke="none"/><path d="M7.8 14.6h2.4M13.8 14.6h2.4"/>'),
+    coat: c("#b48a5a", "#6b4c2a", '<path d="M8.5 3.5 12 4l3.5-.5L19 5.5l1.8 12-2.8.5-.9-6 1 10H5.9l1-10-.9 6-2.8-.5L5 5.5Z"/><path d="M9 4l3 4 3-4Z" fill="#9c7448"/>', '<path d="M12 8v14M8 13.2h8"/><circle cx="10.3" cy="10.5" r=".55" fill="#4a321a"/><circle cx="13.7" cy="10.5" r=".55" fill="#4a321a"/><circle cx="10.3" cy="16" r=".55" fill="#4a321a"/><circle cx="13.7" cy="16" r=".55" fill="#4a321a"/>'),
+    scarf: c("#dc2626", "#7f1515", '<path d="M4.5 7.5c3.5-3 11.5-3 15 0-3.5 3-11.5 3-15 0Z"/><path d="M13.3 9.3l1.2 10.7h3.6L16.6 8.8Z"/>', '<path d="M7 6.3c3 1.6 7 1.6 10 0M15.2 11.5l2 .1M15.5 15l2 .1M14.6 20v1.6M16.3 20v1.6M18 20v1.6"/>'),
+    down: c("#2f8f83", "#16544c", '<path d="M8.5 3.5Q12 5.5 15.5 3.5L19.5 6Q21.3 12 20.3 19H17.5v2h-11v-2H3.7Q2.7 12 4.5 6Z"/>', '<path d="M6.4 9.5h11.2M6.2 13.5h11.6M6.4 17.5h11.2M12 5v16"/>')
   };
 })();
 // 服装欄の絵文字 → モノトーンアイコン
@@ -2118,7 +2124,7 @@ function tickClock(){
 const WC_CITIES = [["ニューヨーク","America/New_York"],["ロンドン","Europe/London"],["パリ","Europe/Paris"],["ロサンゼルス","America/Los_Angeles"],["ホノルル","Pacific/Honolulu"],["シドニー","Australia/Sydney"],["ソウル","Asia/Seoul"],["上海","Asia/Shanghai"],["シンガポール","Asia/Singapore"],["バンコク","Asia/Bangkok"],["ドバイ","Asia/Dubai"],["ベルリン","Europe/Berlin"],["サンパウロ","America/Sao_Paulo"],["UTC","UTC"]];
 let WC = [["ニューヨーク","America/New_York"],["ロンドン","Europe/London"]];
 try{ const v = JSON.parse(localStorage.getItem("wclocks")); if(Array.isArray(v) && v.length === 2) WC = v; }catch(_){}
-const PIN_S = '<svg viewBox="0 0 24 30" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 2C6.6 2 2.5 6.1 2.5 11.3 2.5 18.4 11 26.6 11.4 27c.3.3.9.3 1.2 0 .4-.4 8.9-8.6 8.9-15.7C21.5 6.1 17.4 2 12 2z"/><circle cx="12" cy="11" r="3.4"/></svg>';
+const PIN_S = '<svg viewBox="0 0 24 30" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2C6.6 2 2.5 6.1 2.5 11.3 2.5 18.4 11 26.6 11.4 27c.3.3.9.3 1.2 0 .4-.4 8.9-8.6 8.9-15.7C21.5 6.1 17.4 2 12 2z"/><circle cx="12" cy="11" r="3.4"/></svg>';
 function wcParts(tz, d){
   const f = new Intl.DateTimeFormat("ja-JP", { timeZone:tz, month:"numeric", day:"numeric", weekday:"short", hour:"2-digit", minute:"2-digit", hourCycle:"h23" });
   const o = {}; for(const p of f.formatToParts(d)) o[p.type] = p.value;
