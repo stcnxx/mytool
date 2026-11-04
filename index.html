@@ -375,7 +375,8 @@ footer{background:none!important}
 
   <section class="card wide">
     <h2><span id="trainH">鉄道運行情報</span> <small id="trainTime"></small></h2>
-    <div id="trains"><span class="muted">読み込み中…</span></div>
+    <div id="trains"><span class="muted">運行情報を確認しています…</span></div>
+    <div class="tr-sec" id="trainAdd"><a class="tr-ln tr-add" href="#" data-tradd="1" style="max-width:260px">＋ 常に表示する路線を選ぶ</a></div>
   </section>
 
 
@@ -400,7 +401,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-04 20:30</div>
+  <div style="margin-bottom:4px">版：2026-11-04 20:37</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1755,7 +1756,8 @@ async function loadToei(){
 let LAST_TRAINS = null;
 const TR_ADD_BTN = `<div class="tr-sec"><a class="tr-ln tr-add" href="#" data-tradd="1" style="max-width:260px">＋ 常に表示する路線を選ぶ</a></div>`;
 // 首都圏（1都3県）にいるか
-const inCapital = () => /東京|神奈川|埼玉|千葉/.test(S.prefName || "");
+// 地名がまだ分からないときは座標（1都3県のおおよその範囲）で判断
+const inCapital = () => S.prefName ? /東京|神奈川|埼玉|千葉/.test(S.prefName) : (S.lat > 34.9 && S.lat < 36.3 && S.lon > 138.9 && S.lon < 140.9 && !(S.lon < 139.15 && S.lat > 35.9));
 // 首都圏の対象：東京メトロ全線・都営全線・ゆりかもめなど・JR東日本の首都圏の路線
 const CAP_OTHERS = [["U","#1f6fb8","ゆりかもめ","ゆりかもめ","ゆりかもめ"],["R","#00418e","りんかい線","東京臨海高速鉄道","りんかい"],["MO","#0b5cad","東京モノレール","東京モノレール","モノレール|羽田"],["NT","#e85298","日暮里・舎人ライナー","都営","日暮里|舎人"],["SA","#e85298","都電荒川線","都営","荒川|さくらトラム"]];
 async function loadTrains(){
@@ -1763,7 +1765,6 @@ async function loadTrains(){
   if(!inJapan()){ markDemo("train", "#trainH", false); return; }
   const cap = inCapital();
   // データが届く前から「常に表示する路線を選ぶ」ボタンは出しておく
-  if(!LAST_TRAINS) $("#trains").innerHTML = '<div class="muted" style="font-size:.85rem">運行情報を確認しています…</div>' + TR_ADD_BTN;
   if(FORCE_DEMO){   // デモ：サンプルの遅れ
     const t = Math.floor(Date.now()/1000);
     LAST_TRAINS = { demo:true, at:new Date(), near:["JR山手線","JR京浜東北線","東京メトロ丸ノ内線"], delay:[{ name:"東西線", company:"東京メトロ", lastupdate_gmt:t }, { name:"中央線快速電車", company:"JR東日本", lastupdate_gmt:t }, { name:"小田原線", company:"小田急電鉄", lastupdate_gmt:t }],
@@ -1839,7 +1840,6 @@ function renderTrains(){
     for(const v of bad) if(v.s.text) html += `<div class="tr-txt">${esc(v.o.n)}：${esc(v.s.text)}</div>`;
   }
   html += "</div>";
-  html += TR_ADD_BTN;
   const scope = cap ? "東京メトロ全線・都営全線・ゆりかもめ・りんかい線・東京モノレール・JR東日本の首都圏の路線"
     : (T.near && T.near.length ? `表示中の場所の近く（約5km）の駅を通る路線（${T.near.length}路線）と、${area}の鉄道会社の遅れ` : `${area}の鉄道会社`);
   html += `<div class="tr-note">対象：${esc(scope)}。<br>${TR_WARN.replace('class="tr-wi"', 'width="12" height="12" style="vertical-align:-1px"')} 遅れの情報は<a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>（非公式。反映に数分〜10分ほどかかります）`
@@ -1883,7 +1883,7 @@ function jrSetup(){
     jrSyncAll(); save();
   });
   // 「常に表示する路線を選ぶ」：前回の表示を出しているときも押せるように、欄全体で受ける
-  $("#trains").addEventListener("click", e => { const a = e.target.closest("[data-tradd]"); if(!a) return; e.preventDefault(); jrOpen(); });
+  document.addEventListener("click", e => { const a = e.target.closest("[data-tradd]"); if(!a) return; e.preventDefault(); jrOpen(); });
   $("#jrsClose").onclick = () => ovClose("jr");
   $("#jrSheet").addEventListener("click", e => { if(e.target.id === "jrSheet") ovClose("jr"); });
 }
