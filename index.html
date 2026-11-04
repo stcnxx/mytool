@@ -120,7 +120,8 @@ td.d{text-align:left}
 .okline{color:var(--ok);font-weight:600}
 .line-delay{display:flex;justify-content:space-between;gap:8px}
 #jrSheet{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 16px 16px;text-shadow:none}#jrSheet[hidden]{display:none}
-.jrs-list li{justify-content:flex-start!important;align-items:center}.jrs-list label{display:flex;align-items:center;gap:6px;width:100%;cursor:pointer}.jrs-co{background:#f1f5f9;font-weight:700;margin-top:6px;border-radius:8px;border-bottom:none!important}.jrs-co .sub{font-weight:400;margin-left:4px}.jrs-ln{padding-left:22px!important}.jrs-list input{width:18px!important;height:18px;padding:0!important;margin:0 6px 0 0;flex:none}#jrSheet .muted{color:#64748b}
+.jrs-list{overflow:auto;margin-top:6px;flex:1;min-height:0}.jrs-list label{display:flex;align-items:center;gap:6px;width:100%;cursor:pointer;padding:7px 6px}.jrs-list .sub{color:#64748b;font-size:.78rem;font-weight:400;margin-left:4px}
+.jrs-rg{border-bottom:1px solid #e2e8f0}.jrs-rg>summary{font-weight:800;padding:10px 4px;cursor:pointer;color:#0f2a5c}.jrs-co{background:#f1f5f9;font-weight:700;margin-top:4px;border-radius:8px}.jrs-ln{padding-left:22px;border-bottom:1px solid #f1f5f9}.jrs-list input{width:18px!important;height:18px;padding:0!important;margin:0 6px 0 0;flex:none}#jrSheet .muted{color:#64748b}
 .tr-sec{margin-top:10px}.tr-sec:first-child{margin-top:2px}.tr-h{font-size:.82rem;font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:6px}.tr-h a{margin-left:auto;font-weight:500;font-size:.74rem}
 .tr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.tr-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.tr-grid.one{grid-template-columns:1fr}
 a.tr-ln{display:flex;align-items:center;gap:5px;min-width:0;padding:6px 7px;border-radius:8px;background:var(--card);border:1px solid var(--line);color:var(--text);text-decoration:none;font-size:.8rem;font-weight:600;white-space:nowrap;letter-spacing:-.02em;text-shadow:none}
@@ -315,7 +316,7 @@ footer{background:none!important}
   <div class="wcs-box">
     <div class="wcs-head"><b id="jrsTitle">よく使うJRの路線</b><button id="jrsClose">完了</button></div>
     <div class="muted" style="font-size:.75rem;margin-bottom:4px">チェックした路線は、遅れがなくても常にボタンで表示します（ほかの路線は遅れたときだけ出ます）</div>
-    <ul id="jrsList" class="wcs-list jrs-list"></ul>
+    <div id="jrsList" class="jrs-list"></div>
   </div>
 </div>
 <div id="wcSheet" hidden>
@@ -401,7 +402,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-04 20:37</div>
+  <div style="margin-bottom:4px">版：2026-11-04 20:47</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1806,15 +1807,105 @@ function trMatch(x, o){
   return core.length >= 2 && ln.includes(core) && (ln.includes(xc.slice(0, 2)) || core.length >= 3);
 }
 function trStatus(o){
-  const T = LAST_TRAINS || {}, list = T.delay || [];
+  if(!LAST_TRAINS) return { bad:false, st:"確認中", text:"" };
+  const T = LAST_TRAINS, list = T.delay || [];
   if(o.toei && T.toei && T.toei[o.toei]){ const t = T.toei[o.toei]; return { bad:!t.normal, st:t.normal ? "平常運転" : t.status, text:t.normal ? "" : t.text }; }
   const bad = list.some(x => trMatch(x, o));
   return { bad, st:bad ? "遅れあり" : (T.delay ? "" : "—"), text:"" };
 }
+// 全国の路線（「常に表示する路線」の選択肢）。地域 → 会社 → 路線。会社：[表示名, 遅延データの会社名の照合, 記号, 色, 路線…]
+const NAT_RAIL = [
+  ["首都圏", [
+    ["私鉄・東急", "東急", "TK", "#e60012", ["東横線","田園都市線","目黒線","大井町線","池上線","東急多摩川線","世田谷線","こどもの国線"]],
+    ["小田急", "小田急", "OH", "#2288cc", ["小田原線","江ノ島線","多摩線"]],
+    ["京王", "京王", "KO", "#dd0077", ["京王線","井の頭線","相模原線","高尾線"]],
+    ["西武", "西武", "SI", "#1e50a2", ["池袋線","新宿線","拝島線","国分寺線","多摩湖線","西武有楽町線","狭山線","多摩川線"]],
+    ["東武", "東武", "TJ", "#0f6cc3", ["東上線","スカイツリーライン|伊勢崎線","アーバンパークライン|野田線","日光線","亀戸線","大師線"]],
+    ["京急", "京急|京浜急行", "KK", "#e8334a", ["本線","空港線","久里浜線","逗子線","大師線"]],
+    ["京成", "京成", "KS", "#1d3d8f", ["本線","押上線","成田スカイアクセス","千葉線","千原線","金町線"]],
+    ["相鉄", "相鉄|相模鉄道", "SO", "#1d4a9c", ["本線","いずみ野線","新横浜線"]],
+    ["つくばエクスプレス", "首都圏新都市|つくば", "TX", "#ec1c24", ["つくばエクスプレス"]],
+    ["横浜市営地下鉄", "横浜市", "YM", "#0e7ec3", ["ブルーライン","グリーンライン"]],
+    ["そのほか", "横浜高速|埼玉高速|東葉|北総|多摩都市|江ノ島|江ノ電|湘南モノレール|横浜シーサイド|埼玉新都市|流鉄|芝山|舞浜", "●", "#6b7280", ["みなとみらい線","埼玉高速鉄道線","東葉高速線","北総線","多摩モノレール","江ノ電","湘南モノレール","シーサイドライン","ニューシャトル"]]
+  ]],
+  ["北海道", [
+    ["JR北海道", "JR北海道", "", "", "@北海道"],
+    ["札幌市営地下鉄", "札幌市", "SP", "#00a3d9", ["南北線","東西線","東豊線","札幌市電"]],
+    ["そのほか", "函館|道南いさりび", "●", "#6b7280", ["函館市電","道南いさりび鉄道"]]
+  ]],
+  ["東北", [
+    ["JR東日本（東北）", "JR東日本", "", "", "@東北"],
+    ["仙台市地下鉄", "仙台市", "SD", "#0a9a4a", ["南北線","東西線"]],
+    ["そのほか", "青い森|IGR|三陸|阿武隈|福島交通|会津|山形鉄道|由利|弘南|津軽|秋田内陸", "●", "#6b7280", ["青い森鉄道","IGRいわて銀河鉄道","三陸鉄道","阿武隈急行","福島交通","会津鉄道"]]
+  ]],
+  ["関東（首都圏の外）", [
+    ["JR東日本（北関東）", "JR東日本", "JR", "#6b7280", ["水戸線","両毛線","日光線","烏山線","吾妻線","上越線","水郡線"]],
+    ["そのほか", "関東鉄道|上毛|上信|富士急|宇都宮ライト|ひたちなか|鹿島臨海|真岡|わたらせ", "●", "#6b7280", ["関東鉄道常総線","上毛電気鉄道","上信電鉄","富士急行線","宇都宮ライトレール","ひたちなか海浜鉄道"]]
+  ]],
+  ["北陸・信越", [
+    ["JR（北陸・信越）", "JR東日本|JR西日本", "", "", "@北陸・信越"],
+    ["そのほか", "トキめき|トキ鉄|あいの風|IRいしかわ|ハピライン|富山地方|北陸鉄道|えちぜん|福井鉄道|しなの鉄道|長野電鉄|アルピコ|万葉", "●", "#6b7280", ["えちごトキめき鉄道","あいの風とやま鉄道","IRいしかわ鉄道","ハピラインふくい","富山地方鉄道","北陸鉄道","えちぜん鉄道","福井鉄道","しなの鉄道","長野電鉄","アルピコ交通"]]
+  ]],
+  ["東海", [
+    ["JR東海", "JR東海", "", "", "@東海"],
+    ["名鉄", "名鉄|名古屋鉄道", "NH", "#e3211c", ["名古屋本線","犬山線","常滑線","空港線","瀬戸線","河和線","豊田線","三河線","各務原線","津島線","西尾線","知多新線","広見線","尾西線"]],
+    ["名古屋市営地下鉄", "名古屋市", "NG", "#f9a51b", ["東山線","名城線","名港線","鶴舞線","桜通線","上飯田線"]],
+    ["近鉄（東海）", "近鉄|近畿日本", "KT", "#d6001c", ["名古屋線","山田線","鳥羽線","湯の山線"]],
+    ["そのほか", "あおなみ|リニモ|東部丘陵|静岡鉄道|遠州|伊豆急|伊豆箱根|三岐|養老|豊橋|長良川|樽見|明知|天竜|大井川|岳南", "●", "#6b7280", ["あおなみ線","リニモ","静岡鉄道","遠州鉄道","伊豆急行線","伊豆箱根鉄道","三岐鉄道","養老鉄道","豊橋鉄道"]]
+  ]],
+  ["近畿", [
+    ["JR西日本（近畿）", "JR西日本", "", "", "@近畿"],
+    ["大阪メトロ", "大阪メトロ|大阪市高速|Osaka Metro|大阪市交通", "OM", "#e5171f", ["御堂筋線","谷町線","四つ橋線","中央線","千日前線","堺筋線","長堀鶴見緑地線","今里筋線","ニュートラム|南港ポートタウン"]],
+    ["阪急", "阪急", "HK", "#6b1c22", ["神戸線","宝塚線","京都線","千里線","今津線","箕面線","伊丹線","甲陽線","嵐山線"]],
+    ["阪神", "阪神", "HS", "#004ea2", ["本線","なんば線","武庫川線"]],
+    ["京阪", "京阪", "KH", "#0b3c8c", ["本線","中之島線","鴨東線","交野線","宇治線","石山坂本線","京津線"]],
+    ["近鉄", "近鉄|近畿日本", "KT", "#d6001c", ["奈良線","大阪線","京都線","南大阪線","橿原線","けいはんな線","天理線","生駒線","信貴線","長野線","吉野線"]],
+    ["南海", "南海", "NK", "#f26522", ["南海本線|南海線","高野線","空港線","和歌山港線","加太線","高師浜線","泉北線"]],
+    ["京都市営地下鉄", "京都市", "KY", "#00a650", ["烏丸線","東西線"]],
+    ["神戸市営地下鉄", "神戸市", "KB", "#00a33e", ["西神・山手線|西神山手","海岸線","北神線"]],
+    ["そのほか", "北大阪急行|大阪モノレール|モノレール|神戸新交通|ポートライナー|六甲ライナー|山陽電|神戸電鉄|叡山|嵐電|京福|能勢|水間|紀州|和歌山電|信楽|近江鉄道|北条|嵯峨野", "●", "#6b7280", ["北大阪急行","大阪モノレール","ポートライナー","六甲ライナー","山陽電鉄","神戸電鉄","叡山電鉄","嵐電","能勢電鉄","近江鉄道"]]
+  ]],
+  ["中国", [
+    ["JR西日本（中国）", "JR西日本", "", "", "@中国"],
+    ["そのほか", "広島電鉄|広電|アストラム|広島高速|岡山電気|一畑|井原|智頭|若桜|錦川|水島", "●", "#6b7280", ["広島電鉄","アストラムライン","岡山電気軌道","一畑電車","井原鉄道","智頭急行"]]
+  ]],
+  ["四国", [
+    ["JR四国", "JR四国", "", "", "@四国"],
+    ["そのほか", "ことでん|高松琴平|伊予鉄|とさでん|土佐|阿佐海岸", "●", "#6b7280", ["琴平線","長尾線","志度線","伊予鉄道","とさでん交通","土佐くろしお鉄道"]]
+  ]],
+  ["九州・沖縄", [
+    ["JR九州", "JR九州", "", "", "@九州・沖縄"],
+    ["福岡市地下鉄", "福岡市", "FK", "#f39800", ["空港線","箱崎線","七隈線"]],
+    ["西鉄", "西鉄|西日本鉄道", "NN", "#e40012", ["天神大牟田線","貝塚線","太宰府線","甘木線"]],
+    ["そのほか", "北九州|筑豊|平成筑豊|甘木鉄道|松浦|島原|熊本|肥薩|くま川|長崎電気|鹿児島市|ゆいレール|沖縄都市", "●", "#6b7280", ["北九州モノレール","筑豊電気鉄道","熊本市電","熊本電鉄","長崎電気軌道","鹿児島市電","ゆいレール"]]
+  ]]
+];
+// 全国の選択肢（地域順：首都圏 → 北海道から南へ）
+function trNational(){
+  const out = [], add = (rg, g, o) => { if(!out.some(x => x.id === o.id)) out.push({ ...o, rg, g }); };
+  const cap = "首都圏", jrAny = /^(JR|ＪＲ)/;
+  // 首都圏：東京メトロ・都営・新交通・JR東日本（首都圏）は自動の対象と同じ内容
+  for(const [c, col, n, slug] of METRO_LINES) add(cap, "東京メトロ", { id:"東京メトロ|" + n, co:"東京メトロ", n, code:c, col, href:METRO_LINK(slug), re:new RegExp(n.replace(/線$/, "")), coRe:/東京メトロ|東京地下鉄/ });
+  for(const [c, col, n, id] of TOEI_LINES) add(cap, "都営", { id:"都営|" + n, co:"都営", n, code:c, col, href:TOEI_LINK, re:new RegExp(n.replace(/線$/, "")), coRe:/都営|東京都交通局/, toei:id });
+  for(const [c, col, n, co, k] of CAP_OTHERS) add(cap, co === "都営" ? "都営" : "ゆりかもめ・りんかい線など", { id:co + "|" + n, co, n, code:c, col, href:"https://www.google.com/search?q=" + encodeURIComponent(n + " 運行情報"), re:new RegExp(k), coRe:new RegExp(co === "都営" ? "都営|東京都交通局" : k + "|" + co) });
+  for(const [c, col, n, k] of JR_LINES["関東"]) add(cap, "JR東日本（首都圏）", { id:"JR東日本|" + n, co:"JR東日本", n, code:c, col, href:JR_LINK["関東"], re:new RegExp(k), coRe:/JR東日本/, jr:1 });
+  for(const [rg, cos] of NAT_RAIL) for(const [g, coS, code, col, lines] of cos){
+    const coRe = new RegExp(coS), lk = { "北海道":"北海道", "東北":"東北", "北陸・信越":"北陸・信越", "東海":"東海", "近畿":"近畿", "中国":"中国", "四国":"四国", "九州・沖縄":"九州・沖縄" }[rg];
+    if(typeof lines === "string"){   // JRは地域の路線表から
+      const area = lines.slice(1);
+      for(const [c2, col2, n, k] of (JR_LINES[area] || [])) add(rg, g, { id:g.replace(/（.*）/, "") + "|" + n, co:g.replace(/（.*）/, ""), n, code:c2, col:col2, href:JR_LINK[area] || "#", re:new RegExp(k), coRe, jr:1 });
+      continue;
+    }
+    for(const ln of lines){
+      const [nm, alt] = ln.split("|"), co = g === "そのほか" ? "" : g.replace(/^私鉄・/, "").replace(/（.*）/, ""), key = [nm, alt].filter(Boolean).map(x => x.replace(/線$/, "")).join("|");
+      add(rg, g, { id:(co || rg) + "|" + nm, co, n:nm, code, col, href:/JR/.test(co) ? (JR_LINK[lk] || "#") : "https://www.google.com/search?q=" + encodeURIComponent(`${co} ${nm} 運行情報`.trim()), re:new RegExp(key), coRe });
+    }
+  }
+  return out;
+}
 function trPins(){ const v = load("trPins"); return Array.isArray(v) ? v : []; }
 function renderTrains(){
-  if(!LAST_TRAINS) return;
-  const T = LAST_TRAINS, cat = trCatalog(), cap = inCapital(), area = trainRegion()[2], pins = trPins();
+  const T = LAST_TRAINS || { pending:true, at:new Date() }, cat = trCatalog(), cap = inCapital(), area = trainRegion()[2], pins = trPins();
   const target = cat.filter(o => !o.extra);
   // 1件の遅延情報（例：「京浜東北根岸線」）が複数の路線に当たるときは、最初の路線だけに出す
   const used = new Set();
@@ -1826,13 +1917,14 @@ function renderTrains(){
   // 首都圏の外で、近くの路線に当たらない遅れも「この地域の会社」なら出す
   let other = [];
   if(!cap && T.delay){ const [, , , coRe] = trainRegion(); other = T.delay.filter(x => coRe.test((x.company || "") + " " + (x.name || "")) && !target.some(o => trMatch(x, o))); }
-  const pinned = pins.map(id => cat.find(o => o.id === id) || (() => { const [co, n] = id.split("|"); return { id, co, n, code:co.startsWith("JR") ? "JR" : "●", col:"#9ca3af", href:"https://www.google.com/search?q=" + encodeURIComponent(`${co} ${n} 運行情報`), near:(co === "JR" ? "JR" : "") + n }; })());
+  const NAT = trNational(), pinned = pins.map(id => NAT.find(o => o.id === id) || cat.find(o => o.id === id) || (() => { const [co, n] = id.split("|"); return { id, co, n, code:co.startsWith("JR") ? "JR" : "●", col:"#9ca3af", href:"https://www.google.com/search?q=" + encodeURIComponent(`${co} ${n} 運行情報`), near:(co === "JR" ? "JR" : "") + n }; })());
   let html = "";
   if(pinned.length) html += `<div class="tr-sec"><div class="tr-h">常に表示する路線</div><div class="tr-grid two">`
-    + pinned.map(o => { const s = trStatus(o); return trBtn(o.code, o.col, o.n, o.href, s.bad, s.st || "平常"); }).join("") + "</div></div>";
+    + pinned.map(o => { const s = trStatus(o), co = o.co && !/^(東京メトロ|都営|JR東日本)$/.test(o.co) && o.co !== o.n ? o.co.replace(/市営地下鉄|市地下鉄/, "市営") + " " : ""; return trBtn(o.code, o.col, co + o.n, o.href, s.bad, s.st || "平常"); }).join("") + "</div></div>";
   const badShow = bad.filter(v => !pins.includes(v.o.id));
   html += `<div class="tr-sec"><div class="tr-h">遅れや運行の乱れがある路線</div>`;
-  if(!T.delay && !T.toei) html += `<div class="muted" style="font-size:.85rem">運行情報を取得できませんでした。しばらくしてから更新してください。</div>`;
+  if(T.pending) html += `<div class="muted" style="font-size:.85rem">運行情報を確認しています…</div>`;
+  else if(!T.delay && !T.toei) html += `<div class="muted" style="font-size:.85rem">運行情報を取得できませんでした。しばらくしてから更新してください。</div>`;
   else if(!badShow.length && !other.length) html += `<div class="okline" style="margin:4px 0">✓ ${bad.length ? "上の路線以外に" : ""}遅れの情報はありません</div>`;
   else{
     html += `<div class="tr-grid one">` + badShow.map(v => trBtn(v.o.code, v.o.col, `${v.o.co && v.o.co !== "JR" && v.o.co !== v.o.n ? v.o.co + " " : ""}${v.o.n}`, v.o.href, true, v.s.st && v.s.st !== "遅れあり" ? v.s.st : "")).join("")
@@ -1845,7 +1937,7 @@ function renderTrains(){
   html += `<div class="tr-note">対象：${esc(scope)}。<br>${TR_WARN.replace('class="tr-wi"', 'width="12" height="12" style="vertical-align:-1px"')} 遅れの情報は<a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>（非公式。反映に数分〜10分ほどかかります）`
     + (cap ? `、都営は<a href="https://ckan.odpt.org/dataset/r_train_status-toei" target="_blank" rel="noopener">東京都交通局のオープンデータ</a>（CC BY 4.0）` : "") + (cap ? "" : `、近くの駅は<a href="https://express.heartrails.com/" target="_blank" rel="noopener">HeartRails Express</a>`) + `から。ボタンを押すと運行情報を開きます。</div>`;
   $("#trains").innerHTML = html;
-  $("#trainTime").textContent = `${pad(T.at.getHours())}:${pad(T.at.getMinutes())} 確認`;
+  $("#trainTime").textContent = T.pending ? "" : `${pad(T.at.getHours())}:${pad(T.at.getMinutes())} 確認`;
   markDemo("train", "#trainH", !!T.demo);
 }
 // 常に表示する路線の選択：鉄道会社ごとにまとめ、会社単位でまとめて選べる
@@ -1856,14 +1948,17 @@ function trCompanyOf(o){
   return m ? m[0] : "その他";
 }
 function jrOpen(){
-  const cat = trCatalog(), pins = trPins();
+  const nat = trNational(), pins = trPins();
   $("#jrsTitle").textContent = "常に表示する路線";
-  const groups = []; for(const o of cat){ const g = trCompanyOf(o); let G = groups.find(x => x.g === g); if(!G) groups.push(G = { g, os:[] }); G.os.push(o); }
-  const row = o => `<li class="jrs-ln"><label><input type="checkbox" value="${esc(o.id)}"${pins.includes(o.id) ? " checked" : ""}><span class="tr-bd" style="border-color:${o.col}">${esc(o.code)}</span>${esc(o.n)}</label></li>`;
-  const others = pins.filter(id => !cat.some(o => o.id === id));
-  $("#jrsList").innerHTML = groups.map((G, i) => `<li class="jrs-co"><label><input type="checkbox" class="jrs-all" data-g="${i}">${esc(G.g)}<span class="sub">（${G.os.length}路線・まとめて選ぶ）</span></label></li>`
-      + G.os.map(o => row(o).replace('<li class="jrs-ln">', `<li class="jrs-ln" data-g="${i}">`)).join("")).join("")
-    + (others.length ? `<li class="jrs-co"><label>ほかの地域で選んだ路線</label></li>` + others.map(id => `<li class="jrs-ln"><label><input type="checkbox" value="${esc(id)}" checked>${esc(id.replace("|", " "))}</label></li>`).join("") : "");
+  // 地域 → 会社 → 路線（首都圏が一番上、あとは北海道から南へ）
+  const regs = []; for(const o of nat){ let R = regs.find(r => r.rg === o.rg); if(!R) regs.push(R = { rg:o.rg, cos:[] }); let G = R.cos.find(c => c.g === o.g); if(!G) R.cos.push(G = { g:o.g, os:[] }); G.os.push(o); }
+  let gi = 0;
+  const html = regs.map(R => { const n = R.cos.reduce((a, G) => a + G.os.filter(o => pins.includes(o.id)).length, 0);
+    return `<details class="jrs-rg"${R.rg === "首都圏" || n ? " open" : ""}><summary>${esc(R.rg)}${n ? `<span class="sub">（${n}路線を選択中）</span>` : ""}</summary>`
+      + R.cos.map(G => { const g = gi++; return `<div class="jrs-co"><label><input type="checkbox" class="jrs-all" data-g="${g}">${esc(G.g.replace(/^私鉄・/, ""))}<span class="sub">（${G.os.length}路線・まとめて選ぶ）</span></label></div>`
+        + G.os.map(o => `<div class="jrs-ln" data-g="${g}"><label><input type="checkbox" value="${esc(o.id)}"${pins.includes(o.id) ? " checked" : ""}><span class="tr-bd" style="border-color:${o.col}">${esc(o.code)}</span>${esc(o.n)}</label></div>`).join(""); }).join("") + "</details>"; }).join("");
+  const others = pins.filter(id => !nat.some(o => o.id === id));
+  $("#jrsList").innerHTML = html + (others.length ? `<details class="jrs-rg" open><summary>以前に選んだ路線</summary>` + others.map(id => `<div class="jrs-ln"><label><input type="checkbox" value="${esc(id)}" checked>${esc(id.replace("|", " "))}</label></div>`).join("") + "</details>" : "");
   jrSyncAll();
   ovOpen("jr", () => { $("#jrSheet").hidden = true; renderTrains(); });
   $("#jrSheet").hidden = false;
@@ -1871,15 +1966,15 @@ function jrOpen(){
 // 会社の「まとめて選ぶ」の状態（全部・一部・なし）を路線の選択に合わせる
 function jrSyncAll(){
   for(const a of document.querySelectorAll("#jrsList .jrs-all")){
-    const bs = [...document.querySelectorAll(`#jrsList li.jrs-ln[data-g="${a.dataset.g}"] input`)], n = bs.filter(b => b.checked).length;
+    const bs = [...document.querySelectorAll(`#jrsList .jrs-ln[data-g="${a.dataset.g}"] input`)], n = bs.filter(b => b.checked).length;
     a.checked = n === bs.length && n > 0; a.indeterminate = n > 0 && n < bs.length;
   }
 }
 function jrSetup(){
-  const save = () => store("trPins", [...document.querySelectorAll("#jrsList li.jrs-ln input:checked")].map(i => i.value));
+  const save = () => store("trPins", [...document.querySelectorAll("#jrsList .jrs-ln input:checked")].map(i => i.value));
   $("#jrsList").addEventListener("change", e => {
     const t = e.target;
-    if(t.classList.contains("jrs-all")) document.querySelectorAll(`#jrsList li.jrs-ln[data-g="${t.dataset.g}"] input`).forEach(b => { b.checked = t.checked; });
+    if(t.classList.contains("jrs-all")) document.querySelectorAll(`#jrsList .jrs-ln[data-g="${t.dataset.g}"] input`).forEach(b => { b.checked = t.checked; });
     jrSyncAll(); save();
   });
   // 「常に表示する路線を選ぶ」：前回の表示を出しているときも押せるように、欄全体で受ける
@@ -3203,7 +3298,7 @@ bgInit();
 $("#mapBtn").onclick = () => openMap(); $("#rainBtn").onclick = () => openMap({ rain:true }); $("#mapClose").onclick = closeMap;
 $("#rainPlay").onclick = rainPlay; $("#rainSlider").oninput = e => { rainStop(); rainShow(+e.target.value); };
 $("#mapHere").onclick = () => { if(!MAP.map) return; MAP.map.flyTo([S.lat ?? DEMO_PLACE.lat, S.lon ?? DEMO_PLACE.lon], MAP.map.getZoom(), { duration:.6 }); };
-wcSetup(); locSetup(); jrSetup(); tickClock(); setInterval(tickClock, 1000);
+wcSetup(); locSetup(); jrSetup(); if(trPins().length) renderTrains(); tickClock(); setInterval(tickClock, 1000);
 snapShow();
 { const sel = FORCE_DEMO ? null : load("selLoc"); if(sel && sel.lat != null){ S.chosen = sel; S.lat = sel.lat; S.lon = sel.lon; S.acc = null; S.demoLoc = false; loadAll(); } else locate(); }
 </script>
