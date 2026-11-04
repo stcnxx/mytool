@@ -402,7 +402,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-04 21:40</div>
+  <div style="margin-bottom:4px">版：2026-11-05 06:45</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1953,11 +1953,12 @@ function renderTrains(){
     $("#trains").innerHTML = html; $("#trainTime").textContent = T.pending ? "" : `${pad(T.at.getHours())}:${pad(T.at.getMinutes())} 確認`;
     markDemo("train", "#trainH", !!T.demo); return;
   }
-  html += `<div class="tr-sec"><div class="tr-h">遅れや運行の乱れがある路線</div>`;
-  if(T.pending) html += `<div class="muted" style="font-size:.85rem">運行情報を確認しています…</div>`;
+  // 異常がないときは「平常どおり」などの常時表示はしない（見出しごと出さない）
+  const quietOK = !T.pending && (T.delay || T.toei) && !badShow.length && !other.length;
+  html += quietOK ? `<div class="tr-sec">` : `<div class="tr-sec"><div class="tr-h">遅れや運行の乱れがある路線</div>`;
+  if(quietOK){}
+  else if(T.pending) html += `<div class="muted" style="font-size:.85rem">運行情報を確認しています…</div>`;
   else if(!T.delay && !T.toei) html += `<div class="muted" style="font-size:.85rem">運行情報を取得できませんでした。しばらくしてから更新してください。</div>`;
-  else if(!T.delay && !badShow.length){ if(T.toei) html += `<div class="okline" style="margin:4px 0">✓ 都営は平常どおり運転しています</div>`; }
-  else if(!badShow.length && !other.length) html += `<div class="okline" style="margin:4px 0">✓ ${bad.length ? "上の路線以外に" : ""}遅れの情報はありません</div>`;
   else{
     html += `<div class="tr-grid one">` + badShow.map(v => trBtn(v.o.code, v.o.col, `${v.o.co && v.o.co !== "JR" && v.o.co !== v.o.n ? v.o.co + " " : ""}${v.o.n}`, v.o.href, true, v.s.st && v.s.st !== "遅れあり" ? v.s.st : "")).join("")
       + other.map(x => trBtn(/^JR/.test(x.company || "") ? "JR" : "●", "#9ca3af", `${x.company || ""} ${trainLabel(x)}`.trim(), "https://www.google.com/search?q=" + encodeURIComponent(`${x.company || ""} ${x.name || ""} 運行情報`), true)).join("") + "</div>";
