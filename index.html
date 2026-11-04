@@ -148,6 +148,7 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 #calCard .cal-date .wareki{font-size:.72em;font-weight:600;margin:0 .1em}
 
 .clock-row{display:flex;align-items:center;gap:clamp(18px,7vw,34px)}
+.cal-tz{font-size:.7rem;color:var(--muted);margin-top:-2px;max-width:46vw}
 .wclocks{display:flex;flex-direction:column;gap:4px;min-width:0}
 .wc{display:block;text-align:left;background:none;border:none;padding:2px 6px;border-radius:8px;color:inherit;font:inherit;cursor:pointer;line-height:1.25}
 .wc:hover{background:var(--chip)}
@@ -155,6 +156,7 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 #wcSheet[hidden]{display:none}
 #locSheet{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 16px 16px;text-shadow:none}#locSheet[hidden]{display:none}
 .locs-cur{font-weight:700}.locs-h{font-size:.72rem;color:#64748b;padding:8px 6px 2px;cursor:default!important;border-bottom:none!important}.locs-h:hover{background:none!important}
+body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opacity .2s}
 .chosen-tag{display:inline-block;font-size:.7rem;padding:1px 6px;border-radius:6px;border:1px solid var(--line);color:var(--muted);vertical-align:1px}
 .locbtn{flex:none;margin-left:auto;padding:2px 10px;font-size:.78rem;border-radius:8px;white-space:nowrap;align-self:center}
 .wcs-box{background:#fff;color:#0f172a;border-radius:14px;width:100%;max-width:420px;padding:14px;max-height:80vh;display:flex;flex-direction:column}
@@ -308,7 +310,7 @@ footer{background:none!important}
 <main>
   <section class="card wide" id="calCard">
     <div id="calDate" class="cal-date"></div>
-    <div class="clock-row"><div id="calClock" class="cal-clock"></div><div id="wclocks" class="wclocks"></div></div>
+    <div class="clock-row"><div><div id="calClock" class="cal-clock"></div><div id="calTz" class="cal-tz" hidden></div></div><div id="wclocks" class="wclocks"></div></div>
     <div id="calRoku"></div>
     <div id="calMoon"><canvas id="moonIco" width="92" height="92"></canvas><span id="moonTxt"></span></div>
     <div class="cal-sec"><div class="cal-h">今日は何の日</div><div id="calAnniv"></div></div>
@@ -384,7 +386,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-04 08:28</div>
+  <div style="margin-bottom:4px">版：2026-11-04 14:16</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -423,15 +425,19 @@ const DEMO_USED = new Set();
 const PREFS = ["","北海道","青森県","岩手県","宮城県","秋田県","山形県","福島県","茨城県","栃木県","群馬県","埼玉県","千葉県","東京都","神奈川県","新潟県","富山県","石川県","福井県","山梨県","長野県","岐阜県","静岡県","愛知県","三重県","滋賀県","京都府","大阪府","兵庫県","奈良県","和歌山県","鳥取県","島根県","岡山県","広島県","山口県","徳島県","香川県","愛媛県","高知県","福岡県","佐賀県","長崎県","熊本県","大分県","宮崎県","鹿児島県","沖縄県"];
 
 /* ---------- 通信（直接取れなければ中継サーバー経由で再試行） ---------- */
-async function fetchText(url, ms = 9000){
+// 場所を変えたときは、前の場所の取得をすぐ打ち切る（keep=true の通信は打ち切らない）
+let LOAD_AC = new AbortController();
+async function fetchText(url, ms = 9000, keep = false){
   const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
+  const outer = keep ? null : LOAD_AC.signal, onAb = () => c.abort();
+  if(outer){ if(outer.aborted) c.abort(); else outer.addEventListener("abort", onAb, { once:true }); }
   try{
     const r = await fetch(url, { cache:"no-store", signal:c.signal });
     if(!r.ok) throw new Error("HTTP " + r.status);
     return await r.text();
-  } finally { clearTimeout(t); }
+  } finally { clearTimeout(t); if(outer) outer.removeEventListener("abort", onAb); }
 }
-async function getJSON(url, { proxy = false } = {}){
+async function getJSON(url, { proxy = false, keep = false } = {}){
   if(FORCE_DEMO) throw new Error("デモモード");
   const tries = [url];
   if(proxy) tries.push(
@@ -441,7 +447,8 @@ async function getJSON(url, { proxy = false } = {}){
   );
   let err;
   for(const u of tries){
-    try{ return JSON.parse(await fetchText(u)); }catch(e){ err = e; }
+    const sig = keep ? null : LOAD_AC.signal;
+    try{ return JSON.parse(await fetchText(u, 9000, keep)); }catch(e){ err = e; if(sig && sig.aborted) break; }
   }
   throw err || new Error("取得失敗");
 }
@@ -449,6 +456,20 @@ async function getJSON(url, { proxy = false } = {}){
 /* ---------- utils ---------- */
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const pad = n => String(n).padStart(2,"0");
+// 表示している場所の「現地時刻」。日時の数字（時・分・日付）が現地の値になる Date を返す
+const DEV_TZ = (() => { try{ return Intl.DateTimeFormat().resolvedOptions().timeZone; }catch(_){ return ""; } })();
+let TZ_C = { tz:null, at:0, off:0 };
+function tzOffsetMs(tz, t){
+  const f = new Intl.DateTimeFormat("en-US", { timeZone:tz, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit", hourCycle:"h23" });
+  const o = {}; for(const p of f.formatToParts(new Date(t))) o[p.type] = +p.value;
+  return Date.UTC(o.year, o.month - 1, o.day, o.hour, o.minute, o.second) - Math.floor(t/1000)*1000;
+}
+function placeNow(){
+  const t = Date.now(), tz = (typeof S !== "undefined" && S.tz) || null;
+  if(!tz || tz === DEV_TZ) return new Date(t);
+  try{ if(TZ_C.tz !== tz || t - TZ_C.at > 60e3) TZ_C = { tz, at:t, off:tzOffsetMs(tz, t) }; }catch(_){ return new Date(t); }
+  return new Date(t + TZ_C.off + new Date(t).getTimezoneOffset()*60e3);
+}
 const WD = ["日","月","火","水","木","金","土"];
 const DEMO_TAG = '<span class="demo">サンプル</span>';
 function fmtTime(d){ d = new Date(d); return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
@@ -567,12 +588,14 @@ function demoTrains(){
 /* ---------- 位置情報 ---------- */
 // 表示する場所：既定は現在地（GPS）。選んだ場所は記憶して次回もそこを表示し、最近の場所にも残す
 function useChosen(c){
-  S.chosen = c; store("selLoc", c); S.lat = c.lat; S.lon = c.lon; S.acc = null; S.gpsAlt = null; S.demoLoc = false; S.locMsg = "";
+  S.chosen = c; store("selLoc", c); document.body.classList.add("reloading"); S.tz = c.tz || null; tickClock();
+  Object.assign(S, { prefName:"", city:"", town:"", country:"", abroad:null });
+  $("#place").innerHTML = `${esc(c.name)} <span class="muted">${esc(c.sub || "")}</span> <span class="spin">⏳</span>`; S.lat = c.lat; S.lon = c.lon; S.acc = null; S.gpsAlt = null; S.demoLoc = false; S.locMsg = "";
   const rec = (load("recentLocs") || []).filter(r => !(Math.abs(r.lat - c.lat) < 1e-3 && Math.abs(r.lon - c.lon) < 1e-3));
   rec.unshift(c); store("recentLocs", rec.slice(0, 6));
   loadAll();
 }
-function useHere(){ S.chosen = null; store("selLoc", null); S.locMsg = ""; locate(); }
+function useHere(){ S.tz = null; tickClock(); S.chosen = null; store("selLoc", null); S.locMsg = ""; document.body.classList.add("reloading"); SNAP_SHOWN = false; locate(); }
 function locOpen(){ ovOpen("loc", () => { $("#locSheet").hidden = true; }); $("#locSheet").hidden = false; $("#locsInput").value = ""; locSearch(""); setTimeout(() => $("#locsInput").focus(), 50); }
 function locClose(){ ovClose("loc"); }
 function locItem(c, sub){ return `<li data-loc="${esc(JSON.stringify(c))}"><span>${esc(c.name)} <span class="sub">${esc(sub || c.sub || "")}</span></span>${S.chosen && Math.abs(S.chosen.lat - c.lat) < 1e-3 && Math.abs(S.chosen.lon - c.lon) < 1e-3 ? '<span class="tm">表示中</span>' : ""}</li>`; }
@@ -589,9 +612,9 @@ function locSearch(q){
   list.innerHTML = '<li class="locs-h">検索中…</li>';
   LOC_T = setTimeout(async () => {
     try{
-      const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=12&language=ja&format=json`);
+      const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=12&language=ja&format=json`, { keep:true });
       if($("#locsInput").value.trim() !== q) return;
-      const rs = (j.results || []).map(r => ({ name:r.name, sub:[r.admin1, r.country].filter(Boolean).join("・"), lat:+(+r.latitude).toFixed(4), lon:+(+r.longitude).toFixed(4) }));
+      const rs = (j.results || []).map(r => ({ name:r.name, sub:[r.admin1, r.country].filter(Boolean).join("・"), lat:+(+r.latitude).toFixed(4), lon:+(+r.longitude).toFixed(4), tz:r.timezone || null }));
       list.innerHTML = rs.length ? rs.map(c => locItem(c)).join("") : '<li class="locs-h">見つかりませんでした</li>';
     }catch(e){ list.innerHTML = '<li class="locs-h">検索できませんでした（通信を確認してください）</li>'; }
   }, 350);
@@ -694,7 +717,7 @@ function renderPlace(placeDemo){
 }
 
 /* ---------- 気象 (Open-Meteo) ---------- */
-async function loadWeather(){
+async function loadWeather(gen){
   const url = "https://api.open-meteo.com/v1/forecast?latitude=" + S.lat + "&longitude=" + S.lon
     + "&current=uv_index,temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,pressure_msl,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
     + "&hourly=apparent_temperature,uv_index,temperature_2m,precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_direction_10m"
@@ -708,9 +731,12 @@ async function loadWeather(){
     if(!FORCE_DEMO && c && c.w && Math.abs(c.lat - S.lat) < .02 && Math.abs(c.lon - S.lon) < .02 && Date.now() - c.at < 864e5) w = c.w;
     else{ w = demoWeather(); demo = true; }
   }
+  if(gen != null && gen !== LOAD_GEN) return;   // 場所が変わった後に届いた古い結果は捨てる
+  if(!demo && w.timezone && /\//.test(w.timezone) && w.timezone !== S.tz){ S.tz = w.timezone; tickClock(); }
   renderWeather(w, demo);
 }
 function renderWeather(w, demo){
+  document.body.classList.remove("reloading");
   W_CODE = w.current.weather_code; updateBg();
   const c = w.current, d = w.daily, h = w.hourly;
   const [ic, tx] = wmo(c.weather_code);
@@ -805,7 +831,7 @@ async function loadPops(){
 // ・傘：1mm/h以上の雨がある、または雨が3時間以上続く、または合計3mm以上
 // ・折りたたみ傘：弱い雨（0.2mm/h以上）や、降水確率40%以上の時間がある
 function rainNeed(w, di){
-  const h = w.hourly, day = w.daily.time[di], nowH = new Date().getHours();
+  const h = w.hourly, day = w.daily.time[di], nowH = placeNow().getHours();
   const idx = h.time.map((t, i) => [t, i]).filter(([t]) => t.startsWith(day)).map(([, i]) => i)
     .filter(i => { const hr = +h.time[i].slice(11, 13); return hr >= 7 && hr <= 21 && (di > 0 || hr >= nowH); });
   const mm = i => h.precipitation[i] || 0, pp = i => h.precipitation_probability ? (h.precipitation_probability[i] ?? 0) : 0;
@@ -942,7 +968,7 @@ function slotHTML(w, sl, big){
     ${extra.length ? `<ul class="slot-pts">${extra.map(([e, t]) => `<li><span>${ic(e)}</span>${esc(t)}</li>`).join("")}</ul>` : ""}</div>`;
 }
 function renderFashion(w, demo){
-  const sl = periodSlots(w, new Date());
+  const sl = periodSlots(w, placeNow());
   $("#fashion").innerHTML = slotHTML(w, sl[0], true) + `<div class="slot-pair">${slotHTML(w, sl[1], false)}${slotHTML(w, sl[2], false)}</div>`;
   markDemo("fash", "#fashH", demo);
 }
@@ -1304,7 +1330,7 @@ function rainingNow(w){
 }
 // 今から3時間以内に雨が降るか
 function rainSoon(w){
-  const h = w.hourly, t0 = Date.now();
+  const h = w.hourly, t0 = placeNow().getTime();
   return h.time.some((t, i) => { const dt = new Date(t) - t0; return dt > -3600e3 && dt <= 3*3600e3 && (h.precipitation[i] || 0) >= 0.2; });
 }
 function outfitPlan(w, di, useNow = di === 0){
@@ -2008,7 +2034,7 @@ const SAT = (() => {
   const sunAlt = (jd, lat, lon) => { const se = sunEq(jd); return eqToHor(se.ra, se.dec, jd, lat, lon).alt; };
   async function getText(url){
     const tries = [url, "https://corsproxy.io/?url=" + encodeURIComponent(url), "https://api.allorigins.win/raw?url=" + encodeURIComponent(url)];
-    let err; for(const u of tries){ try{ const t = await fetchText(u); if(/^1 \d{5}/m.test(t)) return t; err = new Error("TLE"); }catch(e){ err = e; } }
+    let err; for(const u of tries){ try{ const t = await fetchText(u, 9000, true); if(/^1 \d{5}/m.test(t)) return t; err = new Error("TLE"); }catch(e){ err = e; } }
     throw err;
   }
   async function load(){
@@ -2317,7 +2343,7 @@ function updateInfo(){
   const ov = skyvEl(), sk = skyNow();
   ov.querySelector('#svDir').textContent = `${azName(SKYV.A0)}の空を見ています`;
   const age = moonAge(now()), sa = SKYV.night ? -90 : sk.sun.alt;
-  const phase = SKYV.night ? '夜にした表示（太陽なし）' : sa > 0 ? '昼' : sa > -6 ? '薄明' : sa > -18 ? (new Date().getHours() < 12 ? '明け方' : '夕暮れ') : '夜';
+  const phase = SKYV.night ? '夜にした表示（太陽なし）' : sa > 0 ? '昼' : sa > -6 ? '薄明' : sa > -18 ? (placeNow().getHours() < 12 ? '明け方' : '夕暮れ') : '夜';
   SAT.info();
   document.getElementById('skyInfo').textContent =
     `${phase}・月齢${age.toFixed(1)}（${moonName(age)}）・月は${sk.moon.alt > 0 ? `${azName(sk.moon.az)}の空 高さ${Math.round(sk.moon.alt)}°` : '地平線の下'}`;
@@ -2400,9 +2426,15 @@ function wareki(d){
   return `昭和${y - 1925}年`;
 }
 let CAL_DAY = "";
+let CAL_TZ = null;
 function tickClock(){
-  const d = new Date();
+  const d = placeNow(), tz = S.tz && S.tz !== DEV_TZ ? S.tz : null;
   const hm = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  if(tz !== CAL_TZ){ CAL_TZ = tz; CAL_DAY = ""; $("#calClock").textContent = "";
+    const n = $("#calTz");
+    if(tz){ const dv = new Date(), diff = Math.round((d - dv)/60e3), sg = diff < 0 ? "−" : "+", a = Math.abs(diff);
+      n.textContent = `${S.chosen ? S.chosen.name + "の" : ""}現地時刻（${DEV_TZ === "Asia/Tokyo" ? "日本" : "端末"}と ${sg}${Math.floor(a/60)}:${pad(a%60)}）`; n.hidden = false; }
+    else n.hidden = true; }
   if($("#calClock").textContent !== hm){ $("#calClock").textContent = hm; renderMoon(); renderWorldClocks(); }
   if(d.toDateString() !== CAL_DAY){ CAL_DAY = d.toDateString(); renderCal(d); }
 }
@@ -2432,7 +2464,7 @@ async function wcSearch(q){
   clearTimeout(WC_T); if(q.length < 2) return;
   WC_T = setTimeout(async () => {
     try{
-      const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=ja&format=json`);
+      const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=ja&format=json`, { keep:true });
       if($("#wcsInput").value.trim() !== q) return;
       const seen = new Set(local.map(x => x[0]));
       const more = (j.results || []).filter(r => r.timezone && !seen.has(r.name)).map(r => wcItem(r.name, [r.admin1, r.country].filter(Boolean).join("・"), r.timezone));
@@ -2468,10 +2500,10 @@ function renderCal(d){
 }
 async function wikiSection(page, re){
   const base = "https://ja.wikipedia.org/w/api.php?action=parse&format=json&formatversion=2&origin=*&page=" + encodeURIComponent(page);
-  const s = await getJSON(base + "&prop=sections");
+  const s = await getJSON(base + "&prop=sections", { keep:true });
   const sec = (s.parse?.sections || []).find(x => re.test(x.line));
   if(!sec) return null;
-  const t = await getJSON(base + "&prop=text&section=" + sec.index);
+  const t = await getJSON(base + "&prop=text&section=" + sec.index, { keep:true });
   const doc = new DOMParser().parseFromString(t.parse.text, "text/html");
   doc.querySelectorAll("sup,style,.mw-editsection,.reference").forEach(e => e.remove());
   return doc;
@@ -2699,7 +2731,7 @@ const JP_BOUNDS = [[20, 118], [50, 156]];
 const RAIN = { frames:[], layers:{}, idx:0, timer:0, toggle:null, on:false };
 function jmaTime(s){ return new Date(Date.UTC(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8), +s.slice(8,10), +s.slice(10,12))); }
 async function rainFrames(){
-  const [n1, n2] = await Promise.all([getJSON(NOWC + "targetTimes_N1.json", { proxy:true }), getJSON(NOWC + "targetTimes_N2.json", { proxy:true }).catch(() => [])]);
+  const [n1, n2] = await Promise.all([getJSON(NOWC + "targetTimes_N1.json", { proxy:true, keep:true }), getJSON(NOWC + "targetTimes_N2.json", { proxy:true, keep:true }).catch(() => [])]);
   const has = t => !t.elements || t.elements.includes("hrpns");
   const by = (a, b) => a.validtime < b.validtime ? -1 : a.validtime > b.validtime ? 1 : 0;
   const past = n1.filter(has).sort(by); if(!past.length) throw new Error("実況なし");
@@ -2712,7 +2744,7 @@ async function rainFrames(){
 }
 // 日本国外：RainViewer（過去2時間・10分ごと・拡大率7まで）
 async function rainFramesWorld(){
-  const j = await getJSON("https://api.rainviewer.com/public/weather-maps.json");
+  const j = await getJSON("https://api.rainviewer.com/public/weather-maps.json", { keep:true });
   const host = j.host || "https://tilecache.rainviewer.com", r = j.radar || {};
   const mk = fc => f => ({ t:new Date(f.time*1000), url:`${host}${f.path}/256/{z}/{x}/{y}/2/1_1.png`, fc });
   const fr = [...(r.past || []).map(mk(false)), ...(r.nowcast || []).map(mk(true))];
@@ -2980,7 +3012,7 @@ async function loadElevation(){
 /* ---------- 前回の表示を記憶して、起動時にすぐ出す ---------- */
 // 起動時は前回の表示をそのまま出し、裏で最新の情報に更新する（サンプルの欄は記憶しない）
 const SNAP_IDS = ["place","weather","hourly","pops","popTime","daily","warnings","warnTime","quakes","quakeSub","typhoons","tcTime","trains","trainTime"];
-const SNAP_S = ["lat","lon","prefName","city","town","abroad","country","countryCode","prefCode","class20","class10","office","elevText"];
+const SNAP_S = ["tz","lat","lon","prefName","city","town","abroad","country","countryCode","prefCode","class20","class10","office","elevText"];
 let SNAP_SHOWN = false, SNAP_T = 0;
 function snapSave(){
   if(FORCE_DEMO) return;
@@ -3010,8 +3042,11 @@ function snapShow(){
 
 /* ---------- 全体 ---------- */
 let loading = false, lastLoad = 0;
+let LOAD_GEN = 0;
 async function loadAll(){
-  if(loading) return; loading = true;
+  // 読み込み中に呼ばれたら（場所の変更など）、前の読み込みを打ち切ってすぐ新しく始める
+  if(loading){ LOAD_AC.abort(); LOAD_AC = new AbortController(); }
+  const gen = ++LOAD_GEN; loading = true;
   $("#refresh").disabled = true;
   S.elevText = ""; renderPlace(false);
   Sky.setLoc(S.lat, S.lon); updateBg();
@@ -3020,15 +3055,16 @@ async function loadAll(){
     let placeDemo = false;
     if(S.demoLoc){ applyDemoPlace(); }
     else{
-      try{ await resolvePlace(); }
-      catch(e){ S.office = null; if(S.abroad == null) S.abroad = !inJapanBox(S.lat, S.lon); S.locMsg = (S.locMsg || "") + "地名を特定できませんでした。"; }
+      try{ await resolvePlace(); if(gen !== LOAD_GEN) return; }
+      catch(e){ if(gen !== LOAD_GEN) return; S.office = null; if(S.abroad == null) S.abroad = !inJapanBox(S.lat, S.lon); S.locMsg = (S.locMsg || "") + "地名を特定できませんでした。"; }
     }
     PLACE_DEMO = placeDemo; renderPlace(placeDemo);
   })();
   await Promise.allSettled([
-    loadWeather(),
-    pPlace.then(() => Promise.allSettled([loadWarnings(), loadPops(), loadTrains(), loadQuakes(), loadTyphoons()]))
+    loadWeather(gen),
+    pPlace.then(() => gen === LOAD_GEN && Promise.allSettled([loadWarnings(), loadPops(), loadTrains(), loadQuakes(), loadTyphoons()]))
   ]);
+  if(gen !== LOAD_GEN) return;   // 途中で新しい読み込みが始まっていたら何もしない
   loading = false; lastLoad = Date.now();
   $("#refresh").disabled = false;
   snapSave();
