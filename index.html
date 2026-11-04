@@ -402,7 +402,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-04 21:06</div>
+  <div style="margin-bottom:4px">版：2026-11-04 21:23</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -444,13 +444,17 @@ const PREFS = ["","北海道","青森県","岩手県","宮城県","秋田県","�
 // 場所を変えたときは、前の場所の取得をすぐ打ち切る（keep=true の通信は打ち切らない）
 let LOAD_AC = new AbortController();
 async function fetchText(url, ms = 9000, keep = false){
-  const c = new AbortController(), t = setTimeout(() => c.abort(), ms);
-  const outer = keep ? null : LOAD_AC.signal, onAb = () => c.abort();
-  if(outer){ if(outer.aborted) c.abort(); else outer.addEventListener("abort", onAb, { once:true }); }
+  // 打ち切りの理由を区別する（時間切れ／場所の変更などで打ち切り）
+  const c = new AbortController(), t0 = Date.now(), t = setTimeout(() => c.abort("timeout"), ms);
+  const outer = keep ? null : LOAD_AC.signal, onAb = () => c.abort("superseded");
+  if(outer){ if(outer.aborted) c.abort("superseded"); else outer.addEventListener("abort", onAb, { once:true }); }
   try{
     const r = await fetch(url, { cache:"no-store", signal:c.signal });
     if(!r.ok) throw new Error("HTTP " + r.status);
     return await r.text();
+  }catch(e){
+    if(c.signal.aborted) throw new Error(c.signal.reason === "timeout" ? `時間切れ${Math.round((Date.now() - t0)/1000)}秒` : "打ち切り");
+    throw e;
   } finally { clearTimeout(t); if(outer) outer.removeEventListener("abort", onAb); }
 }
 async function getJSON(url, { proxy = false, keep = false } = {}){
@@ -1664,36 +1668,40 @@ function trainLabel(r){ return (r.name || "").trim(); }
 
 /* 遅延データ：直接＋複数の中継サーバーを同時に試し、最初に取れたものを使う */
 // どの経路で取れた／取れなかったかを記録（画面の注記に出す）
-let DELAY_DIAG = "";
-async function getDelayList(){
-  if(FORCE_DEMO) throw new Error("デモモード");
+// 遅延情報は全国共通なので、場所の変更や再読み込みでは打ち切らず、同時に何度も取りに行かない
+let DELAY_DIAG = "", DELAY_P = null;
+function getDelayList(){
+  if(FORCE_DEMO) return Promise.reject(new Error("デモモード"));
+  const c = load("delayCache");
+  if(c && Array.isArray(c.list) && Date.now() - c.at < 2*60e3){ DELAY_DIAG = "取得：" + (c.via || "") + "（" + new Date(c.at).toTimeString().slice(0,5) + "）"; return Promise.resolve(c.list); }
+  if(DELAY_P) return DELAY_P;
+  return DELAY_P = getDelayListNow().finally(() => { DELAY_P = null; });
+}
+async function getDelayListNow(){
   const url = "https://tetsudo.rti-giken.jp/free/delay.json", enc = encodeURIComponent(url), encH = encodeURIComponent(url.replace("https:", "http:"));
-  const tries = [
-    ["直接", () => fetchText(url, 8000)],
-    ["allorigins", () => fetchText("https://api.allorigins.win/raw?url=" + enc, 12000)],
-    ["allorigins(http)", () => fetchText("https://api.allorigins.win/raw?url=" + encH, 12000)],
-    ["allorigins/get", () => fetchText("https://api.allorigins.win/get?url=" + enc, 12000).then(t => JSON.parse(t).contents)],
-    ["codetabs", () => fetchText("https://api.codetabs.com/v1/proxy/?quest=" + enc, 12000)],
-    ["codetabs(http)", () => fetchText("https://api.codetabs.com/v1/proxy/?quest=" + encH, 12000)],
-    ["corsproxy", () => fetchText("https://corsproxy.io/?url=" + enc, 12000)],
-    ["cors.lol", () => fetchText("https://api.cors.lol/?url=" + enc, 12000)],
-    ["whateverorigin", () => fetchText("https://whateverorigin.org/get?url=" + enc, 12000).then(t => JSON.parse(t).contents)]
+  const T = 20000, tries = [
+    ["直接", () => fetchText(url, T, true)],
+    ["allorigins", () => fetchText("https://api.allorigins.win/raw?url=" + enc, T, true)],
+    ["allorigins(http)", () => fetchText("https://api.allorigins.win/raw?url=" + encH, T, true)],
+    ["allorigins/get", () => fetchText("https://api.allorigins.win/get?url=" + enc, T, true).then(t => JSON.parse(t).contents)],
+    ["codetabs", () => fetchText("https://api.codetabs.com/v1/proxy/?quest=" + enc, T, true)],
+    ["codetabs(http)", () => fetchText("https://api.codetabs.com/v1/proxy/?quest=" + encH, T, true)],
+    ["cors.lol", () => fetchText("https://api.cors.lol/?url=" + enc, T, true)],
+    ["whateverorigin", () => fetchText("https://whateverorigin.org/get?url=" + enc, T, true).then(t => JSON.parse(t).contents)]
   ];
-  const fails = [];
+  const fails = [], t0 = Date.now();
   try{
     const list = await new Promise((res, rej) => {
       let left = tries.length, done = false;
       for(const [nm, f] of tries){
-        f().then(t => { const j = typeof t === "string" ? JSON.parse(t) : t; if(!Array.isArray(j)) throw new Error("形式違い"); if(!done){ done = true; DELAY_DIAG = "取得：" + nm; res(j); } })
-           .catch(e => { fails.push(nm + ":" + (e && e.message ? e.message.slice(0, 30) : "失敗")); })
+        f().then(t => { const j = typeof t === "string" ? JSON.parse(t) : t; if(!Array.isArray(j)) throw new Error("形式違い"); if(!done){ done = true; DELAY_DIAG = `取得：${nm}（${((Date.now() - t0)/1000).toFixed(1)}秒・${j.length}件）`; store("delayCache", { at:Date.now(), list:j, via:nm }); res(j); } })
+           .catch(e => { fails.push(nm + ":" + (e && e.message ? e.message.slice(0, 24) : "失敗")); })
            .finally(() => { if(--left === 0 && !done) rej(new Error("接続できませんでした")); });
       }
     });
-    store("delayCache", { at:Date.now(), list });
     return list;
   }catch(e){
     DELAY_DIAG = "失敗（" + fails.join("・") + "）"; quiet("遅延情報", DELAY_DIAG);
-    // 30分以内に取れたものがあればそれを使う
     const c = load("delayCache"); if(c && Array.isArray(c.list) && Date.now() - c.at < 30*60e3){ DELAY_DIAG += "／" + Math.round((Date.now() - c.at)/60e3) + "分前のデータを表示"; return c.list; }
     throw e;
   }
