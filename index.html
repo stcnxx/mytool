@@ -278,7 +278,7 @@ footer{background:none!important}
 <div id="bg"><canvas id="bgc"></canvas></div>
 <header>
   <h1 class="sr-only">My Spot</h1>
-  <div class="place-row"><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.6 2 4 5.5 4 9.9c0 5.6 6.6 11.3 7.3 11.9.4.3 1 .3 1.4 0 .7-.6 7.3-6.3 7.3-11.9C20 5.5 16.4 2 12 2z" fill="#e53935"/><circle cx="12" cy="9.8" r="3.2" fill="#fff"/></svg><div id="place">位置情報を取得しています…</div><button id="locBtn" class="locbtn" type="button" aria-label="表示する場所を選ぶ">変更</button></div>
+  <div class="place-row"><svg class="pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C7.6 2 4 5.5 4 9.9c0 5.6 6.6 11.3 7.3 11.9.4.3 1 .3 1.4 0 .7-.6 7.3-6.3 7.3-11.9C20 5.5 16.4 2 12 2z" fill="#e53935"/><circle cx="12" cy="9.8" r="3.2" fill="#fff"/></svg><div id="place">位置情報を取得しています…</div><button id="locBtn" class="locbtn" type="button" aria-label="表示する場所を選ぶ">場所変更</button></div>
   <div class="btn-row"><button id="mapBtn" class="mapbtn">🗺️ 地図を見る</button><button id="rainBtn" class="mapbtn">☔ 雨雲を見る</button><button id="refresh" class="mapbtn refresh">⟳ 更新</button></div>
 </header>
 
@@ -384,7 +384,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-04 07:52</div>
+  <div style="margin-bottom:4px">版：2026-11-04 08:28</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -565,14 +565,14 @@ function demoTrains(){
 }
 
 /* ---------- 位置情報 ---------- */
-// 表示する場所：既定は現在地（GPS）。選んだ場所はこの画面を開いている間だけ使い、最近の場所に残す
+// 表示する場所：既定は現在地（GPS）。選んだ場所は記憶して次回もそこを表示し、最近の場所にも残す
 function useChosen(c){
-  S.chosen = c; S.lat = c.lat; S.lon = c.lon; S.acc = null; S.gpsAlt = null; S.demoLoc = false; S.locMsg = "";
+  S.chosen = c; store("selLoc", c); S.lat = c.lat; S.lon = c.lon; S.acc = null; S.gpsAlt = null; S.demoLoc = false; S.locMsg = "";
   const rec = (load("recentLocs") || []).filter(r => !(Math.abs(r.lat - c.lat) < 1e-3 && Math.abs(r.lon - c.lon) < 1e-3));
   rec.unshift(c); store("recentLocs", rec.slice(0, 6));
   loadAll();
 }
-function useHere(){ S.chosen = null; S.locMsg = ""; locate(); }
+function useHere(){ S.chosen = null; store("selLoc", null); S.locMsg = ""; locate(); }
 function locOpen(){ ovOpen("loc", () => { $("#locSheet").hidden = true; }); $("#locSheet").hidden = false; $("#locsInput").value = ""; locSearch(""); setTimeout(() => $("#locsInput").focus(), 50); }
 function locClose(){ ovClose("loc"); }
 function locItem(c, sub){ return `<li data-loc="${esc(JSON.stringify(c))}"><span>${esc(c.name)} <span class="sub">${esc(sub || c.sub || "")}</span></span>${S.chosen && Math.abs(S.chosen.lat - c.lat) < 1e-3 && Math.abs(S.chosen.lon - c.lon) < 1e-3 ? '<span class="tm">表示中</span>' : ""}</li>`; }
@@ -606,9 +606,9 @@ function locSetup(){
     if(li.dataset.here) useHere(); else useChosen(JSON.parse(li.dataset.loc));
   });
 }
-function locate(){
+function locate(quietGps){
   if(FORCE_DEMO){ useDemoLoc("デモモード"); return; }
-  $("#place").innerHTML = '<span class="spin">⏳</span> 位置情報を取得しています…';
+  if(!quietGps && !SNAP_SHOWN) $("#place").innerHTML = '<span class="spin">⏳</span> 位置情報を取得しています…';
   if(!("geolocation" in navigator)) return locFail("このブラウザは位置情報に対応していません。");
   navigator.geolocation.getCurrentPosition(p => {
     S.lat = +p.coords.latitude.toFixed(4); S.lon = +p.coords.longitude.toFixed(4); S.acc = Math.round(p.coords.accuracy); S.gpsAlt = p.coords.altitude;
@@ -701,7 +701,13 @@ async function loadWeather(){
     + "&daily=uv_index_max,weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,sunrise,sunset,wind_speed_10m_max,wind_direction_10m_dominant"
     + "&timezone=auto&forecast_days=7&wind_speed_unit=ms";
   let w, demo = false;
-  try{ w = await getJSON(url); }catch(e){ w = demoWeather(); demo = true; }
+  try{ w = await getJSON(url); if(!FORCE_DEMO) store("wxCache", { lat:S.lat, lon:S.lon, at:Date.now(), w }); }
+  catch(e){
+    // 取れなかったときは、同じ場所で24時間以内に取得したデータがあればそれを使う（サンプルにはしない）
+    const c = load("wxCache");
+    if(!FORCE_DEMO && c && c.w && Math.abs(c.lat - S.lat) < .02 && Math.abs(c.lon - S.lon) < .02 && Date.now() - c.at < 864e5) w = c.w;
+    else{ w = demoWeather(); demo = true; }
+  }
   renderWeather(w, demo);
 }
 function renderWeather(w, demo){
@@ -2971,8 +2977,39 @@ async function loadElevation(){
   renderPlace(PLACE_DEMO);
 }
 
+/* ---------- 前回の表示を記憶して、起動時にすぐ出す ---------- */
+// 起動時は前回の表示をそのまま出し、裏で最新の情報に更新する（サンプルの欄は記憶しない）
+const SNAP_IDS = ["place","weather","hourly","pops","popTime","daily","warnings","warnTime","quakes","quakeSub","typhoons","tcTime","trains","trainTime"];
+const SNAP_S = ["lat","lon","prefName","city","town","abroad","country","countryCode","prefCode","class20","class10","office","elevText"];
+let SNAP_SHOWN = false, SNAP_T = 0;
+function snapSave(){
+  if(FORCE_DEMO) return;
+  clearTimeout(SNAP_T);
+  SNAP_T = setTimeout(() => {
+    const old = load("snap") || { el:{} }, el = { ...old.el };
+    for(const id of SNAP_IDS){ const e = document.getElementById(id); if(!e) continue;
+      if(e.querySelector(".demo") || /読み込み中/.test(e.textContent) && e.textContent.length < 20) continue;
+      const card = e.closest(".card"); el[id] = { h:e.innerHTML, x:e.hidden, c:card ? card.hidden : false }; }
+    const st = {}; for(const k of SNAP_S) st[k] = S[k];
+    store("snap", { at:Date.now(), el, st, code:W_CODE, chosen:S.chosen || null });
+  }, 4000);
+}
+function snapShow(){
+  const sn = load("snap"); if(!sn || !sn.el || FORCE_DEMO) return false;
+  const sel = load("selLoc");
+  // 選んだ場所が変わっていたら前回の表示は使わない
+  if((sel && !(sn.chosen && Math.abs(sn.chosen.lat - sel.lat) < 1e-3 && Math.abs(sn.chosen.lon - sel.lon) < 1e-3)) || (!sel && sn.chosen)) return false;
+  for(const id in sn.el){ const e = document.getElementById(id), v = sn.el[id]; if(!e || !v) continue;
+    e.innerHTML = v.h; e.hidden = !!v.x; const card = e.closest(".card"); if(card) card.hidden = !!v.c; }
+  Object.assign(S, sn.st || {});
+  if(S.lat != null){ Sky.setLoc(S.lat, S.lon); }
+  if(sn.code != null){ W_CODE = sn.code; try{ Sky.setWeather(sn.code); }catch(_){} updateBg(); }
+  SNAP_SHOWN = true;
+  return true;
+}
+
 /* ---------- 全体 ---------- */
-let loading = false;
+let loading = false, lastLoad = 0;
 async function loadAll(){
   if(loading) return; loading = true;
   $("#refresh").disabled = true;
@@ -2992,12 +3029,16 @@ async function loadAll(){
     loadWeather(),
     pPlace.then(() => Promise.allSettled([loadWarnings(), loadPops(), loadTrains(), loadQuakes(), loadTyphoons()]))
   ]);
-  loading = false;
+  loading = false; lastLoad = Date.now();
   $("#refresh").disabled = false;
+  snapSave();
 }
 
 $("#refresh").onclick = () => { S.locMsg = ""; if(S.chosen) loadAll(); else locate(); };
-setInterval(() => { if(document.visibilityState === "visible" && S.lat != null) loadAll(); }, 10*60*1000);
+// 5分おきに自動更新（現在地のときはGPSも静かに取り直す）。画面に戻ってきたときも5分以上たっていれば更新
+const autoRefresh = () => { if(document.visibilityState !== "visible" || S.lat == null || loading) return; if(S.chosen || FORCE_DEMO) loadAll(); else locate(true); };
+setInterval(autoRefresh, 5*60*1000);
+document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible" && Date.now() - lastLoad > 5*60*1000) autoRefresh(); });
 Sky.init();
 updateBg();
 bgInit();
@@ -3006,7 +3047,8 @@ $("#mapBtn").onclick = () => openMap(); $("#rainBtn").onclick = () => openMap({ 
 $("#rainPlay").onclick = rainPlay; $("#rainSlider").oninput = e => { rainStop(); rainShow(+e.target.value); };
 $("#mapHere").onclick = () => { if(!MAP.map) return; MAP.map.flyTo([S.lat ?? DEMO_PLACE.lat, S.lon ?? DEMO_PLACE.lon], MAP.map.getZoom(), { duration:.6 }); };
 wcSetup(); locSetup(); tickClock(); setInterval(tickClock, 1000);
-locate();
+snapShow();
+{ const sel = FORCE_DEMO ? null : load("selLoc"); if(sel && sel.lat != null){ S.chosen = sel; S.lat = sel.lat; S.lon = sel.lon; S.acc = null; S.demoLoc = false; loadAll(); } else locate(); }
 </script>
 </body>
 </html>
