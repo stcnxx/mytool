@@ -402,7 +402,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-04 20:55</div>
+  <div style="margin-bottom:4px">版：2026-11-04 21:00</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1763,7 +1763,7 @@ const inCapital = () => S.prefName ? /東京|神奈川|埼玉|千葉/.test(S.pre
 const CAP_OTHERS = [["U","#1f6fb8","ゆりかもめ","ゆりかもめ","ゆりかもめ"],["R","#00418e","りんかい線","東京臨海高速鉄道","りんかい"],["MO","#0b5cad","東京モノレール","東京モノレール","モノレール|羽田"],["NT","#e85298","日暮里・舎人ライナー","都営","日暮里|舎人"],["SA","#e85298","都電荒川線","都営","荒川|さくらトラム"]];
 async function loadTrains(){
   // 海外の場所を表示しているときも、「常に表示する路線」があれば欄を出す（自動の対象は国内のみ）
-  const jp = inJapan(); showCard("#trains", true);
+  const jp = inJapan(); showCard("#trains", true); $("#trains").hidden = false;
   if(!jp && !trPins().length){ LAST_TRAINS = null; $("#trains").innerHTML = '<div class="muted" style="font-size:.85rem">日本国外の場所を表示中です。「常に表示する路線」を選ぶと、ここに国内の路線の運行情報が出ます。</div>'; $("#trainTime").textContent = ""; markDemo("train", "#trainH", false); return; }
   const cap = inCapital();
   // データが届く前から「常に表示する路線を選ぶ」ボタンは出しておく
@@ -1907,7 +1907,7 @@ function trNational(){
 }
 function trPins(){ const v = load("trPins"); return Array.isArray(v) ? v : []; }
 function renderTrains(){
-  showCard("#trains", true);
+  showCard("#trains", true); $("#trains").hidden = false;
   const abroad = !inJapan();
   const T = LAST_TRAINS || { pending:true, at:new Date() }, cat = abroad ? [] : trCatalog(), cap = inCapital(), area = trainRegion()[2], pins = trPins();
   const target = abroad ? [] : cat.filter(o => !o.extra);
@@ -3258,7 +3258,7 @@ function snapShow(){
   // 選んだ場所が変わっていたら前回の表示は使わない
   if((sel && !(sn.chosen && Math.abs(sn.chosen.lat - sel.lat) < 1e-3 && Math.abs(sn.chosen.lon - sel.lon) < 1e-3)) || (!sel && sn.chosen)) return false;
   for(const id in sn.el){ const e = document.getElementById(id), v = sn.el[id]; if(!e || !v) continue;
-    e.innerHTML = v.h; e.hidden = !!v.x; const card = e.closest(".card"); if(card) card.hidden = !!v.c; }
+    e.innerHTML = v.h; if(id !== "trains") e.hidden = !!v.x; const card = e.closest(".card"); if(card && id !== "trains") card.hidden = !!v.c; }
   Object.assign(S, sn.st || {});
   if(S.lat != null){ Sky.setLoc(S.lat, S.lon); }
   if(sn.code != null){ W_CODE = sn.code; try{ Sky.setWeather(sn.code); }catch(_){} updateBg(); }
