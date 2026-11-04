@@ -120,7 +120,7 @@ td.d{text-align:left}
 .okline{color:var(--ok);font-weight:600}
 .line-delay{display:flex;justify-content:space-between;gap:8px}
 #jrSheet{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 16px 16px;text-shadow:none}#jrSheet[hidden]{display:none}
-.jrs-list li{justify-content:flex-start!important;align-items:center}.jrs-list input{width:18px!important;height:18px;padding:0!important;margin:0 6px 0 0;flex:none}#jrSheet .muted{color:#64748b}
+.jrs-list li{justify-content:flex-start!important;align-items:center}.jrs-list label{display:flex;align-items:center;gap:6px;width:100%;cursor:pointer}.jrs-co{background:#f1f5f9;font-weight:700;margin-top:6px;border-radius:8px;border-bottom:none!important}.jrs-co .sub{font-weight:400;margin-left:4px}.jrs-ln{padding-left:22px!important}.jrs-list input{width:18px!important;height:18px;padding:0!important;margin:0 6px 0 0;flex:none}#jrSheet .muted{color:#64748b}
 .tr-sec{margin-top:10px}.tr-sec:first-child{margin-top:2px}.tr-h{font-size:.82rem;font-weight:700;margin-bottom:5px;display:flex;align-items:center;gap:6px}.tr-h a{margin-left:auto;font-weight:500;font-size:.74rem}
 .tr-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.tr-grid.two{grid-template-columns:repeat(2,minmax(0,1fr))}.tr-grid.one{grid-template-columns:1fr}
 a.tr-ln{display:flex;align-items:center;gap:5px;min-width:0;padding:6px 7px;border-radius:8px;background:var(--card);border:1px solid var(--line);color:var(--text);text-decoration:none;font-size:.8rem;font-weight:600;white-space:nowrap;letter-spacing:-.02em;text-shadow:none}
@@ -400,7 +400,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-04 20:23</div>
+  <div style="margin-bottom:4px">版：2026-11-04 20:30</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1753,6 +1753,7 @@ async function loadToei(){
   return m;
 }
 let LAST_TRAINS = null;
+const TR_ADD_BTN = `<div class="tr-sec"><a class="tr-ln tr-add" href="#" data-tradd="1" style="max-width:260px">＋ 常に表示する路線を選ぶ</a></div>`;
 // 首都圏（1都3県）にいるか
 const inCapital = () => /東京|神奈川|埼玉|千葉/.test(S.prefName || "");
 // 首都圏の対象：東京メトロ全線・都営全線・ゆりかもめなど・JR東日本の首都圏の路線
@@ -1761,6 +1762,8 @@ async function loadTrains(){
   showCard("#trains", inJapan());
   if(!inJapan()){ markDemo("train", "#trainH", false); return; }
   const cap = inCapital();
+  // データが届く前から「常に表示する路線を選ぶ」ボタンは出しておく
+  if(!LAST_TRAINS) $("#trains").innerHTML = '<div class="muted" style="font-size:.85rem">運行情報を確認しています…</div>' + TR_ADD_BTN;
   if(FORCE_DEMO){   // デモ：サンプルの遅れ
     const t = Math.floor(Date.now()/1000);
     LAST_TRAINS = { demo:true, at:new Date(), near:["JR山手線","JR京浜東北線","東京メトロ丸ノ内線"], delay:[{ name:"東西線", company:"東京メトロ", lastupdate_gmt:t }, { name:"中央線快速電車", company:"JR東日本", lastupdate_gmt:t }, { name:"小田原線", company:"小田急電鉄", lastupdate_gmt:t }],
@@ -1836,29 +1839,51 @@ function renderTrains(){
     for(const v of bad) if(v.s.text) html += `<div class="tr-txt">${esc(v.o.n)}：${esc(v.s.text)}</div>`;
   }
   html += "</div>";
-  html += `<div class="tr-sec"><a class="tr-ln tr-add" href="#" id="jrAdd" style="max-width:240px">＋ 常に表示する路線を選ぶ</a></div>`;
+  html += TR_ADD_BTN;
   const scope = cap ? "東京メトロ全線・都営全線・ゆりかもめ・りんかい線・東京モノレール・JR東日本の首都圏の路線"
     : (T.near && T.near.length ? `表示中の場所の近く（約5km）の駅を通る路線（${T.near.length}路線）と、${area}の鉄道会社の遅れ` : `${area}の鉄道会社`);
   html += `<div class="tr-note">対象：${esc(scope)}。<br>${TR_WARN.replace('class="tr-wi"', 'width="12" height="12" style="vertical-align:-1px"')} 遅れの情報は<a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>（非公式。反映に数分〜10分ほどかかります）`
     + (cap ? `、都営は<a href="https://ckan.odpt.org/dataset/r_train_status-toei" target="_blank" rel="noopener">東京都交通局のオープンデータ</a>（CC BY 4.0）` : "") + (cap ? "" : `、近くの駅は<a href="https://express.heartrails.com/" target="_blank" rel="noopener">HeartRails Express</a>`) + `から。ボタンを押すと運行情報を開きます。</div>`;
   $("#trains").innerHTML = html;
   $("#trainTime").textContent = `${pad(T.at.getHours())}:${pad(T.at.getMinutes())} 確認`;
-  const add = $("#jrAdd"); if(add) add.onclick = e => { e.preventDefault(); jrOpen(); };
   markDemo("train", "#trainH", !!T.demo);
 }
-// 常に表示する路線の選択（首都圏：対象の全路線、首都圏の外：近くの路線＋その地域のJR）
+// 常に表示する路線の選択：鉄道会社ごとにまとめ、会社単位でまとめて選べる
+function trCompanyOf(o){
+  if(o.co === "JR" || o.jr) return o.co && o.co !== "JR" ? o.co : "JR";
+  if(o.co) return o.co;
+  const ln = String(o.near || o.n), m = trainRegion()[3].exec(ln) || /^(.+?(電鉄|鉄道|メトロ|地下鉄|交通|モノレール|ライナー|急行|電車))/.exec(ln);
+  return m ? m[0] : "その他";
+}
 function jrOpen(){
   const cat = trCatalog(), pins = trPins();
   $("#jrsTitle").textContent = "常に表示する路線";
-  const groups = {}; for(const o of cat){ const g = o.co === "JR" || o.jr ? "JR" : (o.co || "近くの路線"); (groups[g] = groups[g] || []).push(o); }
-  $("#jrsList").innerHTML = Object.entries(groups).map(([g, os]) => `<li class="locs-h">${esc(g)}</li>` + os.map(o => `<li><label style="display:flex;align-items:center;gap:6px;width:100%;cursor:pointer"><input type="checkbox" value="${esc(o.id)}"${pins.includes(o.id) ? " checked" : ""}><span class="tr-bd" style="border-color:${o.col}">${esc(o.code)}</span>${esc(o.n)}</label></li>`).join("")).join("")
-    + pins.filter(id => !cat.some(o => o.id === id)).map(id => `<li><label style="display:flex;align-items:center;gap:6px;width:100%;cursor:pointer"><input type="checkbox" value="${esc(id)}" checked>${esc(id.replace("|", " "))}<span class="sub">（ほかの地域）</span></label></li>`).join("");
+  const groups = []; for(const o of cat){ const g = trCompanyOf(o); let G = groups.find(x => x.g === g); if(!G) groups.push(G = { g, os:[] }); G.os.push(o); }
+  const row = o => `<li class="jrs-ln"><label><input type="checkbox" value="${esc(o.id)}"${pins.includes(o.id) ? " checked" : ""}><span class="tr-bd" style="border-color:${o.col}">${esc(o.code)}</span>${esc(o.n)}</label></li>`;
+  const others = pins.filter(id => !cat.some(o => o.id === id));
+  $("#jrsList").innerHTML = groups.map((G, i) => `<li class="jrs-co"><label><input type="checkbox" class="jrs-all" data-g="${i}">${esc(G.g)}<span class="sub">（${G.os.length}路線・まとめて選ぶ）</span></label></li>`
+      + G.os.map(o => row(o).replace('<li class="jrs-ln">', `<li class="jrs-ln" data-g="${i}">`)).join("")).join("")
+    + (others.length ? `<li class="jrs-co"><label>ほかの地域で選んだ路線</label></li>` + others.map(id => `<li class="jrs-ln"><label><input type="checkbox" value="${esc(id)}" checked>${esc(id.replace("|", " "))}</label></li>`).join("") : "");
+  jrSyncAll();
   ovOpen("jr", () => { $("#jrSheet").hidden = true; renderTrains(); });
   $("#jrSheet").hidden = false;
 }
+// 会社の「まとめて選ぶ」の状態（全部・一部・なし）を路線の選択に合わせる
+function jrSyncAll(){
+  for(const a of document.querySelectorAll("#jrsList .jrs-all")){
+    const bs = [...document.querySelectorAll(`#jrsList li.jrs-ln[data-g="${a.dataset.g}"] input`)], n = bs.filter(b => b.checked).length;
+    a.checked = n === bs.length && n > 0; a.indeterminate = n > 0 && n < bs.length;
+  }
+}
 function jrSetup(){
-  const save = () => store("trPins", [...document.querySelectorAll("#jrsList input:checked")].map(i => i.value));
-  $("#jrsList").addEventListener("change", save);
+  const save = () => store("trPins", [...document.querySelectorAll("#jrsList li.jrs-ln input:checked")].map(i => i.value));
+  $("#jrsList").addEventListener("change", e => {
+    const t = e.target;
+    if(t.classList.contains("jrs-all")) document.querySelectorAll(`#jrsList li.jrs-ln[data-g="${t.dataset.g}"] input`).forEach(b => { b.checked = t.checked; });
+    jrSyncAll(); save();
+  });
+  // 「常に表示する路線を選ぶ」：前回の表示を出しているときも押せるように、欄全体で受ける
+  $("#trains").addEventListener("click", e => { const a = e.target.closest("[data-tradd]"); if(!a) return; e.preventDefault(); jrOpen(); });
   $("#jrsClose").onclick = () => ovClose("jr");
   $("#jrSheet").addEventListener("click", e => { if(e.target.id === "jrSheet") ovClose("jr"); });
 }
