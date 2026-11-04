@@ -402,7 +402,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-04 21:00</div>
+  <div style="margin-bottom:4px">版：2026-11-04 21:06</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1663,26 +1663,40 @@ function trainRegion(){ const p = S.prefName || "東京都"; return TR_AREA.find
 function trainLabel(r){ return (r.name || "").trim(); }
 
 /* 遅延データ：直接＋複数の中継サーバーを同時に試し、最初に取れたものを使う */
+// どの経路で取れた／取れなかったかを記録（画面の注記に出す）
+let DELAY_DIAG = "";
 async function getDelayList(){
   if(FORCE_DEMO) throw new Error("デモモード");
-  const url = "https://tetsudo.rti-giken.jp/free/delay.json", enc = encodeURIComponent(url);
+  const url = "https://tetsudo.rti-giken.jp/free/delay.json", enc = encodeURIComponent(url), encH = encodeURIComponent(url.replace("https:", "http:"));
   const tries = [
-    () => fetchText(url, 8000),
-    () => fetchText("https://api.allorigins.win/raw?url=" + enc, 12000),
-    () => fetchText("https://api.allorigins.win/get?url=" + enc, 12000).then(t => JSON.parse(t).contents),
-    () => fetchText("https://api.codetabs.com/v1/proxy/?quest=" + enc, 12000),
-    () => fetchText("https://corsproxy.io/?url=" + enc, 12000),
-    () => fetchText("https://api.cors.lol/?url=" + enc, 12000),
-    () => fetchText("https://whateverorigin.org/get?url=" + enc, 12000).then(t => JSON.parse(t).contents)
+    ["直接", () => fetchText(url, 8000)],
+    ["allorigins", () => fetchText("https://api.allorigins.win/raw?url=" + enc, 12000)],
+    ["allorigins(http)", () => fetchText("https://api.allorigins.win/raw?url=" + encH, 12000)],
+    ["allorigins/get", () => fetchText("https://api.allorigins.win/get?url=" + enc, 12000).then(t => JSON.parse(t).contents)],
+    ["codetabs", () => fetchText("https://api.codetabs.com/v1/proxy/?quest=" + enc, 12000)],
+    ["codetabs(http)", () => fetchText("https://api.codetabs.com/v1/proxy/?quest=" + encH, 12000)],
+    ["corsproxy", () => fetchText("https://corsproxy.io/?url=" + enc, 12000)],
+    ["cors.lol", () => fetchText("https://api.cors.lol/?url=" + enc, 12000)],
+    ["whateverorigin", () => fetchText("https://whateverorigin.org/get?url=" + enc, 12000).then(t => JSON.parse(t).contents)]
   ];
-  return new Promise((res, rej) => {
-    let left = tries.length, done = false;
-    for(const f of tries){
-      f().then(t => { const j = typeof t === "string" ? JSON.parse(t) : t; if(!done && Array.isArray(j)){ done = true; res(j); } })
-         .catch(() => {})
-         .finally(() => { if(--left === 0 && !done) rej(new Error("データ元にも中継サーバーにも接続できませんでした")); });
-    }
-  });
+  const fails = [];
+  try{
+    const list = await new Promise((res, rej) => {
+      let left = tries.length, done = false;
+      for(const [nm, f] of tries){
+        f().then(t => { const j = typeof t === "string" ? JSON.parse(t) : t; if(!Array.isArray(j)) throw new Error("形式違い"); if(!done){ done = true; DELAY_DIAG = "取得：" + nm; res(j); } })
+           .catch(e => { fails.push(nm + ":" + (e && e.message ? e.message.slice(0, 30) : "失敗")); })
+           .finally(() => { if(--left === 0 && !done) rej(new Error("接続できませんでした")); });
+      }
+    });
+    store("delayCache", { at:Date.now(), list });
+    return list;
+  }catch(e){
+    DELAY_DIAG = "失敗（" + fails.join("・") + "）"; quiet("遅延情報", DELAY_DIAG);
+    // 30分以内に取れたものがあればそれを使う
+    const c = load("delayCache"); if(c && Array.isArray(c.list) && Date.now() - c.at < 30*60e3){ DELAY_DIAG += "／" + Math.round((Date.now() - c.at)/60e3) + "分前のデータを表示"; return c.list; }
+    throw e;
+  }
 }
 
 
@@ -1813,7 +1827,7 @@ function trStatus(o){
   const T = LAST_TRAINS, list = T.delay || [];
   if(o.toei && T.toei && T.toei[o.toei]){ const t = T.toei[o.toei]; return { bad:!t.normal, st:t.normal ? "平常運転" : t.status, text:t.normal ? "" : t.text }; }
   const bad = list.some(x => trMatch(x, o));
-  return { bad, st:bad ? "遅れあり" : (T.delay ? "" : "—"), text:"" };
+  return { bad, st:bad ? "遅れあり" : (T.delay ? "" : "不明"), text:"" };
 }
 // 全国の路線（「常に表示する路線」の選択肢）。地域 → 会社 → 路線。会社：[表示名, 遅延データの会社名の照合, 記号, 色, 路線…]
 const NAT_RAIL = [
@@ -1934,6 +1948,7 @@ function renderTrains(){
   html += `<div class="tr-sec"><div class="tr-h">遅れや運行の乱れがある路線</div>`;
   if(T.pending) html += `<div class="muted" style="font-size:.85rem">運行情報を確認しています…</div>`;
   else if(!T.delay && !T.toei) html += `<div class="muted" style="font-size:.85rem">運行情報を取得できませんでした。しばらくしてから更新してください。</div>`;
+  else if(!T.delay && !badShow.length) html += `<div class="err" style="font-size:.85rem">遅延情報を取得できなかったため、都営以外の遅れは確認できていません（「不明」）。各路線のボタンから公式の運行情報を確認してください。</div>`;
   else if(!badShow.length && !other.length) html += `<div class="okline" style="margin:4px 0">✓ ${bad.length ? "上の路線以外に" : ""}遅れの情報はありません</div>`;
   else{
     html += `<div class="tr-grid one">` + badShow.map(v => trBtn(v.o.code, v.o.col, `${v.o.co && v.o.co !== "JR" && v.o.co !== v.o.n ? v.o.co + " " : ""}${v.o.n}`, v.o.href, true, v.s.st && v.s.st !== "遅れあり" ? v.s.st : "")).join("")
@@ -1944,7 +1959,7 @@ function renderTrains(){
   const scope = cap ? "東京メトロ全線・都営全線・ゆりかもめ・りんかい線・東京モノレール・JR東日本の首都圏の路線"
     : (T.near && T.near.length ? `表示中の場所の近く（約5km）の駅を通る路線（${T.near.length}路線）と、${area}の鉄道会社の遅れ` : `${area}の鉄道会社`);
   html += `<div class="tr-note">対象：${esc(scope)}。<br>${TR_WARN.replace('class="tr-wi"', 'width="12" height="12" style="vertical-align:-1px"')} 遅れの情報は<a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>（非公式。反映に数分〜10分ほどかかります）`
-    + (cap ? `、都営は<a href="https://ckan.odpt.org/dataset/r_train_status-toei" target="_blank" rel="noopener">東京都交通局のオープンデータ</a>（CC BY 4.0）` : "") + (cap ? "" : `、近くの駅は<a href="https://express.heartrails.com/" target="_blank" rel="noopener">HeartRails Express</a>`) + `から。ボタンを押すと運行情報を開きます。</div>`;
+    + (cap ? `、都営は<a href="https://ckan.odpt.org/dataset/r_train_status-toei" target="_blank" rel="noopener">東京都交通局のオープンデータ</a>（CC BY 4.0）` : "") + (cap ? "" : `、近くの駅は<a href="https://express.heartrails.com/" target="_blank" rel="noopener">HeartRails Express</a>`) + `から。ボタンを押すと運行情報を開きます。<br><span style="opacity:.7">遅延情報の${esc(DELAY_DIAG || "取得：—")}</span></div>`;
   $("#trains").innerHTML = html;
   $("#trainTime").textContent = T.pending ? "" : `${pad(T.at.getHours())}:${pad(T.at.getMinutes())} 確認`;
   markDemo("train", "#trainH", !!T.demo);
