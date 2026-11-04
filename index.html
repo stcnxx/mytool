@@ -37,7 +37,7 @@ h1{font-size:1.15rem;margin:0;display:flex;align-items:center;gap:6px}
 .place-row #place{font-size:.95rem;color:var(--text);min-width:0}
 .btn-row{display:flex;gap:6px;align-items:center}
 .btn-row .refresh{margin-left:auto}
-.btn-row .refresh:disabled{opacity:.55}
+.btn-row .refresh.busy{opacity:.75}
 #place{font-size:.85rem;color:var(--muted)}
 button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);
   border-radius:10px;padding:6px 12px;cursor:pointer}
@@ -402,7 +402,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-04 20:47</div>
+  <div style="margin-bottom:4px">版：2026-11-04 20:49</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -3264,7 +3264,7 @@ async function loadAll(){
   // 読み込み中に呼ばれたら（場所の変更など）、前の読み込みを打ち切ってすぐ新しく始める
   if(loading){ LOAD_AC.abort(); LOAD_AC = new AbortController(); }
   const gen = ++LOAD_GEN; loading = true;
-  $("#refresh").disabled = true;
+  $("#refresh").classList.add("busy");
   S.elevText = ""; renderPlace(false);
   Sky.setLoc(S.lat, S.lon); updateBg();
   const pElev = loadElevation();
@@ -3283,7 +3283,7 @@ async function loadAll(){
   ]);
   if(gen !== LOAD_GEN) return;   // 途中で新しい読み込みが始まっていたら何もしない
   loading = false; lastLoad = Date.now();
-  $("#refresh").disabled = false;
+  $("#refresh").classList.remove("busy");
   snapSave();
 }
 
