@@ -402,7 +402,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-04 20:49</div>
+  <div style="margin-bottom:4px">版：2026-11-04 20:55</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1762,8 +1762,9 @@ const inCapital = () => S.prefName ? /東京|神奈川|埼玉|千葉/.test(S.pre
 // 首都圏の対象：東京メトロ全線・都営全線・ゆりかもめなど・JR東日本の首都圏の路線
 const CAP_OTHERS = [["U","#1f6fb8","ゆりかもめ","ゆりかもめ","ゆりかもめ"],["R","#00418e","りんかい線","東京臨海高速鉄道","りんかい"],["MO","#0b5cad","東京モノレール","東京モノレール","モノレール|羽田"],["NT","#e85298","日暮里・舎人ライナー","都営","日暮里|舎人"],["SA","#e85298","都電荒川線","都営","荒川|さくらトラム"]];
 async function loadTrains(){
-  showCard("#trains", inJapan());
-  if(!inJapan()){ markDemo("train", "#trainH", false); return; }
+  // 海外の場所を表示しているときも、「常に表示する路線」があれば欄を出す（自動の対象は国内のみ）
+  const jp = inJapan(); showCard("#trains", true);
+  if(!jp && !trPins().length){ LAST_TRAINS = null; $("#trains").innerHTML = '<div class="muted" style="font-size:.85rem">日本国外の場所を表示中です。「常に表示する路線」を選ぶと、ここに国内の路線の運行情報が出ます。</div>'; $("#trainTime").textContent = ""; markDemo("train", "#trainH", false); return; }
   const cap = inCapital();
   // データが届く前から「常に表示する路線を選ぶ」ボタンは出しておく
   if(FORCE_DEMO){   // デモ：サンプルの遅れ
@@ -1772,7 +1773,8 @@ async function loadTrains(){
       toei:{ Asakusa:{ normal:true }, Mita:{ normal:true }, Oedo:{ normal:true }, Shinjuku:{ normal:false, status:"遅延", text:"（サンプル）市ケ谷駅での車両点検の影響で、上下線に遅れが出ています。" } } };
     renderTrains(); return;
   }
-  const [dl, toei, nj] = await Promise.allSettled([getDelayList(), cap ? loadToei() : Promise.resolve(null), nearJR()]);
+  const pinToei = trPins().some(id => id.startsWith("都営|"));
+  const [dl, toei, nj] = await Promise.allSettled([getDelayList(), (cap || pinToei) ? loadToei() : Promise.resolve(null), jp ? nearJR() : Promise.resolve([])]);
   LAST_TRAINS = { delay:dl.status === "fulfilled" ? dl.value : null, toei:toei.status === "fulfilled" ? toei.value : null, near:nj.status === "fulfilled" ? nj.value : null, at:new Date() };
   renderTrains();
 }
@@ -1905,8 +1907,10 @@ function trNational(){
 }
 function trPins(){ const v = load("trPins"); return Array.isArray(v) ? v : []; }
 function renderTrains(){
-  const T = LAST_TRAINS || { pending:true, at:new Date() }, cat = trCatalog(), cap = inCapital(), area = trainRegion()[2], pins = trPins();
-  const target = cat.filter(o => !o.extra);
+  showCard("#trains", true);
+  const abroad = !inJapan();
+  const T = LAST_TRAINS || { pending:true, at:new Date() }, cat = abroad ? [] : trCatalog(), cap = inCapital(), area = trainRegion()[2], pins = trPins();
+  const target = abroad ? [] : cat.filter(o => !o.extra);
   // 1件の遅延情報（例：「京浜東北根岸線」）が複数の路線に当たるときは、最初の路線だけに出す
   const used = new Set();
   const bad = target.map(o => ({ o, s:trStatus(o) })).filter(v => {
@@ -1916,12 +1920,17 @@ function renderTrains(){
     hits.forEach(x => used.add(x)); return true; });
   // 首都圏の外で、近くの路線に当たらない遅れも「この地域の会社」なら出す
   let other = [];
-  if(!cap && T.delay){ const [, , , coRe] = trainRegion(); other = T.delay.filter(x => coRe.test((x.company || "") + " " + (x.name || "")) && !target.some(o => trMatch(x, o))); }
+  if(!cap && !abroad && T.delay){ const [, , , coRe] = trainRegion(); other = T.delay.filter(x => coRe.test((x.company || "") + " " + (x.name || "")) && !target.some(o => trMatch(x, o))); }
   const NAT = trNational(), pinned = pins.map(id => NAT.find(o => o.id === id) || cat.find(o => o.id === id) || (() => { const [co, n] = id.split("|"); return { id, co, n, code:co.startsWith("JR") ? "JR" : "●", col:"#9ca3af", href:"https://www.google.com/search?q=" + encodeURIComponent(`${co} ${n} 運行情報`), near:(co === "JR" ? "JR" : "") + n }; })());
   let html = "";
   if(pinned.length) html += `<div class="tr-sec"><div class="tr-h">常に表示する路線</div><div class="tr-grid two">`
     + pinned.map(o => { const s = trStatus(o), co = o.co && !/^(東京メトロ|都営|JR東日本)$/.test(o.co) && o.co !== o.n ? o.co.replace(/市営地下鉄|市地下鉄/, "市営") + " " : ""; return trBtn(o.code, o.col, co + o.n, o.href, s.bad, s.st || "平常"); }).join("") + "</div></div>";
   const badShow = bad.filter(v => !pins.includes(v.o.id));
+  if(abroad){
+    html += `<div class="tr-note">日本国外の場所を表示中のため、自動で出す路線はありません（常に表示する路線だけを表示しています）。</div>`;
+    $("#trains").innerHTML = html; $("#trainTime").textContent = T.pending ? "" : `${pad(T.at.getHours())}:${pad(T.at.getMinutes())} 確認`;
+    markDemo("train", "#trainH", !!T.demo); return;
+  }
   html += `<div class="tr-sec"><div class="tr-h">遅れや運行の乱れがある路線</div>`;
   if(T.pending) html += `<div class="muted" style="font-size:.85rem">運行情報を確認しています…</div>`;
   else if(!T.delay && !T.toei) html += `<div class="muted" style="font-size:.85rem">運行情報を取得できませんでした。しばらくしてから更新してください。</div>`;
@@ -1979,7 +1988,7 @@ function jrSetup(){
   });
   // 「常に表示する路線を選ぶ」：前回の表示を出しているときも押せるように、欄全体で受ける
   document.addEventListener("click", e => { const a = e.target.closest("[data-tradd]"); if(!a) return; e.preventDefault(); jrOpen(); });
-  $("#jrsClose").onclick = () => ovClose("jr");
+  $("#jrsClose").onclick = () => { ovClose("jr"); $("#jrSheet").hidden = true; renderTrains(); if(trPins().length && !LAST_TRAINS) loadTrains(); };
   $("#jrSheet").addEventListener("click", e => { if(e.target.id === "jrSheet") ovClose("jr"); });
 }
 
