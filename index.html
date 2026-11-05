@@ -403,7 +403,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-05 22:19</div>
+  <div style="margin-bottom:4px">版：2026-11-05 22:24</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2397,7 +2397,7 @@ const PLANE = (() => {
     ETD:["EY","#a8875a"],DAL:["DL","#0b2a5b"],UAL:["UA","#1c3f94"],AAL:["AA","#0078d2"],ACA:["AC","#c8102e"],AFR:["AF","#0b2a6e"],BAW:["BA","#1b3c8a"],DLH:["LH","#0b2a5b"],KLM:["KL","#00a1de"],
     FIN:["AY","#0b2a6e"],SWR:["LX","#c8102e"],TAY:["","#555555"],FDX:["FX","#4d148c"],UPS:["5X","#6b4a2a"],ASL:["","#555555"],JBU:["B6","#003876"],HAL:["HA","#5b2d82"],TWB:["TW","#c8102e"],
     JNA:["LJ","#e2231a"],TGW:["TR","#f2b230"],ZIP:["ZG","#1e1e1e"],AIQ:["FD","#d41f26"],CEB:["5J","#f4c300"],HKE:["UO","#6b2d82"],AXM:["AK","#d41f26"],RYA:["","#555555"] };
-  let lastErr = "", inView = 0, list = [], at = 0, state = "idle", timer = 0, routes = {}, routeAsk = new Set(), trails = {}, failShown = false;
+  let busy = false, lastErr = "", inView = 0, list = [], at = 0, state = "idle", timer = 0, routes = {}, routeAsk = new Set(), trails = {}, failShown = false;
   const ft2m = f => f * .3048, kt2ms = k => k * .514444;
   async function fetchPlanes(lat, lon){
     const nm = 65;   // 約120km
@@ -2409,13 +2409,17 @@ const PLANE = (() => {
     ];
     // 直接 → 中継サーバー経由の順に試す（ブラウザから直接読めないサイトがあるため）
     const via = u => [["", u], ["中継", "https://api.allorigins.win/raw?url=" + encodeURIComponent(u)], ["中継2", "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u)]];
-    const fails = [];
-    for(const [nm2, url, conv] of opts) for(const [vn, u] of via(url)){
-      try{ const j = JSON.parse(await fetchText(u, 10000, true)); const a = conv(j); if(Array.isArray(a)) return { src:nm2 + (vn ? "・" + vn : ""), ac:a }; fails.push(nm2 + vn + ":形式違い"); }
-      catch(e){ fails.push(nm2 + vn + ":" + String(e && e.message || e).slice(0, 20)); }
-    }
-    lastErr = fails.join(" / ");
-    throw new Error("取得失敗");
+    // すべての経路を同時に試して、最初に取れたものを使う（順番に待つと最大で1分以上かかるため）
+    const fails = [], jobs = [];
+    for(const [nm2, url, conv] of opts) for(const [vn, u] of via(url)) jobs.push([nm2 + (vn ? "・" + vn : ""), u, conv]);
+    return await new Promise((res, rej) => {
+      let left = jobs.length, done = false;
+      for(const [name, u, conv] of jobs){
+        fetchText(u, 9000, true).then(t => { const a = conv(JSON.parse(t)); if(!Array.isArray(a)) throw new Error("形式違い"); if(!done){ done = true; res({ src:name, ac:a }); } })
+          .catch(e => { fails.push(name + ":" + String(e && e.message || e).slice(0, 20)); })
+          .finally(() => { if(--left === 0 && !done){ lastErr = fails.join(" / "); rej(new Error("取得失敗")); } });
+      }
+    });
   }
   // 便名から路線（出発地→到着地）を調べる（まとめて1回、結果は覚えておく）
   async function fetchRoutes(ac){
@@ -2430,10 +2434,12 @@ const PLANE = (() => {
     }catch(e){ quiet("路線", e); }
     ask.forEach(a => { routeAsk.delete(a.cs); if(!(a.cs in routes)) routes[a.cs] = null; });
   }
+  let t0 = 0;
   async function refresh(){
-    if(!SKYV.plane || document.visibilityState !== "visible" || S.lat == null) return;
-    if(state === "loading") return;
-    state = list.length ? "ok" : "loading";
+    if(!SKYV.plane || document.visibilityState !== "visible") return;
+    if(S.lat == null){ setTimeout(refresh, 1000); return; }   // 場所が決まったらすぐ取りに行く
+    if(busy) return;
+    busy = true; t0 = Date.now(); if(!list.length) state = "loading";
     try{
       const { src, ac } = await fetchPlanes(S.lat, S.lon);
       const t = Date.now();
@@ -2443,9 +2449,9 @@ const PLANE = (() => {
         const tr = trails[o.id] || (trails[o.id] = []); tr.push([o.lat, o.lon, o.alt, t]); while(tr.length > 8) tr.shift();
         return o; }).filter(o => o.alt != null && o.alt > 150);
       for(const k in trails) if(!list.some(o => o.id === k)) delete trails[k];
-      at = t; state = "ok"; failShown = false; lastErr = ""; PLANE.src = src;
+      at = t; state = "ok"; failShown = false; lastErr = ""; PLANE.src = src; busy = false;
       fetchRoutes(list);
-    }catch(e){ quiet("飛行機", e); state = list.length ? "ok" : "error";
+    }catch(e){ busy = false; quiet("飛行機", e); state = list.length ? "ok" : "error";
       if(!failShown && !list.length){ failShown = true; const el = document.getElementById("svToast"); if(el){ el.textContent = "飛行機の位置を取得できませんでした"; el.hidden = false; setTimeout(() => { el.hidden = true; }, 4000); } } }
   }
   function toggle(on){
@@ -2512,7 +2518,7 @@ const PLANE = (() => {
     x.restore();
   }
   function status(){
-    if(state === "loading" || state === "idle") return "飛行機：読み込み中…";
+    if(state === "loading" || state === "idle") return `飛行機：読み込み中…${t0 ? `（${Math.round((Date.now() - t0)/1000)}秒）` : ""}`;
     if(state === "error") return "飛行機：位置を取得できませんでした" + (lastErr ? `（${lastErr}）` : "");
     const up = list.length;
     return `飛行機：周辺${up}機・この向きに${inView}機（${PLANE.src || ""}）`;
