@@ -403,7 +403,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-05 22:04</div>
+  <div style="margin-bottom:4px">版：2026-11-05 22:19</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2397,7 +2397,7 @@ const PLANE = (() => {
     ETD:["EY","#a8875a"],DAL:["DL","#0b2a5b"],UAL:["UA","#1c3f94"],AAL:["AA","#0078d2"],ACA:["AC","#c8102e"],AFR:["AF","#0b2a6e"],BAW:["BA","#1b3c8a"],DLH:["LH","#0b2a5b"],KLM:["KL","#00a1de"],
     FIN:["AY","#0b2a6e"],SWR:["LX","#c8102e"],TAY:["","#555555"],FDX:["FX","#4d148c"],UPS:["5X","#6b4a2a"],ASL:["","#555555"],JBU:["B6","#003876"],HAL:["HA","#5b2d82"],TWB:["TW","#c8102e"],
     JNA:["LJ","#e2231a"],TGW:["TR","#f2b230"],ZIP:["ZG","#1e1e1e"],AIQ:["FD","#d41f26"],CEB:["5J","#f4c300"],HKE:["UO","#6b2d82"],AXM:["AK","#d41f26"],RYA:["","#555555"] };
-  let list = [], at = 0, state = "idle", timer = 0, routes = {}, routeAsk = new Set(), trails = {}, failShown = false;
+  let lastErr = "", inView = 0, list = [], at = 0, state = "idle", timer = 0, routes = {}, routeAsk = new Set(), trails = {}, failShown = false;
   const ft2m = f => f * .3048, kt2ms = k => k * .514444;
   async function fetchPlanes(lat, lon){
     const nm = 65;   // 約120km
@@ -2407,12 +2407,15 @@ const PLANE = (() => {
       ["OpenSky", `https://opensky-network.org/api/states/all?lamin=${lat-1.1}&lomin=${lon-1.35}&lamax=${lat+1.1}&lomax=${lon+1.35}`,
         j => (j.states || []).map(s => ({ hex:s[0], flight:(s[1] || "").trim(), lat:s[6], lon:s[5], alt_geom:s[13] != null ? s[13]/.3048 : (s[7] != null ? s[7]/.3048 : null), gs:s[9] != null ? s[9]/.514444 : 0, track:s[10] || 0, ground:s[8] }))]
     ];
-    let err;
-    for(const [nm2, url, conv] of opts){
-      try{ const j = JSON.parse(await fetchText(url, 12000, true)); const a = conv(j); if(Array.isArray(a)) return { src:nm2, ac:a }; }
-      catch(e){ err = e; }
+    // 直接 → 中継サーバー経由の順に試す（ブラウザから直接読めないサイトがあるため）
+    const via = u => [["", u], ["中継", "https://api.allorigins.win/raw?url=" + encodeURIComponent(u)], ["中継2", "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u)]];
+    const fails = [];
+    for(const [nm2, url, conv] of opts) for(const [vn, u] of via(url)){
+      try{ const j = JSON.parse(await fetchText(u, 10000, true)); const a = conv(j); if(Array.isArray(a)) return { src:nm2 + (vn ? "・" + vn : ""), ac:a }; fails.push(nm2 + vn + ":形式違い"); }
+      catch(e){ fails.push(nm2 + vn + ":" + String(e && e.message || e).slice(0, 20)); }
     }
-    throw err || new Error("取得失敗");
+    lastErr = fails.join(" / ");
+    throw new Error("取得失敗");
   }
   // 便名から路線（出発地→到着地）を調べる（まとめて1回、結果は覚えておく）
   async function fetchRoutes(ac){
@@ -2440,7 +2443,7 @@ const PLANE = (() => {
         const tr = trails[o.id] || (trails[o.id] = []); tr.push([o.lat, o.lon, o.alt, t]); while(tr.length > 8) tr.shift();
         return o; }).filter(o => o.alt != null && o.alt > 150);
       for(const k in trails) if(!list.some(o => o.id === k)) delete trails[k];
-      at = t; state = "ok"; failShown = false; PLANE.src = src;
+      at = t; state = "ok"; failShown = false; lastErr = ""; PLANE.src = src;
       fetchRoutes(list);
     }catch(e){ quiet("飛行機", e); state = list.length ? "ok" : "error";
       if(!failShown && !list.length){ failShown = true; const el = document.getElementById("svToast"); if(el){ el.textContent = "飛行機の位置を取得できませんでした"; el.hidden = false; setTimeout(() => { el.hidden = true; }, 4000); } } }
@@ -2464,7 +2467,7 @@ const PLANE = (() => {
   function now(o, ms){ const dt = Math.min(60, (ms - o.t)/1000), d = o.v*dt, a = o.trk*D2R;
     return [o.lat + d*Math.cos(a)/111320, o.lon + d*Math.sin(a)/(111320*Math.cos(o.lat*D2R))]; }
   function draw(x, P, Wc, hy, kk, sk, LB){
-    if(!list.length) return;
+    if(!list.length){ inView = 0; return; }
     const ms = Date.now(), half = SKYV.fov/2 + 10, items = [];
     for(const o of list){
       const [la, lo] = now(o, ms), L = look(la, lo, o.alt, sk);
@@ -2474,6 +2477,7 @@ const PLANE = (() => {
       const a2 = o.trk*D2R, la2 = la + 2000*Math.cos(a2)/111320, lo2 = lo + 2000*Math.sin(a2)/(111320*Math.cos(la*D2R)), L2 = look(la2, lo2, o.alt, sk), p2 = P(L2.az, L2.alt);
       items.push({ o, p, ang:Math.atan2(p2.y - p.y, p2.x - p.x), dist:L.dist });
     }
+    inView = items.length;
     items.sort((a, b) => b.dist - a.dist);   // 遠い順に描いて、近い機体を上に
     x.save();
     for(const it of items){
@@ -2507,7 +2511,13 @@ const PLANE = (() => {
     }
     x.restore();
   }
-  return { toggle, draw, refresh, look, _dbg:() => ({ n:list.length, state, routes, failShown }), _set:(a, r) => { list = a; routes = r || routes; at = Date.now(); state = "ok"; } };
+  function status(){
+    if(state === "loading" || state === "idle") return "飛行機：読み込み中…";
+    if(state === "error") return "飛行機：位置を取得できませんでした" + (lastErr ? `（${lastErr}）` : "");
+    const up = list.length;
+    return `飛行機：周辺${up}機・この向きに${inView}機（${PLANE.src || ""}）`;
+  }
+  return { toggle, draw, refresh, look, status, _dbg:() => ({ n:list.length, state, routes, failShown }), _set:(a, r) => { list = a; routes = r || routes; at = Date.now(); state = "ok"; } };
 })();
 try{ window.__plane = PLANE; }catch(_){}
 function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
@@ -2729,7 +2739,7 @@ function updateInfo(){
   const phase = SKYV.night ? '夜にした表示（太陽なし）' : sa > 0 ? '昼' : sa > -6 ? '薄明' : sa > -18 ? (placeNow().getHours() < 12 ? '明け方' : '夕暮れ') : '夜';
   SAT.info();
   document.getElementById('skyInfo').textContent =
-    `${phase}・月齢${age.toFixed(1)}（${moonName(age)}）・月は${sk.moon.alt > 0 ? `${azName(sk.moon.az)}の空 高さ${Math.round(sk.moon.alt)}°` : '地平線の下'}`;
+    `${phase}・月齢${age.toFixed(1)}（${moonName(age)}）・月は${sk.moon.alt > 0 ? `${azName(sk.moon.az)}の空 高さ${Math.round(sk.moon.alt)}°` : '地平線の下'}` + (SKYV.plane ? "　" + PLANE.status() : "");
 }
 function aimDefault(){
   if(SKYV.aimed) return; SKYV.aimed = true;
