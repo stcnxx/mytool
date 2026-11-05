@@ -403,7 +403,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-05 22:24</div>
+  <div style="margin-bottom:4px">版：2026-11-06 05:30</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -458,11 +458,17 @@ async function fetchText(url, ms = 9000, keep = false){
     throw e;
   } finally { clearTimeout(t); if(outer) outer.removeEventListener("abort", onAb); }
 }
+// 自分専用の中継（Cloudflare Workers）。My Spot のページからだけ使える。決めたサイトだけを中継する
+const MY_PROXY = "https://myspot-proxy.tomot8086.workers.dev/?url=";
+const wk = u => MY_PROXY + encodeURIComponent(u);
+// 専用中継が受け付けるサイト（Worker 側の ALLOW_HOSTS と同じ）
+const WK_HOSTS = ["api.adsb.lol","api.airplanes.live","opensky-network.org","tetsudo.rti-giken.jp","www.jma.go.jp","celestrak.org"];
+const wkOK = u => { try{ return WK_HOSTS.includes(new URL(u).hostname); }catch(_){ return false; } };
 async function getJSON(url, { proxy = false, keep = false } = {}){
   if(FORCE_DEMO) throw new Error("デモモード");
-  const tries = [url];
+  // 中継が必要なサイトは、まず自分専用の中継（速くて安定）→ 直接 → 公開の中継サーバーの順に試す
+  const tries = proxy && wkOK(url) ? [wk(url), url] : [url];
   if(proxy) tries.push(
-    "https://corsproxy.io/?url=" + encodeURIComponent(url),
     "https://api.allorigins.win/raw?url=" + encodeURIComponent(url),
     "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(url)
   );
@@ -1681,6 +1687,7 @@ function getDelayList(){
 async function getDelayListNow(){
   const url = "https://tetsudo.rti-giken.jp/free/delay.json", enc = encodeURIComponent(url), encH = encodeURIComponent(url.replace("https:", "http:"));
   const T = 20000, tries = [
+    ["専用中継", () => fetchText(wk(url), T, true)],
     ["直接", () => fetchText(url, T, true)],
     ["allorigins", () => fetchText("https://api.allorigins.win/raw?url=" + enc, T, true)],
     ["allorigins(http)", () => fetchText("https://api.allorigins.win/raw?url=" + encH, T, true)],
@@ -2285,7 +2292,7 @@ const SAT = (() => {
   }
   const sunAlt = (jd, lat, lon) => { const se = sunEq(jd); return eqToHor(se.ra, se.dec, jd, lat, lon).alt; };
   async function getText(url){
-    const tries = [url, "https://corsproxy.io/?url=" + encodeURIComponent(url), "https://api.allorigins.win/raw?url=" + encodeURIComponent(url)];
+    const tries = [wk(url), url, "https://api.allorigins.win/raw?url=" + encodeURIComponent(url)];
     let err; for(const u of tries){ try{ const t = await fetchText(u, 9000, true); if(/^1 \d{5}/m.test(t)) return t; err = new Error("TLE"); }catch(e){ err = e; } }
     throw err;
   }
@@ -2408,10 +2415,10 @@ const PLANE = (() => {
         j => (j.states || []).map(s => ({ hex:s[0], flight:(s[1] || "").trim(), lat:s[6], lon:s[5], alt_geom:s[13] != null ? s[13]/.3048 : (s[7] != null ? s[7]/.3048 : null), gs:s[9] != null ? s[9]/.514444 : 0, track:s[10] || 0, ground:s[8] }))]
     ];
     // 直接 → 中継サーバー経由の順に試す（ブラウザから直接読めないサイトがあるため）
-    const via = u => [["", u], ["中継", "https://api.allorigins.win/raw?url=" + encodeURIComponent(u)], ["中継2", "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u)]];
+    const via = u => [["・専用中継", wk(u)], ["", u], ["中継", "https://api.allorigins.win/raw?url=" + encodeURIComponent(u)], ["中継2", "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u)]];
     // すべての経路を同時に試して、最初に取れたものを使う（順番に待つと最大で1分以上かかるため）
     const fails = [], jobs = [];
-    for(const [nm2, url, conv] of opts) for(const [vn, u] of via(url)) jobs.push([nm2 + (vn ? "・" + vn : ""), u, conv]);
+    for(const [nm2, url, conv] of opts) for(const [vn, u] of via(url)) jobs.push([nm2 + (vn ? (vn[0] === "・" ? vn : "・" + vn) : ""), u, conv]);
     return await new Promise((res, rej) => {
       let left = jobs.length, done = false;
       for(const [name, u, conv] of jobs){
@@ -2427,7 +2434,7 @@ const PLANE = (() => {
     if(!ask.length) return;
     ask.forEach(a => routeAsk.add(a.cs));
     try{
-      const r = await fetch("https://api.adsb.lol/api/0/routeset", { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ planes:ask.map(a => ({ callsign:a.cs, lat:a.lat, lng:a.lon })) }) });
+      const r = await fetch(wk("https://api.adsb.lol/api/0/routeset"), { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ planes:ask.map(a => ({ callsign:a.cs, lat:a.lat, lng:a.lon })) }) });
       const j = await r.json();
       for(const x of (Array.isArray(j) ? j : [])){ const cs = (x.callsign || "").trim(), ap = x._airport_codes_iata || x.airport_codes || "";
         if(cs) routes[cs] = /^[A-Z0-9]{3}(-[A-Z0-9]{3})+$/.test(ap) ? ap.split("-") : null; }
