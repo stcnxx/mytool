@@ -403,7 +403,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-06 05:30</div>
+  <div style="margin-bottom:4px">版：2026-11-06 05:38</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1973,6 +1973,7 @@ function renderTrains(){
     for(const v of bad) if(v.s.text) html += `<div class="tr-txt">${esc(v.o.n)}：${esc(v.s.text)}</div>`;
   }
   if(!T.pending && !T.delay) html += `<div class="tr-note" style="margin-top:6px">${T.toei ? "都営以外の路線（東京メトロ・JRなど）は" : "いまは遅れの情報を自動で確認できないため、"}ボタンから公式の運行情報で確認してください。</div>`;
+  if(!T.pending && !T.delay && DELAY_DIAG) html += `<div class="tr-note" style="margin-top:2px;opacity:.7">遅延情報の${esc(DELAY_DIAG.replace(/・/g, " / "))}</div>`;
   html += "</div>";
   const scope = cap ? "東京メトロ全線・都営全線・ゆりかもめ・りんかい線・東京モノレール・JR東日本の首都圏の路線"
     : (T.near && T.near.length ? `表示中の場所の近く（約5km）の駅を通る路線（${T.near.length}路線）と、${area}の鉄道会社の遅れ` : `${area}の鉄道会社`);
