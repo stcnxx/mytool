@@ -206,9 +206,9 @@ body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opa
 #skyv.pseudo-full{position:fixed;inset:0;height:100vh;height:100dvh;z-index:50}
 #skyv canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none}
 #skyv .sv-top{position:absolute;top:8px;left:0;right:0;text-align:center;color:#fff;font-size:12px;font-weight:600;letter-spacing:.06em;text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:none}
-#skyv .sv-bar{position:absolute;left:8px;right:8px;bottom:12px;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+#skyv .sv-bar{position:absolute;left:8px;right:8px;bottom:12px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
 #skyv .sv-bar button{min-width:0;height:26px;margin:0;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;overflow:hidden;white-space:nowrap;line-height:1.15;background:rgba(24,22,44,.6);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:5px;padding:0 2px;font-size:12px;font-weight:600;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
-#skyv .sv-bar button{font-size:clamp(7.5px,2.4vw,10.5px)}#skyv .sv-bar button b{display:inline;font-size:1em;font-weight:700;letter-spacing:0}#skyv .sv-bar button i{display:inline;font-style:normal;font-size:1em;font-weight:500;opacity:.85;letter-spacing:0}
+#skyv .sv-bar button{font-size:clamp(8.5px,2.75vw,11.5px)}#skyv .sv-bar button b{display:inline;font-size:1em;font-weight:700;letter-spacing:0}#skyv .sv-bar button i{display:inline;font-style:normal;font-size:1em;font-weight:500;opacity:.85;letter-spacing:0}
 #skyv .sv-sat{position:absolute;top:30px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);box-sizing:border-box;padding:4px 12px;border-radius:12px;background:rgba(20,24,40,.75);border:1px solid rgba(255,210,90,.6);color:#ffe9a8;font-size:clamp(10px,2.9vw,11.5px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 #skyv:fullscreen .sv-sat,#skyv.pseudo-full .sv-sat,#skyv:-webkit-full-screen .sv-sat{top:calc(env(safe-area-inset-top,0px) + 68px)}
 #skyv .sv-toast{position:absolute;left:50%;bottom:calc(14% + 34px);transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);box-sizing:border-box;padding:7px 12px;border-radius:10px;background:rgba(20,24,40,.85);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:12px;line-height:1.45;text-align:center;white-space:pre-line;pointer-events:none;z-index:2}
@@ -391,18 +391,19 @@ footer{background:none!important}
       <div class="sv-toast" id="svToast" hidden></div>
       <div class="sv-hint" id="svHint">左右にドラッグで見回す・月をタップで拡大</div>
       <div class="sv-bar">
-        <button type="button" id="svMoon"><b>月の方角</b></button>
         <button type="button" id="svNight" aria-pressed="false"><b>夜</b></button>
-        <button type="button" id="svLines" aria-pressed="true"><b>星座</b><i>ON</i></button>
-        <button type="button" id="svSat" aria-pressed="false"><b>人工衛星</b><i>OFF</i></button>
-        <button type="button" id="svFull" aria-pressed="false"><b>全画面</b><i>OFF</i></button>
+        <button type="button" id="svMoon" title="月の方角を向く"><b>月</b></button>
+        <button type="button" id="svLines" aria-pressed="true"><b>星座</b></button>
+        <button type="button" id="svSat" aria-pressed="false"><b>人工衛星</b></button>
+        <button type="button" id="svPlane" aria-pressed="false"><b>飛行機</b></button>
+        <button type="button" id="svFull" aria-pressed="false"><b>全画面</b></button>
       </div>
     </div>
   </section>
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-05 06:45</div>
+  <div style="margin-bottom:4px">版：2026-11-05 22:04</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2384,6 +2385,131 @@ const SAT = (() => {
   }
   return { load, draw, info, look, parse, recs:() => recs };
 })();
+/* ---------- 飛行機（ADS-B のオープンデータ）：現在地から約120km以内の機体を、見える方角・高さに描く ----------
+   位置：adsb.lol（登録不要・ODbL）→ 取れなければ airplanes.live → OpenSky Network（匿名）
+   行き先：adsb.lol の路線データ（便名 → 出発地・到着地）。分からなければ便名だけ */
+const PLANE = (() => {
+  // ICAO 3文字 → [IATA 2文字, 札の色]
+  const AL = { JAL:["JL","#c8102e"],ANA:["NH","#1b4ea0"],SKY:["BC","#1a73c2"],ADO:["HD","#2a8fd6"],SNJ:["6J","#3fa34d"],SFJ:["7G","#222222"],APJ:["MM","#d0256b"],JJP:["GK","#bf1e2e"],TZP:["ZG","#1e1e1e"],SJO:["IJ","#2b9ad6"],
+    JTA:["NU","#c8102e"],JAC:["JC","#c8102e"],IBX:["FW","#0093d0"],AKX:["NH","#1b4ea0"],ORC:["OC","#3a7bbf"],FDA:["JH","#d22f6a"],JLJ:["JL","#c8102e"],
+    SIA:["SQ","#1f3c78"],CPA:["CX","#00665e"],KAL:["KE","#2c87c8"],AAR:["OZ","#7a5b3a"],EVA:["BR","#007a4d"],CAL:["CI","#c8326a"],CCA:["CA","#c8102e"],CES:["MU","#1d3f8a"],CSN:["CZ","#2f86c9"],
+    THA:["TG","#5b2d82"],MAS:["MH","#0a2d6e"],GIA:["GA","#0a6aa1"],PAL:["PR","#0b3d91"],VJC:["VJ","#d61e2a"],HVN:["VN","#0a6e7a"],QFA:["QF","#d52b1e"],UAE:["EK","#c8102e"],QTR:["QR","#5c0a32"],
+    ETD:["EY","#a8875a"],DAL:["DL","#0b2a5b"],UAL:["UA","#1c3f94"],AAL:["AA","#0078d2"],ACA:["AC","#c8102e"],AFR:["AF","#0b2a6e"],BAW:["BA","#1b3c8a"],DLH:["LH","#0b2a5b"],KLM:["KL","#00a1de"],
+    FIN:["AY","#0b2a6e"],SWR:["LX","#c8102e"],TAY:["","#555555"],FDX:["FX","#4d148c"],UPS:["5X","#6b4a2a"],ASL:["","#555555"],JBU:["B6","#003876"],HAL:["HA","#5b2d82"],TWB:["TW","#c8102e"],
+    JNA:["LJ","#e2231a"],TGW:["TR","#f2b230"],ZIP:["ZG","#1e1e1e"],AIQ:["FD","#d41f26"],CEB:["5J","#f4c300"],HKE:["UO","#6b2d82"],AXM:["AK","#d41f26"],RYA:["","#555555"] };
+  let list = [], at = 0, state = "idle", timer = 0, routes = {}, routeAsk = new Set(), trails = {}, failShown = false;
+  const ft2m = f => f * .3048, kt2ms = k => k * .514444;
+  async function fetchPlanes(lat, lon){
+    const nm = 65;   // 約120km
+    const opts = [
+      ["adsb.lol", `https://api.adsb.lol/v2/point/${lat}/${lon}/${nm}`, j => j.ac],
+      ["airplanes.live", `https://api.airplanes.live/v2/point/${lat}/${lon}/${nm}`, j => j.ac],
+      ["OpenSky", `https://opensky-network.org/api/states/all?lamin=${lat-1.1}&lomin=${lon-1.35}&lamax=${lat+1.1}&lomax=${lon+1.35}`,
+        j => (j.states || []).map(s => ({ hex:s[0], flight:(s[1] || "").trim(), lat:s[6], lon:s[5], alt_geom:s[13] != null ? s[13]/.3048 : (s[7] != null ? s[7]/.3048 : null), gs:s[9] != null ? s[9]/.514444 : 0, track:s[10] || 0, ground:s[8] }))]
+    ];
+    let err;
+    for(const [nm2, url, conv] of opts){
+      try{ const j = JSON.parse(await fetchText(url, 12000, true)); const a = conv(j); if(Array.isArray(a)) return { src:nm2, ac:a }; }
+      catch(e){ err = e; }
+    }
+    throw err || new Error("取得失敗");
+  }
+  // 便名から路線（出発地→到着地）を調べる（まとめて1回、結果は覚えておく）
+  async function fetchRoutes(ac){
+    const ask = ac.filter(a => a.cs && /^[A-Z]{3}\d/.test(a.cs) && !(a.cs in routes) && !routeAsk.has(a.cs)).slice(0, 40);
+    if(!ask.length) return;
+    ask.forEach(a => routeAsk.add(a.cs));
+    try{
+      const r = await fetch("https://api.adsb.lol/api/0/routeset", { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ planes:ask.map(a => ({ callsign:a.cs, lat:a.lat, lng:a.lon })) }) });
+      const j = await r.json();
+      for(const x of (Array.isArray(j) ? j : [])){ const cs = (x.callsign || "").trim(), ap = x._airport_codes_iata || x.airport_codes || "";
+        if(cs) routes[cs] = /^[A-Z0-9]{3}(-[A-Z0-9]{3})+$/.test(ap) ? ap.split("-") : null; }
+    }catch(e){ quiet("路線", e); }
+    ask.forEach(a => { routeAsk.delete(a.cs); if(!(a.cs in routes)) routes[a.cs] = null; });
+  }
+  async function refresh(){
+    if(!SKYV.plane || document.visibilityState !== "visible" || S.lat == null) return;
+    if(state === "loading") return;
+    state = list.length ? "ok" : "loading";
+    try{
+      const { src, ac } = await fetchPlanes(S.lat, S.lon);
+      const t = Date.now();
+      list = ac.filter(a => a.lat != null && a.lon != null && !a.ground && a.alt_baro !== "ground").map(a => {
+        const altFt = typeof a.alt_geom === "number" ? a.alt_geom : (typeof a.alt_baro === "number" ? a.alt_baro : null);
+        const o = { id:a.hex, cs:(a.flight || "").trim(), reg:(a.r || "").trim(), type:(a.t || "").trim(), lat:a.lat, lon:a.lon, alt:altFt == null ? null : ft2m(altFt), v:kt2ms(a.gs || 0), trk:a.track || 0, t };
+        const tr = trails[o.id] || (trails[o.id] = []); tr.push([o.lat, o.lon, o.alt, t]); while(tr.length > 8) tr.shift();
+        return o; }).filter(o => o.alt != null && o.alt > 150);
+      for(const k in trails) if(!list.some(o => o.id === k)) delete trails[k];
+      at = t; state = "ok"; failShown = false; PLANE.src = src;
+      fetchRoutes(list);
+    }catch(e){ quiet("飛行機", e); state = list.length ? "ok" : "error";
+      if(!failShown && !list.length){ failShown = true; const el = document.getElementById("svToast"); if(el){ el.textContent = "飛行機の位置を取得できませんでした"; el.hidden = false; setTimeout(() => { el.hidden = true; }, 4000); } } }
+  }
+  function toggle(on){
+    clearInterval(timer);
+    if(on){ refresh(); timer = setInterval(refresh, 15000); }
+  }
+  document.addEventListener("visibilitychange", () => { if(SKYV.plane && document.visibilityState === "visible") refresh(); });
+  // 地上の観測点から見た方位・高度（地球の丸みも考慮）
+  function look(lat, lon, alt, sk){
+    const R = 6371e3, f0 = sk.lat*D2R, l0 = sk.lon*D2R, f = lat*D2R, l = lon*D2R;
+    const ecef = (ff, ll, h) => [(R+h)*Math.cos(ff)*Math.cos(ll), (R+h)*Math.cos(ff)*Math.sin(ll), (R+h)*Math.sin(ff)];
+    const o = ecef(f0, l0, 0), p = ecef(f, l, alt), d = [p[0]-o[0], p[1]-o[1], p[2]-o[2]];
+    const e = -Math.sin(l0)*d[0] + Math.cos(l0)*d[1];
+    const n = -Math.sin(f0)*Math.cos(l0)*d[0] - Math.sin(f0)*Math.sin(l0)*d[1] + Math.cos(f0)*d[2];
+    const u = Math.cos(f0)*Math.cos(l0)*d[0] + Math.cos(f0)*Math.sin(l0)*d[1] + Math.sin(f0)*d[2];
+    return { az:((Math.atan2(e, n)*R2D) + 360) % 360, alt:Math.atan2(u, Math.hypot(e, n))*R2D, dist:Math.hypot(e, n, u) };
+  }
+  // 最後の受信からの経過時間ぶん、速度と進路で位置を進める
+  function now(o, ms){ const dt = Math.min(60, (ms - o.t)/1000), d = o.v*dt, a = o.trk*D2R;
+    return [o.lat + d*Math.cos(a)/111320, o.lon + d*Math.sin(a)/(111320*Math.cos(o.lat*D2R))]; }
+  function draw(x, P, Wc, hy, kk, sk, LB){
+    if(!list.length) return;
+    const ms = Date.now(), half = SKYV.fov/2 + 10, items = [];
+    for(const o of list){
+      const [la, lo] = now(o, ms), L = look(la, lo, o.alt, sk);
+      if(L.alt < 0.5) continue;
+      const p = P(L.az, L.alt); if(Math.abs(p.d) > half) continue;
+      // 画面上の進行方向（少し先の位置との差）
+      const a2 = o.trk*D2R, la2 = la + 2000*Math.cos(a2)/111320, lo2 = lo + 2000*Math.sin(a2)/(111320*Math.cos(la*D2R)), L2 = look(la2, lo2, o.alt, sk), p2 = P(L2.az, L2.alt);
+      items.push({ o, p, ang:Math.atan2(p2.y - p.y, p2.x - p.x), dist:L.dist });
+    }
+    items.sort((a, b) => b.dist - a.dist);   // 遠い順に描いて、近い機体を上に
+    x.save();
+    for(const it of items){
+      const { o, p } = it, near = it.dist < 40e3, sz = near ? 1 : .8;
+      // 通り道（これまでの受信位置）
+      const tr = trails[o.id];
+      if(tr && tr.length > 1){ x.strokeStyle = "rgba(190,212,255,.55)"; x.lineWidth = 1; x.setLineDash([2, 3]); x.beginPath(); let pen = false;
+        for(const q of tr){ const L = look(q[0], q[1], q[2], sk), pp = P(L.az, L.alt); if(L.alt < 0 || Math.abs(pp.x - p.x) > Wc*.5){ pen = false; continue; } pen ? x.lineTo(pp.x, pp.y) : x.moveTo(pp.x, pp.y); pen = true; }
+        if(pen) x.lineTo(p.x, p.y); x.stroke(); x.setLineDash([]); }
+      // 機体
+      x.save(); x.translate(p.x, p.y); x.rotate(it.ang + Math.PI/2); x.scale(sz, sz);
+      x.fillStyle = "#eef4ff"; x.strokeStyle = "rgba(0,0,0,.55)"; x.lineWidth = .7;
+      x.beginPath(); x.moveTo(0, -7); x.lineTo(1.3, -2); x.lineTo(7, 1.5); x.lineTo(7, 3); x.lineTo(1.3, 1.2); x.lineTo(1, 5.2); x.lineTo(2.8, 6.6); x.lineTo(2.8, 7.6); x.lineTo(0, 6.8); x.lineTo(-2.8, 7.6); x.lineTo(-2.8, 6.6); x.lineTo(-1, 5.2); x.lineTo(-1.3, 1.2); x.lineTo(-7, 3); x.lineTo(-7, 1.5); x.lineTo(-1.3, -2); x.closePath(); x.fill(); x.stroke();
+      x.restore();
+      if((ms/600 | 0) % 2){ x.fillStyle = "#ff4d4d"; x.beginPath(); x.arc(p.x + 8*sz, p.y - 5*sz, 1.5, 0, TAU); x.fill(); }
+      // 札：航空会社コード＋行き先（分かれば）、2行目に高度
+      const icao = /^[A-Z]{3}\d/.test(o.cs) ? o.cs.slice(0, 3) : "", al = AL[icao], rt = routes[o.cs];
+      const code = al && al[0] ? al[0] : "", col = al ? al[1] : "#4b5563";
+      const l1 = rt ? `${rt[0]}→${rt[rt.length-1]}` : (o.cs || o.reg || ""), l2 = `高度 ${Math.round(o.alt/100)*100 >= 1000 ? (Math.round(o.alt/100)*100).toLocaleString() : Math.round(o.alt/10)*10}m`;
+      const lx = p.x + 12, ly = p.y + 5;
+      x.font = '700 10px "Zen Maru Gothic",sans-serif'; const w1 = x.measureText(l1).width, bw = code ? 20 : 0, tw = bw + (code ? 4 : 0) + w1;
+      const right = lx + tw > Wc - 4, bx = right ? p.x - 12 - tw : lx;
+      const box = { x:bx, y:ly - 10, w:tw, h:24 };
+      if(LB && LB.some(q => box.x < q.x + q.w + 2 && q.x < box.x + box.w + 2 && box.y < q.y + q.h + 2 && q.y < box.y + box.h + 2)) continue;   // 文字が重なるときは札を省く
+      if(LB) LB.push(box);
+      if(code){ x.fillStyle = col; x.beginPath(); x.roundRect ? x.roundRect(bx, ly - 9, 20, 12, 3) : x.rect(bx, ly - 9, 20, 12); x.fill(); x.strokeStyle = "rgba(255,255,255,.7)"; x.lineWidth = .6; x.stroke();
+        x.fillStyle = "#fff"; x.font = '800 8.5px sans-serif'; x.textAlign = "center"; x.fillText(code, bx + 10, ly); }
+      x.textAlign = "left"; x.lineWidth = 2.6; x.strokeStyle = "rgba(0,0,0,.6)"; x.font = '700 10px "Zen Maru Gothic",sans-serif';
+      x.strokeText(l1, bx + bw + (code ? 4 : 0), ly); x.fillStyle = "#fff"; x.fillText(l1, bx + bw + (code ? 4 : 0), ly);
+      x.font = '600 8.5px "Zen Maru Gothic",sans-serif'; x.strokeText(l2, bx, ly + 12); x.fillStyle = "#c9d6ea"; x.fillText(l2, bx, ly + 12);
+    }
+    x.restore();
+  }
+  return { toggle, draw, refresh, look, _dbg:() => ({ n:list.length, state, routes, failShown }), _set:(a, r) => { list = a; routes = r || routes; at = Date.now(); state = "ok"; } };
+})();
+try{ window.__plane = PLANE; }catch(_){}
 function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
   const Wc=c.clientWidth||360,Hc=c.clientHeight||420,dpr=Math.min(2,DPR||1);if(c.width!==Math.round(Wc*dpr)||c.height!==Math.round(Hc*dpr)){c.width=Math.round(Wc*dpr);c.height=Math.round(Hc*dpr);}
   const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';
@@ -2444,6 +2570,7 @@ function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
   SKYV.moonP=null;if(sk.moon.alt>-3&&!wet){const p=P(sk.moon.az,sk.moon.alt);if(Math.abs(p.d)<SKYV.fov/2+30){const day=sa>-4,r=16;
     moonDraw(x,p.x,p.y,r,{frac:sk.frac,limb:sk.q-sk.chi,rot:sk.q,day,glow:day?.3:1,alpha:(day?Math.max(.35,.85-sa/60):1)*(cld?.75:1),ts:192,pxs:dpr});SKYV.moonP={x:p.x,y:p.y,r};}}
   if(SKYV.sat)SAT.draw(x,P,Wc,hy,kk,sk,sa,LB);
+  if(SKYV.plane)PLANE.draw(x,P,Wc,hy,kk,sk,LB);
   // 天の川の名前（星座線オンのとき）：空の決まった場所（銀河の帯の上、20°おき）に付け、ほかの文字と重ならない候補を選ぶ
   if(SKYV.lines&&starA>.15){x.font='600 11px "Zen Maru Gothic",sans-serif';const tw=x.measureText('天の川').width,hit=hitLB;let best=null;
     MWAY.band.forEach((b,i)=>{if(i%5)return;const h=starHor(b[0],b[1],sk);if(h.alt<8||h.alt>75)return;const p=P(h.az,h.alt);if(Math.abs(p.d)>SKYV.fov/2-10||p.x<tw/2+8||p.x>Wc-tw/2-8||p.y<(SKYV.sat?72:40)||p.y>hy-30)return;
@@ -2548,7 +2675,12 @@ function setupUI(){
     const m = SKYV.moonP; if(m && Math.hypot(x-m.x, y-m.y) < m.r + 26){ SKYV.zoom = true; SKYV.zoomReady = false; ovOpen('moon', () => { SKYV.zoom = false; }); } });
   c.addEventListener('pointercancel', () => { SKYV.ptr = null; });
   // トグルボタン：押した状態は青、ON/OFFの文字だけ切り替える（ボタンの大きさと位置は変えない）
-  const setTog = (b, on) => { b.setAttribute('aria-pressed', on); const i = b.querySelector('i'); if(i) i.textContent = on ? 'ON' : 'OFF'; };
+  // トグル：オンのときは青。ON/OFFの文字は出さない
+  const setTog = (b, on) => { b.setAttribute('aria-pressed', on); };
+  const pb = ov.querySelector('#svPlane');
+  pb.onclick = () => { SKYV.plane = !SKYV.plane; setTog(pb, SKYV.plane); try{ localStorage.setItem('skyPlane', SKYV.plane ? '1' : '0'); }catch(_){} PLANE.toggle(SKYV.plane); };
+  try{ SKYV.plane = localStorage.getItem('skyPlane') === '1'; }catch(_){}
+  setTog(pb, SKYV.plane); if(SKYV.plane) PLANE.toggle(true);
   ov.querySelector('#svLines').onclick = e => { SKYV.lines = !SKYV.lines; setTog(e.currentTarget, SKYV.lines); };
   const sb = ov.querySelector('#svSat');
   sb.onclick = () => { SKYV.sat = !SKYV.sat; setTog(sb, SKYV.sat); try{ localStorage.setItem('skySat', SKYV.sat ? '1' : '0'); }catch(_){} if(SKYV.sat) SAT.load(); SAT.info(true); };
