@@ -410,7 +410,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-06 08:59</div>
+  <div style="margin-bottom:4px">版：2026-11-06 11:04</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -469,7 +469,7 @@ async function fetchText(url, ms = 9000, keep = false){
 const MY_PROXY = "https://myspot-proxy.tomot8086.workers.dev/?url=";
 const wk = u => MY_PROXY + encodeURIComponent(u);
 // 専用中継が受け付けるサイト（Worker 側の ALLOW_HOSTS と同じ）
-const WK_HOSTS = ["api.adsb.lol","api.airplanes.live","opensky-network.org","tetsudo.rti-giken.jp","www.jma.go.jp","celestrak.org"];
+const WK_HOSTS = ["api.adsb.lol","api.airplanes.live","opensky-network.org","tetsudo.rti-giken.jp","www.jma.go.jp","celestrak.org","api.adsbdb.com"];
 const wkOK = u => { try{ return WK_HOSTS.includes(new URL(u).hostname); }catch(_){ return false; } };
 async function getJSON(url, { proxy = false, keep = false } = {}){
   if(FORCE_DEMO) throw new Error("デモモード");
@@ -2420,13 +2420,16 @@ const PLANE = (() => {
     ICN:"ソウル・仁川", GMP:"ソウル・金浦", PUS:"釜山", TPE:"台北・桃園", TSA:"台北・松山", KHH:"高雄", HKG:"香港", MFM:"マカオ", PEK:"北京・首都", PKX:"北京・大興", PVG:"上海・浦東", SHA:"上海・虹橋", CAN:"広州", SIN:"シンガポール", BKK:"バンコク", DMK:"バンコク・ドンムアン", KUL:"クアラルンプール", MNL:"マニラ", CGK:"ジャカルタ", DPS:"デンパサール", SGN:"ホーチミン", HAN:"ハノイ", DEL:"デリー", BOM:"ムンバイ", DXB:"ドバイ", DOH:"ドーハ", AUH:"アブダビ", SYD:"シドニー", MEL:"メルボルン", HNL:"ホノルル", GUM:"グアム", LAX:"ロサンゼルス", SFO:"サンフランシスコ", SEA:"シアトル", JFK:"ニューヨーク", ORD:"シカゴ", DFW:"ダラス", YVR:"バンクーバー", LHR:"ロンドン", CDG:"パリ", FRA:"フランクフルト", MUC:"ミュンヘン", AMS:"アムステルダム", HEL:"ヘルシンキ", ZRH:"チューリッヒ", IST:"イスタンブール", ANC:"アンカレッジ" };
   const apName = c => AP[c] ? `${AP[c]}（${c}）` : c;
   // タップした機体の情報（画面上の位置から一番近い機体）
-  function hit(x, y){ let best = null, bd = 26; for(const h of HIT){ const d = Math.hypot(h.x - x, h.y - y); if(d < bd){ bd = d; best = h; } } return best; }
+  function hit(x, y){
+    for(const h of HIT){ const b = h.lb; if(b && x > b.x - 6 && x < b.x + b.w + 6 && y > b.y - 6 && y < b.y + b.h + 6) return h; }   // 札（文字）をタップしたとき
+    let best = null, bd = 26; for(const h of HIT){ const d = Math.hypot(h.x - x, h.y - y); if(d < bd){ bd = d; best = h; } } return best; }
   function info(h){
+    if(okCs(h.o.cs) && !routes[h.o.cs] && !routeSt["db:" + h.o.cs]){ routeSt["db:" + h.o.cs] = 1; setTimeout(() => routeOne(h.o.cs), 0); }
     const o = h.o, icao = /^[A-Z]{3}\d/.test(o.cs) ? o.cs.slice(0, 3) : "", al = AL[icao], code = al && al[0] || "", rt = routes[o.cs];
     const row = (k, v) => v ? `<tr><th>${k}</th><td>${esc(v)}</td></tr>` : "";
     const altM = Math.round(o.alt), kmh = Math.round(o.v*3.6), dirs = ["北","北北東","北東","東北東","東","東南東","南東","南南東","南","南南西","南西","西南西","西","西北西","北西","北北西"];
     return `<div class="pl-head">${code ? `<span class="pl-badge" style="background:${al[1]}">${esc(code)}</span>` : ""}<b>${esc(AL_NAME[code] || (icao ? icao : "航空機"))}</b><button type="button" class="pl-x" aria-label="閉じる">×</button></div>`
-      + `<table class="pl-tab">${row("便名", o.cs)}${rt ? row("出発", apName(rt[0])) + (rt.length > 2 ? row("経由", rt.slice(1, -1).map(apName).join("、")) : "") + row("到着", apName(rt[rt.length-1])) : row("路線", o.cs ? "不明" : "")}`
+      + `<table class="pl-tab">${row("便名", o.cs)}${rt ? row("出発", apName(rt[0])) + (rt.length > 2 ? row("経由", rt.slice(1, -1).map(apName).join("、")) : "") + row("到着", apName(rt[rt.length-1])) : row("路線", okCs(o.cs) ? ({ ask:"確認中…", err:"取得できませんでした" }[routeSt[o.cs]] || "不明（路線データなし）") : "")}`
       + `${row("機種", o.type)}${row("登録記号", o.reg)}${row("高度", `約${altM.toLocaleString()}m`)}${row("速度", `約${kmh.toLocaleString()}km/h`)}${row("進行方向", dirs[Math.round(o.trk/22.5) % 16])}${row("距離", `約${(h.dist/1000).toFixed(h.dist < 10000 ? 1 : 0)}km`)}</table>`
       + `<div class="pl-src">位置：${esc(PLANE.src || "")}（ADS-B）</div>`;
   }
@@ -2455,17 +2458,43 @@ const PLANE = (() => {
     });
   }
   // 便名から路線（出発地→到着地）を調べる（まとめて1回、結果は覚えておく）
-  async function fetchRoutes(ac){
-    const ask = ac.filter(a => a.cs && /^[A-Z]{3}\d/.test(a.cs) && !(a.cs in routes) && !routeAsk.has(a.cs)).slice(0, 40);
-    if(!ask.length) return;
-    ask.forEach(a => routeAsk.add(a.cs));
+  // 路線：まず adsb.lol にまとめて問い合わせ、分からなかった便は近い順に adsbdb に1便ずつ問い合わせる
+  const routeSt = {};   // 便名 → "ask"（確認中）/ "none"（データなし）/ "err"（取得失敗）
+  const okCs = cs => cs && /^[A-Z]{3}\d/.test(cs);
+  function cardSync(cs){ const card = document.getElementById("svPlaneCard");
+    if(card && !card.hidden && card._h && card._h.o.cs === cs){ card.innerHTML = info(card._h); const b = card.querySelector(".pl-x"); if(b) b.onclick = () => { card.hidden = true; }; } }
+  async function getRouteJSON(u, opt){
+    const go = async url => { const r = await fetch(url, { ...(opt || {}), signal:AbortSignal.timeout(9000) }); if(r.status === 404) return { _none:true }; if(!r.ok) throw new Error("HTTP " + r.status); return r.json(); };
+    try{ return await go(u); }catch(e){ if(!wkOK()) throw e; return go(wk(u)); }
+  }
+  async function routeOne(cs){
+    if(!okCs(cs) || routes[cs] || routeSt[cs] === "ask") return;
+    routeSt[cs] = "ask"; cardSync(cs);
     try{
-      const r = await fetch(wk("https://api.adsb.lol/api/0/routeset"), { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ planes:ask.map(a => ({ callsign:a.cs, lat:a.lat, lng:a.lon })) }) });
-      const j = await r.json();
-      for(const x of (Array.isArray(j) ? j : [])){ const cs = (x.callsign || "").trim(), ap = x._airport_codes_iata || x.airport_codes || "";
-        if(cs) routes[cs] = /^[A-Z0-9]{3}(-[A-Z0-9]{3})+$/.test(ap) ? ap.split("-") : null; }
-    }catch(e){ quiet("路線", e); }
-    ask.forEach(a => { routeAsk.delete(a.cs); if(!(a.cs in routes)) routes[a.cs] = null; });
+      const j = await getRouteJSON("https://api.adsbdb.com/v0/callsign/" + encodeURIComponent(cs)), fr = j && j.response && j.response.flightroute;
+      const o = fr && fr.origin, d = fr && fr.destination, c = v => v && (v.iata_code || v.icao_code);
+      if(c(o) && c(d)){ routes[cs] = [c(o), c(d)]; routeSt[cs] = "ok"; } else routeSt[cs] = "none";
+    }catch(e){ quiet("路線(adsbdb)", e); routeSt[cs] = "err"; }
+    cardSync(cs);
+  }
+  async function fetchRoutes(ac){
+    const ask = ac.filter(a => okCs(a.cs) && !(a.cs in routes) && routeSt[a.cs] !== "ask").slice(0, 40);
+    if(ask.length){
+      ask.forEach(a => { routeSt[a.cs] = "ask"; });
+      let ok = false;
+      try{
+        const r = await fetch(wk("https://api.adsb.lol/api/0/routeset"), { method:"POST", headers:{ "Content-Type":"application/json" }, body:JSON.stringify({ planes:ask.map(a => ({ callsign:a.cs, lat:a.lat, lng:a.lon })) }), signal:AbortSignal.timeout(10000) });
+        if(!r.ok) throw new Error("HTTP " + r.status);
+        const j = await r.json(); ok = true;
+        for(const x of (Array.isArray(j) ? j : [])){ const cs = (x.callsign || "").trim(), ap = x._airport_codes_iata || "";
+          if(cs && /^[A-Z0-9]{3}(-[A-Z0-9]{3})+$/.test(ap)){ routes[cs] = ap.split("-"); routeSt[cs] = "ok"; } }
+      }catch(e){ quiet("路線", e); }
+      ask.forEach(a => { if(!routes[a.cs]){ routes[a.cs] = null; routeSt[a.cs] = ok ? "none" : "err"; } });
+    }
+    // 分からなかった便は近い順に10便まで別のデータベースで調べる
+    const cl = Math.cos((S.lat || 0)*D2R), dd = a => (a.lat - S.lat)**2 + ((a.lon - S.lon)*cl)**2;
+    const rest = ac.filter(a => okCs(a.cs) && !routes[a.cs] && !routeSt["db:" + a.cs]).sort((a, b) => dd(a) - dd(b)).slice(0, 10);
+    for(const a of rest){ routeSt["db:" + a.cs] = 1; await routeOne(a.cs); }
   }
   let t0 = 0;
   async function refresh(){
@@ -2554,6 +2583,7 @@ const PLANE = (() => {
       const box = { x:bx, y:ly - 10, w:tw, h:24 };
       if(LB && LB.some(q => box.x < q.x + q.w + 2 && q.x < box.x + box.w + 2 && box.y < q.y + q.h + 2 && q.y < box.y + box.h + 2)) continue;   // 文字が重なるときは札を省く
       if(LB) LB.push(box);
+      { const hh = HIT.find(q => q.o === o); if(hh) hh.lb = box; }
       if(code){ x.fillStyle = col; x.beginPath(); x.roundRect ? x.roundRect(bx, ly - 9, 20, 12, 3) : x.rect(bx, ly - 9, 20, 12); x.fill(); x.strokeStyle = "rgba(255,255,255,.7)"; x.lineWidth = .6; x.stroke();
         x.fillStyle = "#fff"; x.font = '800 8.5px sans-serif'; x.textAlign = "center"; x.fillText(code, bx + 10, ly); }
       x.textAlign = "left"; x.lineWidth = 2.6; x.strokeStyle = "rgba(0,0,0,.6)"; x.font = '700 10px "Zen Maru Gothic",sans-serif';
@@ -2567,7 +2597,7 @@ const PLANE = (() => {
     if(state === "error") return "飛行機：位置を取得できませんでした" + (lastErr ? `（${lastErr}）` : "");
     return `飛行機：40km以内${nearN}機・この向きに${inView}機（${PLANE.src || ""}）`;
   }
-  return { toggle, draw, refresh, look, status, hit, info, _dbg:() => ({ n:list.length, state, routes, failShown, hit:HIT.map(h => [h.x, h.y]) }), _set:(a, r) => { list = a; routes = r || routes; at = Date.now(); state = "ok"; } };
+  return { toggle, draw, refresh, look, status, hit, info, _dbg:() => ({ n:list.length, state, routes, failShown, hit:HIT.map(h => [h.x, h.y]), lb:HIT.map(h => h.lb ? [h.lb.x, h.lb.y, h.lb.w, h.lb.h, h.o.cs] : null) }), _set:(a, r) => { list = a; routes = r || routes; at = Date.now(); state = "ok"; } };
 })();
 try{ window.__plane = PLANE; }catch(_){}
 function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
@@ -2733,7 +2763,7 @@ function setupUI(){
     const r = c.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     if(SKYV.zoom){ ovClose('moon'); return; }
     const card = ov.querySelector('#svPlaneCard');
-    if(SKYV.plane){ const h = PLANE.hit(x, y); if(h){ card.innerHTML = PLANE.info(h); card.hidden = false; card.querySelector('.pl-x').onclick = () => { card.hidden = true; }; return; } }
+    if(SKYV.plane){ const h = PLANE.hit(x, y); if(h){ card._h = h; card.innerHTML = PLANE.info(h); card.hidden = false; card.querySelector('.pl-x').onclick = () => { card.hidden = true; }; return; } }
     if(!card.hidden){ card.hidden = true; return; }
     const m = SKYV.moonP; if(m && Math.hypot(x-m.x, y-m.y) < m.r + 26){ SKYV.zoom = true; SKYV.zoomReady = false; ovOpen('moon', () => { SKYV.zoom = false; }); } });
   c.addEventListener('pointercancel', () => { SKYV.ptr = null; });
