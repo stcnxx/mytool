@@ -212,6 +212,12 @@ body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opa
 #skyv .sv-sat{position:absolute;top:30px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);box-sizing:border-box;padding:4px 12px;border-radius:12px;background:rgba(20,24,40,.75);border:1px solid rgba(255,210,90,.6);color:#ffe9a8;font-size:clamp(10px,2.9vw,11.5px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 #skyv:fullscreen .sv-sat,#skyv.pseudo-full .sv-sat,#skyv:-webkit-full-screen .sv-sat{top:calc(env(safe-area-inset-top,0px) + 68px)}
 #skyv .sv-toast{position:absolute;left:50%;bottom:calc(14% + 34px);transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);box-sizing:border-box;padding:7px 12px;border-radius:10px;background:rgba(20,24,40,.85);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:12px;line-height:1.45;text-align:center;white-space:pre-line;pointer-events:none;z-index:2}
+#skyv .sv-plane{position:absolute;left:50%;top:64px;transform:translateX(-50%);width:min(300px,calc(100% - 24px));box-sizing:border-box;padding:10px 12px;border-radius:12px;background:rgba(18,22,38,.92);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:12px;z-index:3;text-shadow:none}
+#skyv .pl-head{display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:6px}.pl-badge{display:inline-block;min-width:22px;padding:1px 4px;border-radius:4px;font-weight:800;font-size:11px;text-align:center;border:1px solid rgba(255,255,255,.6)}
+#skyv .pl-x{margin-left:auto;background:none;border:none;color:#fff;font-size:18px;line-height:1;padding:0 2px}
+#skyv .pl-tab{border-collapse:collapse;width:100%}#skyv .pl-tab th{text-align:left;font-weight:500;color:#aab6cc;padding:2px 8px 2px 0;white-space:nowrap;width:4.5em}#skyv .pl-tab td{padding:2px 0;text-align:left;border:none}#skyv .pl-tab th{border:none}
+#skyv .pl-src{margin-top:6px;font-size:10px;color:#8b97ad}
+#skyv:fullscreen .sv-plane,#skyv.pseudo-full .sv-plane{top:calc(env(safe-area-inset-top,0px) + 100px)}
 #skyv .sv-bar button[aria-pressed=true]{background:rgba(96,140,255,.75);border-color:rgba(190,210,255,.95);box-shadow:0 0 0 1px rgba(190,210,255,.35) inset}
 #skyv .sv-hint{position:absolute;bottom:46px;left:0;right:0;text-align:center;color:rgba(255,255,255,.85);font-size:11px;text-shadow:0 1px 3px #000;transition:opacity 1.2s;pointer-events:none}
 footer{max-width:928px;margin:0 auto 30px;padding:12px 16px;font-size:.75rem;color:var(--muted);background:color-mix(in srgb,var(--card) 85%,transparent);border-radius:14px}
@@ -389,6 +395,7 @@ footer{background:none!important}
       <div class="sv-top" id="svDir"></div>
       <div class="sv-sat" id="svSatInfo" hidden></div>
       <div class="sv-toast" id="svToast" hidden></div>
+      <div class="sv-plane" id="svPlaneCard" hidden></div>
       <div class="sv-hint" id="svHint">左右にドラッグで見回す・月をタップで拡大</div>
       <div class="sv-bar">
         <button type="button" id="svNight" aria-pressed="false"><b>夜</b></button>
@@ -403,7 +410,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-06 05:42</div>
+  <div style="margin-bottom:4px">版：2026-11-06 08:59</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2406,14 +2413,31 @@ const PLANE = (() => {
     ETD:["EY","#a8875a"],DAL:["DL","#0b2a5b"],UAL:["UA","#1c3f94"],AAL:["AA","#0078d2"],ACA:["AC","#c8102e"],AFR:["AF","#0b2a6e"],BAW:["BA","#1b3c8a"],DLH:["LH","#0b2a5b"],KLM:["KL","#00a1de"],
     FIN:["AY","#0b2a6e"],SWR:["LX","#c8102e"],TAY:["","#555555"],FDX:["FX","#4d148c"],UPS:["5X","#6b4a2a"],ASL:["","#555555"],JBU:["B6","#003876"],HAL:["HA","#5b2d82"],TWB:["TW","#c8102e"],
     JNA:["LJ","#e2231a"],TGW:["TR","#f2b230"],ZIP:["ZG","#1e1e1e"],AIQ:["FD","#d41f26"],CEB:["5J","#f4c300"],HKE:["UO","#6b2d82"],AXM:["AK","#d41f26"],RYA:["","#555555"] };
-  let busy = false, lastErr = "", inView = 0, list = [], at = 0, state = "idle", timer = 0, routes = {}, routeAsk = new Set(), trails = {}, failShown = false;
+  const AL_NAME = { JL:"日本航空", NH:"全日空", BC:"スカイマーク", HD:"AIRDO", "6J":"ソラシドエア", "7G":"スターフライヤー", MM:"ピーチ", GK:"ジェットスター・ジャパン", ZG:"ZIPAIR", IJ:"スプリング・ジャパン", NU:"日本トランスオーシャン航空", JC:"日本エアコミューター", FW:"アイベックス", OC:"オリエンタルエアブリッジ", JH:"フジドリームエアラインズ",
+    SQ:"シンガポール航空", CX:"キャセイパシフィック航空", KE:"大韓航空", OZ:"アシアナ航空", BR:"エバー航空", CI:"チャイナエアライン", CA:"中国国際航空", MU:"中国東方航空", CZ:"中国南方航空", TG:"タイ国際航空", MH:"マレーシア航空", GA:"ガルーダ・インドネシア航空", PR:"フィリピン航空", VJ:"ベトジェット", VN:"ベトナム航空", QF:"カンタス航空", EK:"エミレーツ航空", QR:"カタール航空", EY:"エティハド航空",
+    DL:"デルタ航空", UA:"ユナイテッド航空", AA:"アメリカン航空", AC:"エア・カナダ", AF:"エールフランス", BA:"ブリティッシュ・エアウェイズ", LH:"ルフトハンザ", KL:"KLMオランダ航空", AY:"フィンエアー", LX:"スイス インターナショナル エアラインズ", FX:"フェデックス", "5X":"UPS", B6:"ジェットブルー", HA:"ハワイアン航空", TW:"ティーウェイ航空", LJ:"ジンエアー", TR:"スクート", "5J":"セブパシフィック", UO:"香港エクスプレス", AK:"エアアジア", FD:"タイ・エアアジア" };
+  const AP = { HND:"東京・羽田", NRT:"東京・成田", KIX:"大阪・関西", ITM:"大阪・伊丹", UKB:"神戸", NGO:"名古屋・中部", NKM:"名古屋・小牧", CTS:"札幌・新千歳", OKD:"札幌・丘珠", FUK:"福岡", OKA:"那覇", KOJ:"鹿児島", KMJ:"熊本", NGS:"長崎", OIT:"大分", KMI:"宮崎", HIJ:"広島", OKJ:"岡山", TAK:"高松", MYJ:"松山", KCZ:"高知", TKS:"徳島", KMQ:"小松", TOY:"富山", KIJ:"新潟", SDJ:"仙台", AOJ:"青森", AXT:"秋田", HKD:"函館", AKJ:"旭川", KUH:"釧路", MMB:"女満別", ISG:"石垣", MMY:"宮古", HSG:"佐賀", KKJ:"北九州", IZO:"出雲", UBJ:"山口宇部", FSZ:"静岡", HAC:"八丈島", OIM:"大島",
+    ICN:"ソウル・仁川", GMP:"ソウル・金浦", PUS:"釜山", TPE:"台北・桃園", TSA:"台北・松山", KHH:"高雄", HKG:"香港", MFM:"マカオ", PEK:"北京・首都", PKX:"北京・大興", PVG:"上海・浦東", SHA:"上海・虹橋", CAN:"広州", SIN:"シンガポール", BKK:"バンコク", DMK:"バンコク・ドンムアン", KUL:"クアラルンプール", MNL:"マニラ", CGK:"ジャカルタ", DPS:"デンパサール", SGN:"ホーチミン", HAN:"ハノイ", DEL:"デリー", BOM:"ムンバイ", DXB:"ドバイ", DOH:"ドーハ", AUH:"アブダビ", SYD:"シドニー", MEL:"メルボルン", HNL:"ホノルル", GUM:"グアム", LAX:"ロサンゼルス", SFO:"サンフランシスコ", SEA:"シアトル", JFK:"ニューヨーク", ORD:"シカゴ", DFW:"ダラス", YVR:"バンクーバー", LHR:"ロンドン", CDG:"パリ", FRA:"フランクフルト", MUC:"ミュンヘン", AMS:"アムステルダム", HEL:"ヘルシンキ", ZRH:"チューリッヒ", IST:"イスタンブール", ANC:"アンカレッジ" };
+  const apName = c => AP[c] ? `${AP[c]}（${c}）` : c;
+  // タップした機体の情報（画面上の位置から一番近い機体）
+  function hit(x, y){ let best = null, bd = 26; for(const h of HIT){ const d = Math.hypot(h.x - x, h.y - y); if(d < bd){ bd = d; best = h; } } return best; }
+  function info(h){
+    const o = h.o, icao = /^[A-Z]{3}\d/.test(o.cs) ? o.cs.slice(0, 3) : "", al = AL[icao], code = al && al[0] || "", rt = routes[o.cs];
+    const row = (k, v) => v ? `<tr><th>${k}</th><td>${esc(v)}</td></tr>` : "";
+    const altM = Math.round(o.alt), kmh = Math.round(o.v*3.6), dirs = ["北","北北東","北東","東北東","東","東南東","南東","南南東","南","南南西","南西","西南西","西","西北西","北西","北北西"];
+    return `<div class="pl-head">${code ? `<span class="pl-badge" style="background:${al[1]}">${esc(code)}</span>` : ""}<b>${esc(AL_NAME[code] || (icao ? icao : "航空機"))}</b><button type="button" class="pl-x" aria-label="閉じる">×</button></div>`
+      + `<table class="pl-tab">${row("便名", o.cs)}${rt ? row("出発", apName(rt[0])) + (rt.length > 2 ? row("経由", rt.slice(1, -1).map(apName).join("、")) : "") + row("到着", apName(rt[rt.length-1])) : row("路線", o.cs ? "不明" : "")}`
+      + `${row("機種", o.type)}${row("登録記号", o.reg)}${row("高度", `約${altM.toLocaleString()}m`)}${row("速度", `約${kmh.toLocaleString()}km/h`)}${row("進行方向", dirs[Math.round(o.trk/22.5) % 16])}${row("距離", `約${(h.dist/1000).toFixed(h.dist < 10000 ? 1 : 0)}km`)}</table>`
+      + `<div class="pl-src">位置：${esc(PLANE.src || "")}（ADS-B）</div>`;
+  }
+  let nearN = 0, HIT = [], busy = false, lastErr = "", inView = 0, list = [], at = 0, state = "idle", timer = 0, routes = {}, routeAsk = new Set(), trails = {}, failShown = false;
   const ft2m = f => f * .3048, kt2ms = k => k * .514444;
   async function fetchPlanes(lat, lon){
-    const nm = 65;   // 約120km
+    const nm = 27;   // 約50km（表示は40km以内）
     const opts = [
       ["adsb.lol", `https://api.adsb.lol/v2/point/${lat}/${lon}/${nm}`, j => j.ac],
       ["airplanes.live", `https://api.airplanes.live/v2/point/${lat}/${lon}/${nm}`, j => j.ac],
-      ["OpenSky", `https://opensky-network.org/api/states/all?lamin=${lat-1.1}&lomin=${lon-1.35}&lamax=${lat+1.1}&lomax=${lon+1.35}`,
+      ["OpenSky", `https://opensky-network.org/api/states/all?lamin=${lat-.45}&lomin=${lon-.55}&lamax=${lat+.45}&lomax=${lon+.55}`,
         j => (j.states || []).map(s => ({ hex:s[0], flight:(s[1] || "").trim(), lat:s[6], lon:s[5], alt_geom:s[13] != null ? s[13]/.3048 : (s[7] != null ? s[7]/.3048 : null), gs:s[9] != null ? s[9]/.514444 : 0, track:s[10] || 0, ground:s[8] }))]
     ];
     // 直接 → 中継サーバー経由の順に試す（ブラウザから直接読めないサイトがあるため）
@@ -2482,23 +2506,28 @@ const PLANE = (() => {
   function now(o, ms){ const dt = Math.min(60, (ms - o.t)/1000), d = o.v*dt, a = o.trk*D2R;
     return [o.lat + d*Math.cos(a)/111320, o.lon + d*Math.sin(a)/(111320*Math.cos(o.lat*D2R))]; }
   function draw(x, P, Wc, hy, kk, sk, LB){
-    if(!list.length){ inView = 0; return; }
+    if(!list.length){ inView = 0; HIT = []; return; }
     const ms = Date.now(), half = SKYV.fov/2 + 10, items = [];
-    for(const o of list){
-      const [la, lo] = now(o, ms), L = look(la, lo, o.alt, sk);
-      if(L.alt < 0.5) continue;
+    // 約40km以内・見上げる角度5°以上の機体を、近い順に30機まで
+    const cand = [];
+    for(const o of list){ const [la, lo] = now(o, ms), L = look(la, lo, o.alt, sk); if(L.dist <= 40e3 && L.alt >= 5) cand.push({ o, la, lo, L }); }
+    cand.sort((a, b) => a.L.dist - b.L.dist); if(cand.length > 30) cand.length = 30;
+    nearN = cand.length;
+    for(let rank = 0; rank < cand.length; rank++){
+      const { o, la, lo, L } = cand[rank];
       const p = P(L.az, L.alt); if(Math.abs(p.d) > half) continue;
       // 画面上の進行方向（少し先の位置との差）
       const a2 = o.trk*D2R, la2 = la + 2000*Math.cos(a2)/111320, lo2 = lo + 2000*Math.sin(a2)/(111320*Math.cos(la*D2R)), L2 = look(la2, lo2, o.alt, sk), p2 = P(L2.az, L2.alt);
-      items.push({ o, p, ang:Math.atan2(p2.y - p.y, p2.x - p.x), dist:L.dist });
+      items.push({ o, p, ang:Math.atan2(p2.y - p.y, p2.x - p.x), dist:L.dist, near:rank < 10 });
     }
-    inView = items.length;
+    inView = items.length; HIT = items.map(it => ({ x:it.p.x, y:it.p.y, o:it.o, dist:it.dist }));
     items.sort((a, b) => b.dist - a.dist);   // 遠い順に描いて、近い機体を上に
-    x.save();
+    x.save(); const labs = [];
     for(const it of items){
-      const { o, p } = it, near = it.dist < 40e3, sz = near ? 1 : .8;
-      // 通り道（これまでの受信位置）
-      const tr = trails[o.id];
+      const { o, p, near } = it, sz = near ? 1 : .68;
+      x.globalAlpha = near ? 1 : .5;   // 遠い機体は小さく薄く
+      // 通り道（これまでの受信位置）：近い機体だけ
+      const tr = near ? trails[o.id] : null;
       if(tr && tr.length > 1){ x.strokeStyle = "rgba(190,212,255,.55)"; x.lineWidth = 1; x.setLineDash([2, 3]); x.beginPath(); let pen = false;
         for(const q of tr){ const L = look(q[0], q[1], q[2], sk), pp = P(L.az, L.alt); if(L.alt < 0 || Math.abs(pp.x - p.x) > Wc*.5){ pen = false; continue; } pen ? x.lineTo(pp.x, pp.y) : x.moveTo(pp.x, pp.y); pen = true; }
         if(pen) x.lineTo(p.x, p.y); x.stroke(); x.setLineDash([]); }
@@ -2507,14 +2536,21 @@ const PLANE = (() => {
       x.fillStyle = "#eef4ff"; x.strokeStyle = "rgba(0,0,0,.55)"; x.lineWidth = .7;
       x.beginPath(); x.moveTo(0, -7); x.lineTo(1.3, -2); x.lineTo(7, 1.5); x.lineTo(7, 3); x.lineTo(1.3, 1.2); x.lineTo(1, 5.2); x.lineTo(2.8, 6.6); x.lineTo(2.8, 7.6); x.lineTo(0, 6.8); x.lineTo(-2.8, 7.6); x.lineTo(-2.8, 6.6); x.lineTo(-1, 5.2); x.lineTo(-1.3, 1.2); x.lineTo(-7, 3); x.lineTo(-7, 1.5); x.lineTo(-1.3, -2); x.closePath(); x.fill(); x.stroke();
       x.restore();
-      if((ms/600 | 0) % 2){ x.fillStyle = "#ff4d4d"; x.beginPath(); x.arc(p.x + 8*sz, p.y - 5*sz, 1.5, 0, TAU); x.fill(); }
+      if((ms/600 | 0) % 2){ x.fillStyle = "#ff4d4d"; x.beginPath(); x.arc(p.x + 8*sz, p.y - 5*sz, near ? 1.5 : 1.1, 0, TAU); x.fill(); }
+      x.globalAlpha = 1;
+      if(near && p.x > 0 && p.x < Wc) labs.push(it);   // 画面の外にいる機体には札を付けない
+    }
+    // 札は近い10機だけ。近い機体から置き、重なるときは省く
+    labs.sort((a, b) => a.dist - b.dist);
+    for(const it of labs){
+      const { o, p } = it;
       // 札：航空会社コード＋行き先（分かれば）、2行目に高度
       const icao = /^[A-Z]{3}\d/.test(o.cs) ? o.cs.slice(0, 3) : "", al = AL[icao], rt = routes[o.cs];
       const code = al && al[0] ? al[0] : "", col = al ? al[1] : "#4b5563";
       const l1 = rt ? `${rt[0]}→${rt[rt.length-1]}` : (o.cs || o.reg || ""), l2 = `高度 ${Math.round(o.alt/100)*100 >= 1000 ? (Math.round(o.alt/100)*100).toLocaleString() : Math.round(o.alt/10)*10}m`;
       const lx = p.x + 12, ly = p.y + 5;
       x.font = '700 10px "Zen Maru Gothic",sans-serif'; const w1 = x.measureText(l1).width, bw = code ? 20 : 0, tw = bw + (code ? 4 : 0) + w1;
-      const right = lx + tw > Wc - 4, bx = right ? p.x - 12 - tw : lx;
+      const right = lx + tw > Wc - 4, bx = Math.max(4, Math.min(Wc - 4 - tw, right ? p.x - 12 - tw : lx));   // 画面の端で切れないように
       const box = { x:bx, y:ly - 10, w:tw, h:24 };
       if(LB && LB.some(q => box.x < q.x + q.w + 2 && q.x < box.x + box.w + 2 && box.y < q.y + q.h + 2 && q.y < box.y + box.h + 2)) continue;   // 文字が重なるときは札を省く
       if(LB) LB.push(box);
@@ -2529,10 +2565,9 @@ const PLANE = (() => {
   function status(){
     if(state === "loading" || state === "idle") return `飛行機：読み込み中…${t0 ? `（${Math.round((Date.now() - t0)/1000)}秒）` : ""}`;
     if(state === "error") return "飛行機：位置を取得できませんでした" + (lastErr ? `（${lastErr}）` : "");
-    const up = list.length;
-    return `飛行機：周辺${up}機・この向きに${inView}機（${PLANE.src || ""}）`;
+    return `飛行機：40km以内${nearN}機・この向きに${inView}機（${PLANE.src || ""}）`;
   }
-  return { toggle, draw, refresh, look, status, _dbg:() => ({ n:list.length, state, routes, failShown }), _set:(a, r) => { list = a; routes = r || routes; at = Date.now(); state = "ok"; } };
+  return { toggle, draw, refresh, look, status, hit, info, _dbg:() => ({ n:list.length, state, routes, failShown, hit:HIT.map(h => [h.x, h.y]) }), _set:(a, r) => { list = a; routes = r || routes; at = Date.now(); state = "ok"; } };
 })();
 try{ window.__plane = PLANE; }catch(_){}
 function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
@@ -2697,13 +2732,16 @@ function setupUI(){
   c.addEventListener('pointerup', e => { const p = SKYV.ptr; SKYV.ptr = null; if(!p || p.moved) return;
     const r = c.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
     if(SKYV.zoom){ ovClose('moon'); return; }
+    const card = ov.querySelector('#svPlaneCard');
+    if(SKYV.plane){ const h = PLANE.hit(x, y); if(h){ card.innerHTML = PLANE.info(h); card.hidden = false; card.querySelector('.pl-x').onclick = () => { card.hidden = true; }; return; } }
+    if(!card.hidden){ card.hidden = true; return; }
     const m = SKYV.moonP; if(m && Math.hypot(x-m.x, y-m.y) < m.r + 26){ SKYV.zoom = true; SKYV.zoomReady = false; ovOpen('moon', () => { SKYV.zoom = false; }); } });
   c.addEventListener('pointercancel', () => { SKYV.ptr = null; });
   // トグルボタン：押した状態は青、ON/OFFの文字だけ切り替える（ボタンの大きさと位置は変えない）
   // トグル：オンのときは青。ON/OFFの文字は出さない
   const setTog = (b, on) => { b.setAttribute('aria-pressed', on); };
   const pb = ov.querySelector('#svPlane');
-  pb.onclick = () => { SKYV.plane = !SKYV.plane; setTog(pb, SKYV.plane); try{ localStorage.setItem('skyPlane', SKYV.plane ? '1' : '0'); }catch(_){} PLANE.toggle(SKYV.plane); };
+  pb.onclick = () => { SKYV.plane = !SKYV.plane; setTog(pb, SKYV.plane); try{ localStorage.setItem('skyPlane', SKYV.plane ? '1' : '0'); }catch(_){} PLANE.toggle(SKYV.plane); if(!SKYV.plane) ov.querySelector('#svPlaneCard').hidden = true; };
   try{ SKYV.plane = localStorage.getItem('skyPlane') === '1'; }catch(_){}
   setTog(pb, SKYV.plane); if(SKYV.plane) PLANE.toggle(true);
   ov.querySelector('#svLines').onclick = e => { SKYV.lines = !SKYV.lines; setTog(e.currentTarget, SKYV.lines); };
