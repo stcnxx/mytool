@@ -410,7 +410,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-07 10:00</div>
+  <div style="margin-bottom:4px">版：2026-11-07 10:24</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2562,7 +2562,7 @@ const PLANE = (() => {
         if(pen) x.lineTo(p.x, p.y); x.stroke(); x.setLineDash([]); }
       // 機体
       x.save(); x.translate(p.x, p.y); x.rotate(it.ang + Math.PI/2); x.scale(sz, sz);
-      x.fillStyle = "#eef4ff"; x.strokeStyle = "rgba(0,0,0,.55)"; x.lineWidth = .7;
+      x.fillStyle = night ? "#9aa3ad" : "#eef4ff"; x.strokeStyle = "rgba(0,0,0,.55)"; x.lineWidth = .7;   // 夜はグレー
       x.beginPath(); x.moveTo(-1.3, -4.2); x.quadraticCurveTo(-1.3, -7.2, 0, -7.2); x.quadraticCurveTo(1.3, -7.2, 1.3, -4.2); x.lineTo(1.3, -2); x.lineTo(7, 1.5); x.lineTo(7, 3); x.lineTo(1.3, 1.2); x.lineTo(1, 5.2); x.lineTo(2.8, 6.6); x.lineTo(2.8, 7.6); x.lineTo(0, 6.8); x.lineTo(-2.8, 7.6); x.lineTo(-2.8, 6.6); x.lineTo(-1, 5.2); x.lineTo(-1.3, 1.2); x.lineTo(-7, 3); x.lineTo(-7, 1.5); x.lineTo(-1.3, -2); x.closePath(); x.fill(); x.stroke();
       // 赤い衝突防止灯：夜だけ、機体の胴体の真ん中で点滅（機体と一緒に回る）
       if(night && (ms/600 | 0) % 2){ x.fillStyle = "#ff4d4d"; x.beginPath(); x.arc(0, 1, 1.7, 0, TAU); x.fill(); }
