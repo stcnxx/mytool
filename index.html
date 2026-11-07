@@ -418,7 +418,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-07 16:29</div>
+  <div style="margin-bottom:4px">版：2026-11-07 17:09</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1606,11 +1606,11 @@ async function loadNews(){
   if(FORCE_DEMO || newsBusy) return; newsBusy = true;
   try{
     const res = await Promise.all(NEWS_FEEDS.map(f => fetchFeed(f.url).then(items => items.map(i => ({ ...i, c:f.c, s:f.s })))));
-    // 分類ごとに決めた件数を取る（ほかの分類と同じ見出しは飛ばして次を取る）。主要を先頭に、そのあとは新しい順
+    // 分類ごとに決めた件数を取る（ほかの分類と同じ見出しは飛ばして次を取る）
     const seen = new Set(), pick = res.map((items, fi) => { const out = [];
       for(const it of items){ if(out.length >= NEWS_FEEDS[fi].n) break; const k = it.title.replace(/\s/g, ""); if(seen.has(k)) continue; seen.add(k); out.push(it); }
       return out; });
-    let list = pick[0].concat(pick.slice(1).flat().sort((a, b) => b.t - a.t));
+    let list = pick.flat();   // 分類の順（主要・社会・科学・医療・政治・経済・国際・スポーツ・IT・エンタメ）に並べる
     if(!list.length) list = await wikiNewsList();
     if(!list.length){ if(!$("#news").querySelector("li")) $("#news").innerHTML = '<span class="muted">ニュースを取得できませんでした。</span>'; return; }
     const today = new Date().toLocaleDateString("ja-JP", { timeZone:"Asia/Tokyo" });
