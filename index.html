@@ -209,9 +209,9 @@ body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opa
 #skyv.pseudo-full{position:fixed;inset:0;height:100vh;height:100dvh;z-index:50}
 #skyv canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none}
 #skyv .sv-top{position:absolute;top:8px;left:0;right:0;text-align:center;color:#fff;font-size:12px;font-weight:600;letter-spacing:.06em;text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:none}
-#skyv .sv-bar{position:absolute;left:8px;right:8px;bottom:12px;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px}
+#skyv .sv-bar{position:absolute;left:8px;right:8px;bottom:12px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
 #skyv .sv-bar button{min-width:0;height:26px;margin:0;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;overflow:hidden;white-space:nowrap;line-height:1.15;background:rgba(24,22,44,.6);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:5px;padding:0 2px;font-size:12px;font-weight:600;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
-#skyv .sv-bar button{font-size:clamp(8.5px,2.75vw,11.5px)}#skyv .sv-bar button b{display:inline;font-size:1em;font-weight:700;letter-spacing:0}#skyv .sv-bar button i{display:inline;font-style:normal;font-size:1em;font-weight:500;opacity:.85;letter-spacing:0}
+#skyv .sv-bar button{font-size:clamp(8px,2.5vw,11px)}#skyv .sv-bar button b{display:inline;font-size:1em;font-weight:700;letter-spacing:0}#skyv .sv-bar button i{display:inline;font-style:normal;font-size:1em;font-weight:500;opacity:.85;letter-spacing:0}
 #skyv .sv-sat{position:absolute;top:30px;left:50%;transform:translateX(-50%);max-width:calc(100% - 24px);box-sizing:border-box;padding:4px 12px;border-radius:12px;background:rgba(20,24,40,.75);border:1px solid rgba(255,210,90,.6);color:#ffe9a8;font-size:clamp(10px,2.9vw,11.5px);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 #skyv:fullscreen .sv-sat,#skyv.pseudo-full .sv-sat,#skyv:-webkit-full-screen .sv-sat{top:calc(env(safe-area-inset-top,0px) + 68px)}
 #skyv .sv-toast{position:absolute;left:50%;bottom:calc(14% + 34px);transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);box-sizing:border-box;padding:7px 12px;border-radius:10px;background:rgba(20,24,40,.85);border:1px solid rgba(255,255,255,.35);color:#fff;font-size:12px;line-height:1.45;text-align:center;white-space:pre-line;pointer-events:none;z-index:2}
@@ -408,6 +408,7 @@ footer{background:none!important}
         <button type="button" id="svNight" aria-pressed="false"><b>夜</b></button>
         <button type="button" id="svMoon" title="月の方角を向く"><b>月</b></button>
         <button type="button" id="svLines" aria-pressed="true"><b>星座</b></button>
+        <button type="button" id="svTerr" aria-pressed="true"><b>地形</b></button>
         <button type="button" id="svSat" aria-pressed="false"><b>人工衛星</b></button>
         <button type="button" id="svPlane" aria-pressed="false"><b>飛行機</b></button>
         <button type="button" id="svFull" aria-pressed="false"><b>全画面</b></button>
@@ -418,7 +419,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-07 17:26</div>
+  <div style="margin-bottom:4px">版：2026-11-07 21:10</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -426,7 +427,7 @@ footer{background:none!important}
   <a href="https://www3.nhk.or.jp/toppage/rss/index.html" target="_blank" rel="noopener">NHKニュース</a>・<a href="https://news.yahoo.co.jp/rss" target="_blank" rel="noopener">Yahoo!ニュース</a>（RSS）／
   <a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>・<a href="https://www.odpt.org/" target="_blank" rel="noopener">公共交通オープンデータセンター</a>（都営の運行情報）／
   <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>（地図）／Open-Meteo Geocoding（場所・世界時計の都市検索）／<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（海外の地名）／<a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS</a>（海外の地震）／<a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>（海外の雨雲）／<a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Terrain Tiles</a>（海外の地形）／
-  <a href="https://ja.wikipedia.org/" target="_blank" rel="noopener">ウィキペディア</a>（誕生日・記念日）。天体は現在地と時刻から計算し、山並みは<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院の標高タイル</a>から描いています。
+  <a href="https://ja.wikipedia.org/" target="_blank" rel="noopener">ウィキペディア</a>（誕生日・記念日）。天体は現在地と時刻から計算し、地形は<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院の標高タイル</a>（海外は Mapzen Terrain Tiles）、地名・山の名前は<a href="https://www.wikidata.org/" target="_blank" rel="noopener">ウィキデータ</a>から描いています。
   情報は参考用です。避難等の判断は自治体・気象庁の発表に従ってください。<br>
   URLの末尾に <code>?demo</code> を付けると、通信せずにサンプルデータだけで表示します。
 </footer>
@@ -2125,7 +2126,7 @@ function moonName(a){return a<1.5||a>28?'新月':a<5.5?'三日月':a<9?'上弦�
 function codeKind(c){if(c==null)return null;if(c<=1)return'clear';if(c<=3)return'cloudy';if(c===45||c===48)return'fog';if((c>=51&&c<=67)||(c>=80&&c<=82))return'rain';if((c>=71&&c<=77)||c===85||c===86)return'snow';if(c>=95)return'thunder';return'cloudy';}
 function wKind(){ return codeKind(ENV.code) || 'clear'; }
 function astroLoc(){ return { lat:ENV.lat, lon:ENV.lon }; }
-const SKYV = { open:true, A0:180, fov:96, lines:true, clear:false, zoom:false, zoomReady:false, ptr:null, lastTap:{t:0,x:0,y:0}, moonP:null, raf:0, flash:0, nextFlash:3, aimed:false };
+const SKYV = { open:true, A0:180, fov:96, lines:true, terr:true, clear:false, zoom:false, zoomReady:false, ptr:null, lastTap:{t:0,x:0,y:0}, moonP:null, raf:0, flash:0, nextFlash:3, aimed:false };
 function skyvEl(){ return document.getElementById('skyv'); }
 const D2R=Math.PI/180,R2D=180/Math.PI;
 function asJd(d){return(d.getTime()-TZS())/86400000+2440587.5;}
@@ -2601,7 +2602,7 @@ const PLANE = (() => {
   function look(lat, lon, alt, sk){
     const R = 6371e3, f0 = sk.lat*D2R, l0 = sk.lon*D2R, f = lat*D2R, l = lon*D2R;
     const ecef = (ff, ll, h) => [(R+h)*Math.cos(ff)*Math.cos(ll), (R+h)*Math.cos(ff)*Math.sin(ll), (R+h)*Math.sin(ff)];
-    const o = ecef(f0, l0, 0), p = ecef(f, l, alt), d = [p[0]-o[0], p[1]-o[1], p[2]-o[2]];
+    const o = ecef(f0, l0, TERR.eye || EYE_ALT), p = ecef(f, l, alt)   // 視点は上空（標高1000m）, d = [p[0]-o[0], p[1]-o[1], p[2]-o[2]];
     const e = -Math.sin(l0)*d[0] + Math.cos(l0)*d[1];
     const n = -Math.sin(f0)*Math.cos(l0)*d[0] - Math.sin(f0)*Math.sin(l0)*d[1] + Math.cos(f0)*d[2];
     const u = Math.cos(f0)*Math.cos(l0)*d[0] + Math.cos(f0)*Math.sin(l0)*d[1] + Math.sin(f0)*d[2];
@@ -2676,11 +2677,11 @@ const PLANE = (() => {
   }
   return { toggle, draw, refresh, look, status, hit, info, _dbg:() => ({ n:list.length, state, routes, failShown, hit:HIT.map(h => [h.x, h.y]), lb:HIT.map(h => h.lb ? [h.lb.x, h.lb.y, h.lb.w, h.lb.h, h.o.cs] : null) }), _set:(a, r) => { list = a; routes = r || routes; at = Date.now(); state = "ok"; } };
 })();
-try{ window.__plane = PLANE; }catch(_){}
+try{ window.__plane = PLANE; window.__terrReady = () => !!TERR.pan && !!NAMES.list; window.__setAz = a => { SKYV.A0 = a; }; }catch(_){}
 function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
   const Wc=c.clientWidth||360,Hc=c.clientHeight||420,dpr=Math.min(2,DPR||1);if(c.width!==Math.round(Wc*dpr)||c.height!==Math.round(Hc*dpr)){c.width=Math.round(Wc*dpr);c.height=Math.round(Hc*dpr);}
   const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';
-  const sk=skyNow(),k='clear',sa=SKYV.night?-90:sk.sun.alt,hy=Hc*(TERR.prof?.8:.86),kk=Wc/SKYV.fov;
+  const sk=skyNow(),k='clear',sa=SKYV.night?-90:sk.sun.alt,hy=Hc*.7,kk=Wc/SKYV.fov;
   const P=(az,alt)=>{const d=((az-SKYV.A0+540)%360)-180;return{x:Wc/2+d*kk,y:hy-alt*kk,d};};
   // 描いた文字の場所（天の川の名前を重ねないため）
   const LB=[],SN=[],CN=[],AN=[],SEG=[],STP=[],hitLB=(a,b)=>a.x<b.x+b.w+3&&b.x<a.x+a.w+3&&a.y<b.y+b.h+2&&b.y<a.y+a.h+2;
@@ -2744,7 +2745,10 @@ function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
       const r={x:p.x-tw/2,y:p.y-11,w:tw,h:14};if(LB.some(q=>hit(r,q))||starHit(r)||SEG.some(g=>segHit(r,g)))return;const sc=b[2]*10+i/1000;if(!best||sc>best.sc)best={sc,p};});
     if(best){x.textAlign='center';x.lineWidth=3;x.strokeStyle='rgba(0,0,0,.45)';x.strokeText('天の川',best.p.x,best.p.y);x.fillStyle=`rgba(255,214,70,${.9*starA})`;x.fillText('天の川',best.p.x,best.p.y);}}
   // 周囲の地形（取れたときだけ。取れなければ地平線は描かない）
-  drawTerrain(x,Wc,Hc,hy,kk,sc2,sa);
+  // 方角の文字の場所を先に取っておく（地名と重ねない）
+  for(let a=0;a<360;a+=45){const p=P(a,0);if(p.x>-20&&p.x<Wc+20)LB.push({x:p.x-14,y:hy+4,w:28,h:15});}
+  {const hn=ov.querySelector('#svHint');if(hn&&getComputedStyle(hn).display!=='none'&&hn.offsetWidth)LB.push({x:hn.offsetLeft,y:hn.offsetTop,w:hn.offsetWidth,h:hn.offsetHeight});}
+  drawTerrain(x,Wc,Hc,hy,kk,sc2,sa,sk,P,LB,hitLB);
   // compass on the horizon
   x.font='600 11px "Zen Maru Gothic",sans-serif';x.textAlign='center';for(let a=0;a<360;a+=45){const p=P(a,0);if(p.x<-20||p.x>Wc+20)continue;x.fillStyle=a===0?'rgba(255,140,120,.95)':'rgba(255,255,255,.85)';x.strokeStyle='rgba(0,0,0,.35)';x.lineWidth=3;x.strokeText(AZ_JP[a/22.5],p.x,hy+16);x.fillText(AZ_JP[a/22.5],p.x,hy+16);x.fillRect(p.x-.5,hy,1,4);}
   ov.querySelector('#svDir').textContent=`${azName(SKYV.A0)}の空を見ています`;
@@ -2761,7 +2765,7 @@ function skyvZoom(x,Wc,Hc,sk,t){x.fillStyle='rgba(2,3,10,.95)';x.fillRect(0,0,Wc
   x.fillStyle='rgba(255,255,255,.55)';x.font='11px "Zen Maru Gothic",sans-serif';x.fillText('タップでもどる',cx,Hc-24);}
 
 /* --- 周囲の地形（国土地理院 標高タイル dem_png から地平線の山並みを計算） --- */
-const TERR = { key:"", prof:null, elev:null, ready:null };
+const TERR = { key:"", prof:null, elev:null, eye:null, pan:null, cv:null, img:null, ck:"", ready:null };
 function demTile(z, X, Y, src){
   return new Promise((res, rej) => {
     const img = new Image(); img.crossOrigin = "anonymous";
@@ -2778,56 +2782,188 @@ function demTile(z, X, Y, src){
     img.src = src === "terrarium" ? `https://s3.amazonaws.com/elevation-tiles-prod/terrarium/${z}/${X}/${Y}.png` : `https://cyberjapandata.gsi.go.jp/xyz/dem_png/${z}/${X}/${Y}.png`;
   });
 }
+/* 星空ビューの視点：標高1000mに浮かんで見下ろす（その場所の地面が900mより高いときは地面の100m上） */
+const EYE_ALT = 1000;
+// 見下ろした地面の絵（方角×角度）。横は1/3°ごと、縦は+3°〜-61°を0.25°ごと
+const PAN = { W:1080, H:256, top:3, res:.25, R:100000 };
 async function computeTerrain(lat, lon){
-  const z = 11, R = 25000, n = 2**z, Re = 6371000;
-  const tx = (lon+180)/360*n, ty = (1 - Math.log(Math.tan(lat*D2R) + 1/Math.cos(lat*D2R))/Math.PI)/2*n;
-  const mPerTile = 40075016.686*Math.cos(lat*D2R)/n, mpp = mPerTile/256, span = Math.ceil(R/mPerTile);
-  const tiles = new Map();
-  const fetchAll = async src => { tiles.clear(); const jobs = [];
-    for(let dx=-span; dx<=span; dx++) for(let dy=-span; dy<=span; dy++){
-      const X = Math.floor(tx)+dx, Y = Math.floor(ty)+dy, k = X+"/"+Y;
-      jobs.push(demTile(z, X, Y, src).then(a => tiles.set(k, a), () => tiles.set(k, null)));
+  const Re = 6371000, jp = inJapanBox(lat, lon);
+  const grid = async (z, R) => {
+    const n = 2**z, tx = (lon+180)/360*n, ty = (1 - Math.log(Math.tan(lat*D2R) + 1/Math.cos(lat*D2R))/Math.PI)/2*n;
+    const mPerTile = 40075016.686*Math.cos(lat*D2R)/n, mpp = mPerTile/256, span = Math.ceil(R/mPerTile), tiles = new Map();
+    const fetchAll = async src => { tiles.clear(); const jobs = [];
+      for(let dx=-span; dx<=span; dx++) for(let dy=-span; dy<=span; dy++){
+        const X = Math.floor(tx)+dx, Y = Math.floor(ty)+dy, k = X+"/"+Y;
+        jobs.push(demTile(z, X, Y, src).then(a => tiles.set(k, a), () => tiles.set(k, null)));
+      }
+      await Promise.all(jobs); return [...tiles.values()].filter(Boolean).length; };
+    // 日本は国土地理院（海はデータなし）、それ以外（または取れないとき）は世界の標高タイル（海は0m以下）
+    let src = "gsi", got = jp ? await fetchAll("gsi") : 0;
+    if(!got){ src = "terrarium"; got = await fetchAll("terrarium"); }
+    const cx = tx*256, cy = ty*256, SEA = -9999;
+    // ex：東へ何m、ny：北へ何m。海は -9999、データがなければ null
+    const at = (ex, ny) => { const px = cx + ex/mpp, py = cy - ny/mpp, X = Math.floor(px/256), Y = Math.floor(py/256), a = tiles.get(X+"/"+Y); if(!a) return null;
+      const v = a[Math.min(255, Math.floor(py - Y*256))*256 + Math.min(255, Math.floor(px - X*256))];
+      return src === "gsi" ? (Number.isNaN(v) ? SEA : v) : (v <= 0 ? SEA : v); };
+    return { got, mpp, at };
+  };
+  // 近く（12km以内）は細かいデータ、遠く（100kmまで）は粗いデータ
+  const [near, far] = await Promise.all([grid(12, 12500), grid(10, PAN.R)]);
+  if(!near.got && !far.got) throw new Error("標高タイルを取得できません");
+  const elevAt = (ex, ny, d) => { let v = d < 11500 && near.got ? near.at(ex, ny) : null; if(v == null) v = far.at(ex, ny); return v; };
+  const c0 = near.got ? near.at(0, 0) : far.at(0, 0), h0 = c0 == null || c0 === -9999 ? 0 : Math.max(0, c0);
+  const eye = Math.max(EYE_ALT, h0 + 100);
+  const { W, H, top, res, R } = PAN, N = W*H;
+  const elevA = new Float32Array(N).fill(NaN), distA = new Float32Array(N), gxA = new Float32Array(N), gyA = new Float32Array(N), coastA = new Uint8Array(N);
+  const prof = new Float32Array(360).fill(-90), dip = -Math.sqrt(2*eye/Re)*R2D;
+  const v0 = (q, e) => q == null ? e : q === -9999 ? 0 : q;
+  for(let c=0; c<W; c++){
+    if(c % 60 === 59) await new Promise(r => setTimeout(r, 0));   // 計算中もボタンなどがすぐ反応するように、ときどき手を離す
+    const az = c*360/W, sx = Math.sin(az*D2R), sy = Math.cos(az*D2R);
+    let curTop = H, maxA = -90, lastSea = false;
+    for(let d = Math.max(30, (eye - h0)/Math.tan(62*D2R)); d <= R; d += Math.max(12, d*.005)){
+      const ex = sx*d, ny = sy*d, g = d < 11500 && near.got ? near : far;
+      let e = g.at(ex, ny); if(e == null && g === near) e = far.at(ex, ny); if(e == null) continue;
+      const sea = e === -9999, ee = sea ? 0 : e; lastSea = sea;
+      const a = Math.atan2(ee - d*d/(2*Re)*.87 - eye, d)*R2D;
+      if(a > maxA) maxA = a;
+      const row = Math.floor((top - a)/res);
+      if(row < curTop){
+        const r0 = Math.max(0, row); let gx = 0, gy = 0, coast = 0;
+        const s2 = (g === near ? near : far).mpp;
+        const eE = g.at(ex+s2, ny), eW = g.at(ex-s2, ny), eN = g.at(ex, ny+s2), eS = g.at(ex, ny-s2);
+        if(!sea){ gx = (v0(eE, ee) - v0(eW, ee))/(2*s2); gy = (v0(eN, ee) - v0(eS, ee))/(2*s2); }
+        coast = sea ? (eE > 0 || eW > 0 || eN > 0 || eS > 0 ? 1 : 0) : (eE === -9999 || eW === -9999 || eN === -9999 || eS === -9999 ? 1 : 0);
+        for(let r=r0; r<curTop; r++){ const i = r*W + c; elevA[i] = sea ? -1 : ee; distA[i] = d; gxA[i] = gx; gyA[i] = gy; coastA[i] = coast; }
+        curTop = r0; if(curTop === 0) break;
+      }
     }
-    await Promise.all(jobs); return [...tiles.values()].filter(Boolean).length; };
-  // 日本は国土地理院、それ以外（または取れないとき）は世界の標高タイル
-  let got = inJapanBox(lat, lon) ? await fetchAll("gsi") : 0;
-  if(!got) got = await fetchAll("terrarium");
-  if(!got) throw new Error("標高タイルを取得できません");
-  const cx = tx*256, cy = ty*256;
-  const elevAt = (px, py) => { const X = Math.floor(px/256), Y = Math.floor(py/256), a = tiles.get(X+"/"+Y); if(!a) return null;
-    const v = a[Math.min(255, Math.floor(py - Y*256))*256 + Math.min(255, Math.floor(px - X*256))]; return Number.isNaN(v) ? null : v; };
-  const h0 = elevAt(cx, cy) ?? 0, eye = h0 + 1.6;
-  const dip = -Math.sqrt(2*Math.max(eye, 0.5)/Re)*R2D;        // 海の水平線（地球の丸み）
-  const prof = new Float32Array(360);
-  for(let az=0; az<360; az++){
-    const sx = Math.sin(az*D2R), sy = -Math.cos(az*D2R);
-    let best = dip;
-    for(let d=60; d<=R; d += Math.max(30, d*0.015)){
-      const e = elevAt(cx + sx*d/mpp, cy + sy*d/mpp); if(e == null) continue;
-      const ang = Math.atan2(e - d*d/(2*Re)*0.87 - eye, d)*R2D;
-      if(ang > best) best = ang;
-    }
-    prof[az] = best;
+    // 100kmより先が海なら、水平線まで海を続ける
+    const rd = Math.floor((top - dip)/res);
+    if(lastSea && rd < curTop) for(let r=Math.max(0, rd); r<curTop; r++){ const i = r*W + c; elevA[i] = -1; distA[i] = R; }
+    const di = Math.floor(az) % 360; prof[di] = Math.max(prof[di], maxA, lastSea ? dip : -90);
   }
-  return { prof, elev:h0 };
+  return { prof, elev:h0, eye, pan:{ elevA, distA, gxA, gyA, coastA } };
 }
 function loadTerrain(lat, lon){
   const key = lat.toFixed(3) + "," + lon.toFixed(3);
   if(TERR.key === key && TERR.ready) return TERR.ready;
-  TERR.key = key; TERR.prof = null; TERR.elev = null;
-  TERR.ready = computeTerrain(lat, lon).then(r => { if(TERR.key === key){ TERR.prof = r.prof; TERR.elev = r.elev; } return r; });
+  TERR.key = key; TERR.prof = null; TERR.elev = null; TERR.pan = null; TERR.ck = ""; TERR.eye = null;
+  TERR.ready = computeTerrain(lat, lon).then(r => { if(TERR.key === key){ TERR.prof = r.prof; TERR.elev = r.elev; TERR.eye = r.eye; TERR.pan = r.pan; TERR.ck = ""; } return r; });
+  loadNames(lat, lon);
   return TERR.ready;
 }
-function drawTerrain(x, Wc, Hc, hy, kk, sc2, sa){
-  const pr = TERR.prof; if(!pr) return;
-  const altAt = az => { az = ((az % 360) + 360) % 360; const i = Math.floor(az), f = az - i; return pr[i % 360]*(1-f) + pr[(i+1) % 360]*f; };
-  x.beginPath(); x.moveTo(0, Hc);
-  for(let px=0; px<=Wc+2; px+=2) x.lineTo(px, hy - altAt(SKYV.A0 + (px - Wc/2)/kk)*kk);
-  x.lineTo(Wc, Hc); x.closePath();
+// 地面の色（海・海岸・高さ・雪・斜面の陰・遠くのかすみ）。太陽や空の色が変わったときだけ塗り直す
+function terrColor(sa, sun, hor){
+  const T = TERR, pn = T.pan, { W, H } = PAN, mon = new Date().getMonth();
+  const day = Math.max(0, Math.min(1, (sa + 6)/12)), ck = [Math.round(sa), Math.round(sun.az/6), hor.map(v => v >> 3).join(), mon].join("|");
+  if(T.ck === ck && T.cv) return; T.ck = ck;
+  if(!T.cv){ T.cv = document.createElement("canvas"); T.cv.width = W; T.cv.height = H; T.img = T.cv.getContext("2d").createImageData(W, H); }
+  const px = T.img.data, snow = [900,900,1300,1900,2500,3200,3800,3800,3400,2700,2200,1300][mon];
+  const sAlt = Math.max(sun.alt, 3)*D2R, L = [Math.sin(sun.az*D2R)*Math.cos(sAlt), Math.cos(sun.az*D2R)*Math.cos(sAlt), Math.sin(sAlt)];
+  const ramp = e => e < 60 ? [126,132,116] : e < 500 ? mixRgb([126,132,116], [78,108,62], (e-60)/440) : e < 1400 ? mixRgb([78,108,62], [64,88,58], (e-500)/900) : e < 2300 ? mixRgb([64,88,58], [108,104,92], (e-1400)/900) : [126,118,108];
+  const seaD = mixRgb([38,84,128], hor, .3), night = [8,12,22];
+  for(let i=0; i<W*H; i++){
+    const e = pn.elevA[i], o = i*4; if(Number.isNaN(e)){ px[o+3] = 0; continue; }
+    const d = pn.distA[i]; let col;
+    if(e < 0) col = pn.coastA[i] ? mixRgb(seaD, [120,170,190], .4) : seaD;
+    else{
+      col = pn.coastA[i] ? [192,182,146] : e > snow ? [236,240,246] : ramp(e);
+      // 斜面の陰（太陽の向き）：起伏を2倍に強調
+      const nx = -pn.gxA[i]*2, ny = -pn.gyA[i]*2, ln = Math.hypot(nx, ny, 1), lam = (nx*L[0] + ny*L[1] + L[2])/ln;
+      const sh = Math.max(.45, Math.min(1.35, .9 + 1.4*(lam - L[2])));
+      col = [col[0]*sh, col[1]*sh, col[2]*sh];
+    }
+    col = mixRgb(col, hor, (1 - Math.exp(-d/60000))*.75);               // 遠いほど空の色にかすむ
+    if(day < 1){
+      const nc = mixRgb(col, night, .86);
+      col = mixRgb(nc, col, day);
+    }
+    px[o] = col[0]; px[o+1] = col[1]; px[o+2] = col[2]; px[o+3] = 255;
+  }
+  T.cv.getContext("2d").putImageData(T.img, 0, 0);
+}
+/* --- 地名・山の名前（ウィキデータ）。地形ボタンがオンのときに表示 --- */
+const NAMES = { key:"", list:null, busy:false, failAt:0 };
+async function loadNames(lat, lon){
+  const key = lat.toFixed(2) + "," + lon.toFixed(2);
+  if(NAMES.key === key && (NAMES.list || NAMES.busy || Date.now() - NAMES.failAt < 600e3)) return;
+  NAMES.key = key; NAMES.list = null; NAMES.failAt = 0;
+  try{ const c = JSON.parse(localStorage.getItem("terrNames") || "null"); if(c && c.key === key && Date.now() - c.t < 30*864e5){ NAMES.list = c.list; return; } }catch(_){}
+  NAMES.busy = true;
+  const pt = `"Point(${lon.toFixed(4)} ${lat.toFixed(4)})"^^geo:wktLiteral`, jp = inJapanBox(lat, lon);
+  const lab = 'SERVICE wikibase:label{bd:serviceParam wikibase:language "ja,en".}';
+  const qs = jp ? [
+    `SELECT ?it ?itLabel ?pop ?loc WHERE{VALUES ?c{wd:Q494721 wd:Q1059478 wd:Q4174776 wd:Q5327704} ?it wdt:P31 ?c; wdt:P625 ?loc. FILTER(geof:distance(?loc,${pt})<100) OPTIONAL{?it wdt:P1082 ?pop} ${lab}}`,
+    `SELECT ?it ?itLabel ?h ?loc WHERE{VALUES ?c{wd:Q8502 wd:Q8072 wd:Q169358 wd:Q1595289 wd:Q54050} ?it wdt:P31 ?c; wdt:P17 wd:Q17; wdt:P2044 ?h; wdt:P625 ?loc. BIND(geof:distance(?loc,${pt}) AS ?dist) FILTER(?dist<100 && (?h>=400 || ?dist<12)) ${lab}}`
+  ] : [
+    `SELECT ?it ?itLabel ?pop ?loc WHERE{SERVICE wikibase:around{?it wdt:P625 ?loc. bd:serviceParam wikibase:center ${pt}; wikibase:radius "80".} VALUES ?c{wd:Q515 wd:Q1549591 wd:Q3957} ?it wdt:P31 ?c. OPTIONAL{?it wdt:P1082 ?pop} ${lab}}`,
+    `SELECT ?it ?itLabel ?h ?loc WHERE{SERVICE wikibase:around{?it wdt:P625 ?loc. bd:serviceParam wikibase:center ${pt}; wikibase:radius "80".} VALUES ?c{wd:Q8502 wd:Q8072 wd:Q169358} ?it wdt:P31 ?c; wdt:P2044 ?h. FILTER(?h>=500) ${lab}}`
+  ];
+  const run = async q => { const t = await fetchText("https://query.wikidata.org/sparql?format=json&query=" + encodeURIComponent(q), 30000, true), j = JSON.parse(t), seen = new Set(), out = [];
+    for(const b of j.results.bindings){ const m = /Point\(([-\d.]+) ([-\d.]+)\)/.exec(b.loc.value), n = b.itLabel && b.itLabel.value; if(!m || !n || /^Q\d+$/.test(n) || seen.has(b.it.value)) continue; seen.add(b.it.value);
+      out.push({ n, lat:+m[2], lon:+m[1], pop:b.pop ? +b.pop.value : 0, h:b.h ? Math.round(+b.h.value) : null, mt:!!b.h }); }
+    return out; };
+  try{
+    const [towns, mts] = await Promise.all(qs.map(run));
+    if(NAMES.key !== key) return;
+    NAMES.list = towns.concat(mts);
+    try{ localStorage.setItem("terrNames", JSON.stringify({ key, t:Date.now(), list:NAMES.list })); }catch(_){}
+  }catch(e){ quiet("地名", e); if(NAMES.key === key) NAMES.failAt = Date.now(); }
+  finally{ NAMES.busy = false; }
+}
+// 名前の置き場所：その方角の地面の絵から、その距離の地面が見えているかを調べる
+function namePlaces(lat, lon){
+  const T = TERR, pn = T.pan, { W, H, top, res } = PAN, Re = 6371000, cl = Math.cos(lat*D2R), out = [];
+  for(const q of NAMES.list || []){
+    const dy = (q.lat - lat)*111320, dx = (q.lon - lon)*111320*cl, d = Math.hypot(dx, dy); if(d < 300 || d > PAN.R) continue;
+    const az = (Math.atan2(dx, dy)*R2D + 360) % 360, c = Math.round(az*W/360) % W;
+    // 下から上へ：手前から奥へ距離が増える
+    let rNear = -1, rAt = -1;
+    for(let r=H-1; r>=0; r--){ const i = r*W + c; if(Number.isNaN(pn.elevA[i])) continue; const dd = pn.distA[i]; if(dd < d*.95) rNear = r; else { rAt = r; break; } }
+    let alt;
+    if(q.mt && q.h != null){ alt = Math.atan2(q.h - d*d/(2*Re)*.87 - T.eye, d)*R2D; if(rNear >= 0 && top - rNear*res > alt + .05) continue; }
+    else{ if(rAt < 0 || pn.distA[rAt*W + c] > d*1.1 + 400) continue; alt = top - (rAt + .5)*res; }
+    out.push({ ...q, az, d, alt });
+  }
+  return out;
+}
+function drawTerrain(x, Wc, Hc, hy, kk, sc2, sa, sk, P, LB, hitLB){
+  const T = TERR;
+  if(!T.pan){   // 読み込み中・取れないとき：平らな地面
+    const g = mixRgb(mixRgb(sc2.hor, [10,14,24], .7), [70,88,72], Math.max(0, Math.min(1, (sa + 6)/12))*.5);
+    x.fillStyle = GD_lg(x, 0, hy, 0, Hc, [[0, rgbS(g)], [1, rgbS(mixRgb(g, [0,0,0], .5))]]); x.fillRect(0, hy, Wc, Hc - hy); return;
+  }
+  terrColor(sa, sk.sun, sc2.hor);
+  const w = 360*kk, y0 = hy - PAN.top*kk, h = PAN.H*PAN.res*kk;
+  let x0 = Wc/2 - SKYV.A0*kk; x0 = ((x0 % w) + w) % w - w;
+  x.save(); x.imageSmoothingEnabled = true;
+  for(let xx = x0; xx < Wc; xx += w) x.drawImage(T.cv, xx, y0, w, h);
+  if(y0 + h < Hc){ x.fillStyle = rgbS(mixRgb(sc2.hor, [0,0,0], .6)); x.fillRect(0, y0 + h, Wc, Hc - y0 - h); }
+  x.restore();
+  if(!SKYV.terr || !NAMES.list) return;
+  // 名前：山（高い順に10、近くの丘は3）→ 市区町村（人口の多い順に24）
+  const pl = namePlaces(S.lat, S.lon), mts = pl.filter(q => q.mt), tw = pl.filter(q => !q.mt);
+  const pick = mts.filter(q => q.d >= 12000 || q.h >= 400).sort((a, b) => b.h - a.h).slice(0, 10)
+    .concat(mts.filter(q => q.d < 12000 && q.h < 400).sort((a, b) => a.d - b.d).slice(0, 3))
+    .concat(tw.sort((a, b) => b.pop - a.pop).slice(0, 24));
   const day = Math.max(0, Math.min(1, (sa + 6)/12));
-  const top = mixRgb(mixRgb(sc2.hor, [10,14,24], .78), [70,88,72], day*.6), bot = mixRgb(top, [0,0,0], .5);
-  x.fillStyle = GD_lg(x, 0, hy - 20, 0, Hc, [[0, rgbS(top)], [1, rgbS(bot)]]); x.fill();
-  x.strokeStyle = rgbS(mixRgb(sc2.hor, [255,255,255], .15), .35); x.lineWidth = 1; x.stroke();
+  for(const q of pick){
+    const p = P(q.az, q.alt); if(Math.abs(p.d) > SKYV.fov/2 + 2 || p.y > Hc - 44 || p.y < 30) continue;
+    const near = Math.max(0, Math.min(1, 1 - Math.log10(q.d/2000)/1.7)), fs = Math.round(9 + 3*near), al = .62 + .36*near;
+    const t = q.mt ? `${q.n} ${q.h}m` : q.n;
+    x.font = `${q.mt ? 700 : 600} ${fs}px "Zen Maru Gothic",sans-serif`;
+    const tw2 = x.measureText(t).width;
+    let r = null;
+    for(const dy of [3, -fs - 8, fs + 6]){ const c = { x:p.x - tw2/2, y:p.y + dy, w:tw2, h:fs + 2 }; if(c.x < 2 || c.x + c.w > Wc - 2 || c.y + c.h > Hc - 42) continue; if(!LB.some(b => hitLB(c, b))){ r = c; break; } }
+    if(!r) continue;
+    LB.push(r);
+    x.fillStyle = q.mt ? `rgba(255,236,190,${al})` : `rgba(255,255,255,${al})`;
+    if(q.mt){ x.beginPath(); x.moveTo(p.x, p.y - 4); x.lineTo(p.x + 3.5, p.y + 2); x.lineTo(p.x - 3.5, p.y + 2); x.closePath(); x.fill(); }
+    else{ x.beginPath(); x.arc(p.x, p.y, 1.8, 0, TAU); x.fill(); }
+    x.textAlign = "center"; x.textBaseline = "top"; x.lineWidth = 3; x.strokeStyle = `rgba(0,0,0,${.5*al + (1 - day)*.1})`;
+    x.strokeText(t, p.x, r.y + 1); x.fillText(t, p.x, r.y + 1); x.textBaseline = "alphabetic";
+  }
 }
 
 /* --- 操作・表示ループ --- */
@@ -2852,6 +2988,11 @@ function setupUI(){
   try{ SKYV.plane = localStorage.getItem('skyPlane') === '1'; }catch(_){}
   setTog(pb, SKYV.plane); if(SKYV.plane) PLANE.toggle(true);
   ov.querySelector('#svLines').onclick = e => { SKYV.lines = !SKYV.lines; setTog(e.currentTarget, SKYV.lines); };
+  // 地形：地名と山の名前のオン・オフ（地形そのものはいつも描く）
+  const tb = ov.querySelector('#svTerr');
+  tb.onclick = () => { SKYV.terr = !SKYV.terr; setTog(tb, SKYV.terr); try{ localStorage.setItem('skyTerr', SKYV.terr ? '1' : '0'); }catch(_){} if(SKYV.terr && S.lat != null) loadNames(S.lat, S.lon); };
+  try{ SKYV.terr = localStorage.getItem('skyTerr') !== '0'; }catch(_){ SKYV.terr = true; }
+  setTog(tb, SKYV.terr);
   const sb = ov.querySelector('#svSat');
   sb.onclick = () => { SKYV.sat = !SKYV.sat; setTog(sb, SKYV.sat); try{ localStorage.setItem('skySat', SKYV.sat ? '1' : '0'); }catch(_){} if(SKYV.sat) SAT.load(); SAT.info(true); infoAt = 0; updateInfo(); };
   try{ SKYV.sat = localStorage.getItem('skySat') === '1'; }catch(_){}
