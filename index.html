@@ -195,7 +195,7 @@ body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opa
 .chip b{margin-left:4px}.st-ok b{color:var(--ok)}.st-bad{background:#fee2e2;color:#991b1b}.st-bad b{color:#dc2626}.st-unk b{color:var(--muted)}
 #skyCard{padding:0;overflow:hidden}
 #skyCard h2{padding:14px 16px 0}
-#skyInfo{padding:0 16px 8px;font-size:.8rem;color:var(--muted)}
+#skyInfo{padding:0 16px 8px;font-size:.8rem;color:var(--muted);white-space:pre-line;line-height:1.55}
 #skyv{position:relative;height:440px;background:#000;overflow:hidden;touch-action:pan-y;-webkit-user-select:none;user-select:none}
 #skyv:fullscreen{height:100%;border-radius:0}
 #skyv:fullscreen .sv-top,#skyv.pseudo-full .sv-top{top:calc(env(safe-area-inset-top,0px) + 44px);font-size:14px}
@@ -410,7 +410,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-06 11:04</div>
+  <div style="margin-bottom:4px">版：2026-11-07 09:11</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2270,7 +2270,7 @@ const SAT = (() => {
     20580:["1 20580U 90037B   26307.37500000  .00002000 00000+0  21000-3 0  9990","2 20580  28.4700 110.6000 0002400 190.2000 220.7000 15.28500000500000"]
   };
   const RE = 6378.135, KE = 0.0743669161, J2 = 1.082616e-3, T2 = Math.PI*2;
-  let recs = null, state = "idle", passC = { at:0, v:null }, infoAt = 0;
+  let recs = null, state = "idle", passC = { at:0, v:null }, infoAt = 0, satText = "";
   function parse(l1, l2){
     const yy = +l1.slice(18,20), doy = +l1.slice(20,32), Y = yy < 57 ? 2000 + yy : 1900 + yy;
     const jdE = Date.UTC(Y,0,1)/864e5 + 2440587.5 + doy - 1, nd2 = +l1.slice(33,43) || 0;
@@ -2343,12 +2343,12 @@ const SAT = (() => {
   const hhmm = jd => { const d = new Date((jd - 2440587.5)*864e5); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
   const dayW = jd => { const d = new Date((jd - 2440587.5)*864e5), t = new Date(); t.setHours(0,0,0,0); const n = Math.round((new Date(d).setHours(0,0,0,0) - t)/864e5); return n === 0 ? "" : n === 1 ? "明日 " : `${d.getMonth()+1}/${d.getDate()} `; };
   function info(force){
-    const el = document.getElementById("svSatInfo"); if(!el) return;
-    if(!SKYV.sat){ el.hidden = true; return; }
+    // 衛星の案内はビューの外（天体の説明の行）に出す
+    const el = document.getElementById("svSatInfo"); if(el) el.hidden = true;
+    if(!SKYV.sat){ satText = ""; return; }
     const tn = performance.now(); if(!force && tn - infoAt < 1000) return; infoAt = tn;
-    el.hidden = false;
-    if(state === "loading" || state === "idle"){ el.textContent = "衛星データを読み込み中…"; return; }
-    if(state === "error"){ el.textContent = "衛星データを取得できませんでした"; return; }
+    if(state === "loading" || state === "idle"){ satText = "衛星データを読み込み中…"; return; }
+    if(state === "error"){ satText = "衛星データを取得できませんでした"; return; }
     const sk = skyNow(), jd = sk.jd, { lat, lon } = sk, dark = SKYV.night || sk.sun.alt < -4;
     const nowVis = recs.map(o => ({ o, L:look(o.s, jd, lat, lon) })).filter(v => v.L.alt > 0 && v.L.lit && dark);
     const iss = recs.find(o => o.id === 25544);
@@ -2356,10 +2356,10 @@ const SAT = (() => {
     const ps = passC.v;
     if(nowVis.length){
       const names = nowVis.map(v => v.o.name).join("・");
-      el.textContent = ps && ps.now && nowVis.some(v => v.o.id === 25544) ? `ISS 見える！ 〜${hhmm(ps.jd2)}　${azName(ps.az1)} → ${azName(ps.az2)}　最大高度 ${Math.round(ps.max)}°` + (nowVis.length > 1 ? `　ほか ${nowVis.filter(v => v.o.id !== 25544).map(v => v.o.name).join("・")}` : "")
+      satText = ps && ps.now && nowVis.some(v => v.o.id === 25544) ? `ISS 見える！ 〜${hhmm(ps.jd2)}　${azName(ps.az1)} → ${azName(ps.az2)}　最大高度 ${Math.round(ps.max)}°` + (nowVis.length > 1 ? `　ほか ${nowVis.filter(v => v.o.id !== 25544).map(v => v.o.name).join("・")}` : "")
         : `いま見える衛星：${names}`;
-    }else if(ps) el.textContent = `次のISS ${dayW(ps.jd1)}${hhmm(ps.jd1)}〜${hhmm(ps.jd2)}　${azName(ps.az1)} → ${azName(ps.az2)}　最大 ${Math.round(ps.max)}°`;
-    else el.textContent = "24時間以内にISSが見える通過はありません";
+    }else if(ps) satText = `次のISS ${dayW(ps.jd1)}${hhmm(ps.jd1)}〜${hhmm(ps.jd2)}　${azName(ps.az1)} → ${azName(ps.az2)}　最大 ${Math.round(ps.max)}°`;
+    else satText = "24時間以内にISSが見える通過はありません";
   }
   function draw(x, P, Wc, hy, kk, sk, sa, LB){
     const reg = (tx, px, py, al) => { if(!LB) return; const w = x.measureText(tx).width; LB.push({ x:al === 'right' ? px - w : px, y:py - 11, w, h:14 }); };
@@ -2399,7 +2399,7 @@ const SAT = (() => {
       x.restore();
     }
   }
-  return { load, draw, info, look, parse, recs:() => recs };
+  return { load, draw, info, look, parse, recs:() => recs, text:() => satText };
 })();
 /* ---------- 飛行機（ADS-B のオープンデータ）：現在地から約120km以内の機体を、見える方角・高さに描く ----------
    位置：adsb.lol（登録不要・ODbL）→ 取れなければ airplanes.live → OpenSky Network（匿名）
@@ -2771,12 +2771,12 @@ function setupUI(){
   // トグル：オンのときは青。ON/OFFの文字は出さない
   const setTog = (b, on) => { b.setAttribute('aria-pressed', on); };
   const pb = ov.querySelector('#svPlane');
-  pb.onclick = () => { SKYV.plane = !SKYV.plane; setTog(pb, SKYV.plane); try{ localStorage.setItem('skyPlane', SKYV.plane ? '1' : '0'); }catch(_){} PLANE.toggle(SKYV.plane); if(!SKYV.plane) ov.querySelector('#svPlaneCard').hidden = true; };
+  pb.onclick = () => { SKYV.plane = !SKYV.plane; setTog(pb, SKYV.plane); try{ localStorage.setItem('skyPlane', SKYV.plane ? '1' : '0'); }catch(_){} PLANE.toggle(SKYV.plane); if(!SKYV.plane) ov.querySelector('#svPlaneCard').hidden = true; infoAt = 0; updateInfo(); };
   try{ SKYV.plane = localStorage.getItem('skyPlane') === '1'; }catch(_){}
   setTog(pb, SKYV.plane); if(SKYV.plane) PLANE.toggle(true);
   ov.querySelector('#svLines').onclick = e => { SKYV.lines = !SKYV.lines; setTog(e.currentTarget, SKYV.lines); };
   const sb = ov.querySelector('#svSat');
-  sb.onclick = () => { SKYV.sat = !SKYV.sat; setTog(sb, SKYV.sat); try{ localStorage.setItem('skySat', SKYV.sat ? '1' : '0'); }catch(_){} if(SKYV.sat) SAT.load(); SAT.info(true); };
+  sb.onclick = () => { SKYV.sat = !SKYV.sat; setTog(sb, SKYV.sat); try{ localStorage.setItem('skySat', SKYV.sat ? '1' : '0'); }catch(_){} if(SKYV.sat) SAT.load(); SAT.info(true); infoAt = 0; updateInfo(); };
   try{ SKYV.sat = localStorage.getItem('skySat') === '1'; }catch(_){}
   setTog(sb, SKYV.sat); if(SKYV.sat) SAT.load();
   const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement || ov.classList.contains('pseudo-full'));
@@ -2822,7 +2822,7 @@ function updateInfo(){
   const phase = SKYV.night ? '夜にした表示（太陽なし）' : sa > 0 ? '昼' : sa > -6 ? '薄明' : sa > -18 ? (placeNow().getHours() < 12 ? '明け方' : '夕暮れ') : '夜';
   SAT.info();
   document.getElementById('skyInfo').textContent =
-    `${phase}・月齢${age.toFixed(1)}（${moonName(age)}）・月は${sk.moon.alt > 0 ? `${azName(sk.moon.az)}の空 高さ${Math.round(sk.moon.alt)}°` : '地平線の下'}` + (SKYV.plane ? "　" + PLANE.status() : "");
+    `${phase}・月齢${age.toFixed(1)}（${moonName(age)}）・月は${sk.moon.alt > 0 ? `${azName(sk.moon.az)}の空 高さ${Math.round(sk.moon.alt)}°` : '地平線の下'}` + (SKYV.plane ? "\n" + PLANE.status() : "") + (SKYV.sat && SAT.text() ? "\n人工衛星：" + SAT.text() : "");
 }
 function aimDefault(){
   if(SKYV.aimed) return; SKYV.aimed = true;
