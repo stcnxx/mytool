@@ -410,7 +410,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-07 09:11</div>
+  <div style="margin-bottom:4px">版：2026-11-07 10:00</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2411,9 +2411,9 @@ const PLANE = (() => {
     SIA:["SQ","#1f3c78"],CPA:["CX","#00665e"],KAL:["KE","#2c87c8"],AAR:["OZ","#7a5b3a"],EVA:["BR","#007a4d"],CAL:["CI","#c8326a"],CCA:["CA","#c8102e"],CES:["MU","#1d3f8a"],CSN:["CZ","#2f86c9"],
     THA:["TG","#5b2d82"],MAS:["MH","#0a2d6e"],GIA:["GA","#0a6aa1"],PAL:["PR","#0b3d91"],VJC:["VJ","#d61e2a"],HVN:["VN","#0a6e7a"],QFA:["QF","#d52b1e"],UAE:["EK","#c8102e"],QTR:["QR","#5c0a32"],
     ETD:["EY","#a8875a"],DAL:["DL","#0b2a5b"],UAL:["UA","#1c3f94"],AAL:["AA","#0078d2"],ACA:["AC","#c8102e"],AFR:["AF","#0b2a6e"],BAW:["BA","#1b3c8a"],DLH:["LH","#0b2a5b"],KLM:["KL","#00a1de"],
-    FIN:["AY","#0b2a6e"],SWR:["LX","#c8102e"],TAY:["","#555555"],FDX:["FX","#4d148c"],UPS:["5X","#6b4a2a"],ASL:["","#555555"],JBU:["B6","#003876"],HAL:["HA","#5b2d82"],TWB:["TW","#c8102e"],
-    JNA:["LJ","#e2231a"],TGW:["TR","#f2b230"],ZIP:["ZG","#1e1e1e"],AIQ:["FD","#d41f26"],CEB:["5J","#f4c300"],HKE:["UO","#6b2d82"],AXM:["AK","#d41f26"],RYA:["","#555555"] };
-  const AL_NAME = { JL:"日本航空", NH:"全日空", BC:"スカイマーク", HD:"AIRDO", "6J":"ソラシドエア", "7G":"スターフライヤー", MM:"ピーチ", GK:"ジェットスター・ジャパン", ZG:"ZIPAIR", IJ:"スプリング・ジャパン", NU:"日本トランスオーシャン航空", JC:"日本エアコミューター", FW:"アイベックス", OC:"オリエンタルエアブリッジ", JH:"フジドリームエアラインズ",
+    FIN:["AY","#0b2a6e"],SWR:["LX","#c8102e"],TAY:["3V","#1d4f91"],FDX:["FX","#4d148c"],UPS:["5X","#6b4a2a"],ASL:["JU","#0b3a6e"],JBU:["B6","#003876"],HAL:["HA","#5b2d82"],TWB:["TW","#c8102e"],
+    JNA:["LJ","#e2231a"],TGW:["TR","#f2b230"],AIQ:["FD","#d41f26"],CEB:["5J","#f4c300"],HKE:["UO","#6b2d82"],AXM:["AK","#d41f26"] };
+  const AL_NAME = { JL:"日本航空", NH:"全日空", BC:"スカイマーク", HD:"AIRDO", "6J":"ソラシドエア", "7G":"スターフライヤー", "3V":"ASL航空ベルギー", JU:"エア・セルビア", MM:"ピーチ", GK:"ジェットスター・ジャパン", ZG:"ZIPAIR", IJ:"スプリング・ジャパン", NU:"日本トランスオーシャン航空", JC:"日本エアコミューター", FW:"アイベックス", OC:"オリエンタルエアブリッジ", JH:"フジドリームエアラインズ",
     SQ:"シンガポール航空", CX:"キャセイパシフィック航空", KE:"大韓航空", OZ:"アシアナ航空", BR:"エバー航空", CI:"チャイナエアライン", CA:"中国国際航空", MU:"中国東方航空", CZ:"中国南方航空", TG:"タイ国際航空", MH:"マレーシア航空", GA:"ガルーダ・インドネシア航空", PR:"フィリピン航空", VJ:"ベトジェット", VN:"ベトナム航空", QF:"カンタス航空", EK:"エミレーツ航空", QR:"カタール航空", EY:"エティハド航空",
     DL:"デルタ航空", UA:"ユナイテッド航空", AA:"アメリカン航空", AC:"エア・カナダ", AF:"エールフランス", BA:"ブリティッシュ・エアウェイズ", LH:"ルフトハンザ", KL:"KLMオランダ航空", AY:"フィンエアー", LX:"スイス インターナショナル エアラインズ", FX:"フェデックス", "5X":"UPS", B6:"ジェットブルー", HA:"ハワイアン航空", TW:"ティーウェイ航空", LJ:"ジンエアー", TR:"スクート", "5J":"セブパシフィック", UO:"香港エクスプレス", AK:"エアアジア", FD:"タイ・エアアジア" };
   const AP = { HND:"東京・羽田", NRT:"東京・成田", KIX:"大阪・関西", ITM:"大阪・伊丹", UKB:"神戸", NGO:"名古屋・中部", NKM:"名古屋・小牧", CTS:"札幌・新千歳", OKD:"札幌・丘珠", FUK:"福岡", OKA:"那覇", KOJ:"鹿児島", KMJ:"熊本", NGS:"長崎", OIT:"大分", KMI:"宮崎", HIJ:"広島", OKJ:"岡山", TAK:"高松", MYJ:"松山", KCZ:"高知", TKS:"徳島", KMQ:"小松", TOY:"富山", KIJ:"新潟", SDJ:"仙台", AOJ:"青森", AXT:"秋田", HKD:"函館", AKJ:"旭川", KUH:"釧路", MMB:"女満別", ISG:"石垣", MMY:"宮古", HSG:"佐賀", KKJ:"北九州", IZO:"出雲", UBJ:"山口宇部", FSZ:"静岡", HAC:"八丈島", OIM:"大島",
@@ -2441,7 +2441,7 @@ const PLANE = (() => {
       ["adsb.lol", `https://api.adsb.lol/v2/point/${lat}/${lon}/${nm}`, j => j.ac],
       ["airplanes.live", `https://api.airplanes.live/v2/point/${lat}/${lon}/${nm}`, j => j.ac],
       ["OpenSky", `https://opensky-network.org/api/states/all?lamin=${lat-.45}&lomin=${lon-.55}&lamax=${lat+.45}&lomax=${lon+.55}`,
-        j => (j.states || []).map(s => ({ hex:s[0], flight:(s[1] || "").trim(), lat:s[6], lon:s[5], alt_geom:s[13] != null ? s[13]/.3048 : (s[7] != null ? s[7]/.3048 : null), gs:s[9] != null ? s[9]/.514444 : 0, track:s[10] || 0, ground:s[8] }))]
+        j => (j.states || []).map(s => ({ hex:s[0], flight:(s[1] || "").trim(), lat:s[6], lon:s[5], alt_geom:s[13] != null ? s[13]/.3048 : (s[7] != null ? s[7]/.3048 : null), gs:s[9] != null ? s[9]/.514444 : 0, track:s[10] || 0, geom_rate:s[11] != null ? s[11]/.00508 : null, ground:s[8] }))]
     ];
     // 直接 → 中継サーバー経由の順に試す（ブラウザから直接読めないサイトがあるため）
     const via = u => [["・専用中継", wk(u)], ["", u], ["中継", "https://api.allorigins.win/raw?url=" + encodeURIComponent(u)], ["中継2", "https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(u)]];
@@ -2507,7 +2507,7 @@ const PLANE = (() => {
       const t = Date.now();
       list = ac.filter(a => a.lat != null && a.lon != null && !a.ground && a.alt_baro !== "ground").map(a => {
         const altFt = typeof a.alt_geom === "number" ? a.alt_geom : (typeof a.alt_baro === "number" ? a.alt_baro : null);
-        const o = { id:a.hex, cs:(a.flight || "").trim(), reg:(a.r || "").trim(), type:(a.t || "").trim(), lat:a.lat, lon:a.lon, alt:altFt == null ? null : ft2m(altFt), v:kt2ms(a.gs || 0), trk:a.track || 0, t };
+        const o = { id:a.hex, cs:(a.flight || "").trim(), reg:(a.r || "").trim(), type:(a.t || "").trim(), lat:a.lat, lon:a.lon, alt:altFt == null ? null : ft2m(altFt), v:kt2ms(a.gs || 0), trk:a.track || 0, vr:(typeof a.geom_rate === "number" ? a.geom_rate : typeof a.baro_rate === "number" ? a.baro_rate : 0)*.00508, t };   // vr：上昇(+)・降下(-) m/s
         const tr = trails[o.id] || (trails[o.id] = []); tr.push([o.lat, o.lon, o.alt, t]); while(tr.length > 8) tr.shift();
         return o; }).filter(o => o.alt != null && o.alt > 150);
       for(const k in trails) if(!list.some(o => o.id === k)) delete trails[k];
@@ -2533,25 +2533,25 @@ const PLANE = (() => {
   }
   // 最後の受信からの経過時間ぶん、速度と進路で位置を進める
   function now(o, ms){ const dt = Math.min(60, (ms - o.t)/1000), d = o.v*dt, a = o.trk*D2R;
-    return [o.lat + d*Math.cos(a)/111320, o.lon + d*Math.sin(a)/(111320*Math.cos(o.lat*D2R))]; }
+    return [o.lat + d*Math.cos(a)/111320, o.lon + d*Math.sin(a)/(111320*Math.cos(o.lat*D2R)), Math.max(0, o.alt + (o.vr || 0)*dt)]; }
   function draw(x, P, Wc, hy, kk, sk, LB){
     if(!list.length){ inView = 0; HIT = []; return; }
     const ms = Date.now(), half = SKYV.fov/2 + 10, items = [];
     // 約40km以内・見上げる角度5°以上の機体を、近い順に30機まで
     const cand = [];
-    for(const o of list){ const [la, lo] = now(o, ms), L = look(la, lo, o.alt, sk); if(L.dist <= 40e3 && L.alt >= 5) cand.push({ o, la, lo, L }); }
+    for(const o of list){ const [la, lo, al] = now(o, ms), L = look(la, lo, al, sk); if(L.dist <= 40e3 && L.alt >= 5) cand.push({ o, la, lo, al, L }); }
     cand.sort((a, b) => a.L.dist - b.L.dist); if(cand.length > 30) cand.length = 30;
     nearN = cand.length;
     for(let rank = 0; rank < cand.length; rank++){
-      const { o, la, lo, L } = cand[rank];
+      const { o, la, lo, al, L } = cand[rank];
       const p = P(L.az, L.alt); if(Math.abs(p.d) > half) continue;
       // 画面上の進行方向（少し先の位置との差）
-      const a2 = o.trk*D2R, la2 = la + 2000*Math.cos(a2)/111320, lo2 = lo + 2000*Math.sin(a2)/(111320*Math.cos(la*D2R)), L2 = look(la2, lo2, o.alt, sk), p2 = P(L2.az, L2.alt);
+      const a2 = o.trk*D2R, la2 = la + 2000*Math.cos(a2)/111320, lo2 = lo + 2000*Math.sin(a2)/(111320*Math.cos(la*D2R)), L2 = look(la2, lo2, Math.max(0, al + (o.vr || 0)*2000/Math.max(30, o.v)), sk), p2 = P(L2.az, L2.alt);   // 上昇・降下も含めた見かけの進む向き
       items.push({ o, p, ang:Math.atan2(p2.y - p.y, p2.x - p.x), dist:L.dist, near:rank < 10 });
     }
     inView = items.length; HIT = items.map(it => ({ x:it.p.x, y:it.p.y, o:it.o, dist:it.dist }));
     items.sort((a, b) => b.dist - a.dist);   // 遠い順に描いて、近い機体を上に
-    x.save(); const labs = [];
+    x.save(); const labs = [], night = SKYV.night || sk.sun.alt < -4;
     for(const it of items){
       const { o, p, near } = it, sz = near ? 1 : .68;
       x.globalAlpha = near ? 1 : .5;   // 遠い機体は小さく薄く
@@ -2563,9 +2563,10 @@ const PLANE = (() => {
       // 機体
       x.save(); x.translate(p.x, p.y); x.rotate(it.ang + Math.PI/2); x.scale(sz, sz);
       x.fillStyle = "#eef4ff"; x.strokeStyle = "rgba(0,0,0,.55)"; x.lineWidth = .7;
-      x.beginPath(); x.moveTo(0, -7); x.lineTo(1.3, -2); x.lineTo(7, 1.5); x.lineTo(7, 3); x.lineTo(1.3, 1.2); x.lineTo(1, 5.2); x.lineTo(2.8, 6.6); x.lineTo(2.8, 7.6); x.lineTo(0, 6.8); x.lineTo(-2.8, 7.6); x.lineTo(-2.8, 6.6); x.lineTo(-1, 5.2); x.lineTo(-1.3, 1.2); x.lineTo(-7, 3); x.lineTo(-7, 1.5); x.lineTo(-1.3, -2); x.closePath(); x.fill(); x.stroke();
+      x.beginPath(); x.moveTo(-1.3, -4.2); x.quadraticCurveTo(-1.3, -7.2, 0, -7.2); x.quadraticCurveTo(1.3, -7.2, 1.3, -4.2); x.lineTo(1.3, -2); x.lineTo(7, 1.5); x.lineTo(7, 3); x.lineTo(1.3, 1.2); x.lineTo(1, 5.2); x.lineTo(2.8, 6.6); x.lineTo(2.8, 7.6); x.lineTo(0, 6.8); x.lineTo(-2.8, 7.6); x.lineTo(-2.8, 6.6); x.lineTo(-1, 5.2); x.lineTo(-1.3, 1.2); x.lineTo(-7, 3); x.lineTo(-7, 1.5); x.lineTo(-1.3, -2); x.closePath(); x.fill(); x.stroke();
+      // 赤い衝突防止灯：夜だけ、機体の胴体の真ん中で点滅（機体と一緒に回る）
+      if(night && (ms/600 | 0) % 2){ x.fillStyle = "#ff4d4d"; x.beginPath(); x.arc(0, 1, 1.7, 0, TAU); x.fill(); }
       x.restore();
-      if((ms/600 | 0) % 2){ x.fillStyle = "#ff4d4d"; x.beginPath(); x.arc(p.x + 8*sz, p.y - 5*sz, near ? 1.5 : 1.1, 0, TAU); x.fill(); }
       x.globalAlpha = 1;
       if(near && p.x > 0 && p.x < Wc) labs.push(it);   // 画面の外にいる機体には札を付けない
     }
