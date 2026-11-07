@@ -113,7 +113,7 @@ td.d{text-align:left}
 .list{list-style:none;margin:0;padding:0}
 .list li{padding:8px 0;border-bottom:1px solid var(--line)}
 .list li:last-child{border-bottom:none}
-.nw li{padding:5px 0;display:flex;gap:7px;align-items:flex-start;font-size:.8rem}.nw a{color:inherit;text-decoration:none;flex:1;min-width:0;line-height:1.45}.nw a:active{opacity:.6}
+.nw li{padding:5px 0;display:flex;gap:7px;align-items:flex-start;font-size:.8rem}.nw a{color:inherit;text-decoration:none;flex:1;min-width:0;line-height:1.45;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}.nw a:active{opacity:.6}
 .nw .nw-l{flex:none;width:5.6em;display:flex;flex-direction:column;align-items:center;gap:1px;padding-top:1px}.nw .nw-s{font-size:.6rem;font-weight:700;color:var(--muted);white-space:nowrap;line-height:1.3}
 .nw .nw-c{display:block;box-sizing:border-box;width:100%;font-size:.62rem;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 2px;text-align:center;white-space:nowrap;overflow:hidden}.nw .nw-t{flex:none;font-size:.66rem;color:var(--muted);white-space:nowrap;padding-top:2px}
 .scale{display:inline-block;text-align:center;border-radius:5px;padding:1px 6px;font-size:.72rem;font-weight:700;margin-right:6px;vertical-align:2px;white-space:nowrap}
@@ -418,7 +418,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-07 17:09</div>
+  <div style="margin-bottom:4px">版：2026-11-07 17:26</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1560,7 +1560,7 @@ async function loadWarnings(){
 /* ---------- ニュース（浮遊島ぐらしと同じ仕組み：NHKのRSS＋Yahoo!エンタメ。取れなければウィキニュース・ウィキペディア） ---------- */
 const NHKRSS = c => `https://news.web.nhk/n-data/conf/na/rss/${c}.xml`;
 // n：その分類から出す件数
-const NEWS_FEEDS = [["主要","cat0",3],["社会","cat1",2],["科学・医療","cat3",2],["政治","cat4",2],["経済","cat5",2],["国際","cat6",2],["スポーツ","cat7",1]]
+const NEWS_FEEDS = [["主要","cat0",3],["社会","cat1",2],["政治","cat4",2],["経済","cat5",2],["国際","cat6",2],["スポーツ","cat7",1]]
   .map(([c, k, n]) => ({ c, n, s:"NHK", url:NHKRSS(k) })).concat([{ c:"IT", n:2, s:"Yahoo!", url:"https://news.yahoo.co.jp/rss/categories/it.xml" }, { c:"エンタメ", n:2, s:"Yahoo!", url:"https://news.yahoo.co.jp/rss/categories/entertainment.xml" }]);
 function parseFeed(txt){
   try{
@@ -1610,7 +1610,7 @@ async function loadNews(){
     const seen = new Set(), pick = res.map((items, fi) => { const out = [];
       for(const it of items){ if(out.length >= NEWS_FEEDS[fi].n) break; const k = it.title.replace(/\s/g, ""); if(seen.has(k)) continue; seen.add(k); out.push(it); }
       return out; });
-    let list = pick.flat();   // 分類の順（主要・社会・科学・医療・政治・経済・国際・スポーツ・IT・エンタメ）に並べる
+    let list = pick.flat();   // 分類の順（主要・社会・政治・経済・国際・スポーツ・IT・エンタメ）に並べる
     if(!list.length) list = await wikiNewsList();
     if(!list.length){ if(!$("#news").querySelector("li")) $("#news").innerHTML = '<span class="muted">ニュースを取得できませんでした。</span>'; return; }
     const today = new Date().toLocaleDateString("ja-JP", { timeZone:"Asia/Tokyo" });
@@ -2644,9 +2644,9 @@ const PLANE = (() => {
       if(night && (ms/600 | 0) % 2){ x.fillStyle = "#ff4d4d"; x.beginPath(); x.arc(0, 1, 1.7, 0, TAU); x.fill(); }
       x.restore();
       x.globalAlpha = 1;
-      if(near && p.x > 0 && p.x < Wc) labs.push(it);   // 画面の外にいる機体には札を付けない
+      if(p.x > 0 && p.x < Wc) labs.push(it);   // 札はすべての機体に（画面の外にいる機体には付けない）
     }
-    // 札は近い10機だけ。近い機体から置き、重なるときは省く
+    // 札は近い機体から置き、重なるときは遠いほうを省く
     labs.sort((a, b) => a.dist - b.dist);
     for(const it of labs){
       const { o, p } = it;
