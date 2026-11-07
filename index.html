@@ -113,8 +113,9 @@ td.d{text-align:left}
 .list{list-style:none;margin:0;padding:0}
 .list li{padding:8px 0;border-bottom:1px solid var(--line)}
 .list li:last-child{border-bottom:none}
-.nw li{padding:5px 0;display:flex;gap:7px;align-items:baseline;font-size:.8rem}.nw a{color:inherit;text-decoration:none;flex:1;min-width:0;line-height:1.45}.nw a:active{opacity:.6}
-.nw .nw-c{flex:none;box-sizing:border-box;width:5.6em;font-size:.62rem;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 2px;text-align:center;white-space:nowrap;overflow:hidden}.nw .nw-t{flex:none;font-size:.66rem;color:var(--muted);white-space:nowrap}.nw .nw-t b{font-weight:700;margin-right:1px}
+.nw li{padding:5px 0;display:flex;gap:7px;align-items:flex-start;font-size:.8rem}.nw a{color:inherit;text-decoration:none;flex:1;min-width:0;line-height:1.45}.nw a:active{opacity:.6}
+.nw .nw-l{flex:none;width:5.6em;display:flex;flex-direction:column;align-items:center;gap:1px;padding-top:1px}.nw .nw-s{font-size:.6rem;font-weight:700;color:var(--muted);white-space:nowrap;line-height:1.3}
+.nw .nw-c{display:block;box-sizing:border-box;width:100%;font-size:.62rem;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 2px;text-align:center;white-space:nowrap;overflow:hidden}.nw .nw-t{flex:none;font-size:.66rem;color:var(--muted);white-space:nowrap;padding-top:2px}
 .scale{display:inline-block;text-align:center;border-radius:5px;padding:1px 6px;font-size:.72rem;font-weight:700;margin-right:6px;vertical-align:2px;white-space:nowrap}
 .s1{background:#e0f2fe;color:#075985}.s3{background:#bbf7d0;color:#14532d}.s4{background:#fef08a;color:#713f12}
 .s5{background:#fb923c;color:#fff}.s6{background:#dc2626;color:#fff}.s7{background:#7e22ce;color:#fff}
@@ -417,7 +418,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-07 15:11</div>
+  <div style="margin-bottom:4px">版：2026-11-07 15:19</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1612,7 +1613,7 @@ async function loadNews(){
     const today = new Date().toLocaleDateString("ja-JP", { timeZone:"Asia/Tokyo" });
     const hm = t => { if(!t) return ""; const d = new Date(t), o = { timeZone:"Asia/Tokyo" };
       return (d.toLocaleDateString("ja-JP", o) === today ? "" : d.toLocaleDateString("ja-JP", { ...o, month:"numeric", day:"numeric" }) + " ") + d.toLocaleTimeString("ja-JP", { ...o, hour:"2-digit", minute:"2-digit" }); };
-    $("#news").innerHTML = '<ul class="list nw">' + list.map(n => `<li><span class="nw-c">${esc(n.c)}</span><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a><span class="nw-t"><b>${esc(n.s || "")}</b>${n.t ? " " + esc(hm(n.t)) : ""}</span></li>`).join("") + "</ul>";
+    $("#news").innerHTML = '<ul class="list nw">' + list.map(n => `<li><span class="nw-l"><span class="nw-c">${esc(n.c)}</span><span class="nw-s">${esc(n.s || "")}</span></span><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a><span class="nw-t">${esc(hm(n.t))}</span></li>`).join("") + "</ul>";
     $("#newsTime").textContent = new Date().toLocaleTimeString("ja-JP", { timeZone:"Asia/Tokyo", hour:"2-digit", minute:"2-digit" }) + " 更新";
   }catch(e){ quiet("ニュース", e); }
   finally{ newsBusy = false; }
