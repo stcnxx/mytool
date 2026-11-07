@@ -113,6 +113,8 @@ td.d{text-align:left}
 .list{list-style:none;margin:0;padding:0}
 .list li{padding:8px 0;border-bottom:1px solid var(--line)}
 .list li:last-child{border-bottom:none}
+.nw li{padding:6px 0;display:flex;gap:7px;align-items:baseline;font-size:.9rem}.nw a{color:inherit;text-decoration:none;flex:1;min-width:0;line-height:1.45}.nw a:active{opacity:.6}
+.nw .nw-c{flex:none;box-sizing:border-box;width:5.6em;font-size:.62rem;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 2px;text-align:center;white-space:nowrap;overflow:hidden}.nw .nw-t{flex:none;font-size:.7rem;color:var(--muted)}
 .scale{display:inline-block;text-align:center;border-radius:5px;padding:1px 6px;font-size:.72rem;font-weight:700;margin-right:6px;vertical-align:2px;white-space:nowrap}
 .s1{background:#e0f2fe;color:#075985}.s3{background:#bbf7d0;color:#14532d}.s4{background:#fef08a;color:#713f12}
 .s5{background:#fb923c;color:#fff}.s6{background:#dc2626;color:#fff}.s7{background:#7e22ce;color:#fff}
@@ -386,6 +388,11 @@ footer{background:none!important}
     <div class="tr-sec" id="trainAdd"><a class="tr-ln tr-add" href="#" data-tradd="1" style="max-width:260px">＋ 常に表示する路線を選ぶ</a></div>
   </section>
 
+  <section class="card wide">
+    <h2><span>ニュース</span> <small id="newsTime"></small></h2>
+    <div id="news"><span class="muted">読み込み中…</span></div>
+  </section>
+
 
   <section class="card wide" id="skyCard">
     <h2>天体 <small>現在地・現在時刻の空</small></h2>
@@ -410,11 +417,12 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-07 10:36</div>
+  <div style="margin-bottom:4px">版：2026-11-07 14:34</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
   <a href="https://www.p2pquake.net/" target="_blank" rel="noopener">P2P地震情報</a>／
+  <a href="https://www3.nhk.or.jp/toppage/rss/index.html" target="_blank" rel="noopener">NHKニュース</a>・<a href="https://news.yahoo.co.jp/rss" target="_blank" rel="noopener">Yahoo!ニュース</a>（RSS）／
   <a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>・<a href="https://www.odpt.org/" target="_blank" rel="noopener">公共交通オープンデータセンター</a>（都営の運行情報）／
   <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>（地図）／Open-Meteo Geocoding（場所・世界時計の都市検索）／<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（海外の地名）／<a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS</a>（海外の地震）／<a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>（海外の雨雲）／<a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Terrain Tiles</a>（海外の地形）／
   <a href="https://ja.wikipedia.org/" target="_blank" rel="noopener">ウィキペディア</a>（誕生日・記念日）。天体は現在地と時刻から計算し、山並みは<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院の標高タイル</a>から描いています。
@@ -469,7 +477,7 @@ async function fetchText(url, ms = 9000, keep = false){
 const MY_PROXY = "https://myspot-proxy.tomot8086.workers.dev/?url=";
 const wk = u => MY_PROXY + encodeURIComponent(u);
 // 専用中継が受け付けるサイト（Worker 側の ALLOW_HOSTS と同じ）
-const WK_HOSTS = ["api.adsb.lol","api.airplanes.live","opensky-network.org","tetsudo.rti-giken.jp","www.jma.go.jp","celestrak.org","api.adsbdb.com"];
+const WK_HOSTS = ["news.web.nhk","news.yahoo.co.jp","api.adsb.lol","api.airplanes.live","opensky-network.org","tetsudo.rti-giken.jp","www.jma.go.jp","celestrak.org","api.adsbdb.com"];
 const wkOK = u => { try{ return WK_HOSTS.includes(new URL(u).hostname); }catch(_){ return false; } };
 async function getJSON(url, { proxy = false, keep = false } = {}){
   if(FORCE_DEMO) throw new Error("デモモード");
@@ -1544,6 +1552,70 @@ async function loadWarnings(){
   html += `<div style="margin-top:8px"><a href="${link}" target="_blank" rel="noopener">気象庁で詳しく見る →</a></div>`;
   $("#warnings").innerHTML = html;
   markDemo("warn", "#warnH", demo);
+}
+
+/* ---------- ニュース（浮遊島ぐらしと同じ仕組み：NHKのRSS＋Yahoo!エンタメ。取れなければウィキニュース・ウィキペディア） ---------- */
+const NHKRSS = c => `https://news.web.nhk/n-data/conf/na/rss/${c}.xml`;
+const NEWS_FEEDS = [["主要","cat0"],["社会","cat1"],["暮らし","cat2"],["科学・医療","cat3"],["政治","cat4"],["経済","cat5"],["国際","cat6"],["スポーツ","cat7"]]
+  .map(([c, k]) => ({ c, url:NHKRSS(k) })).concat([{ c:"エンタメ", url:"https://news.yahoo.co.jp/rss/categories/entertainment.xml" }]);
+function parseFeed(txt){
+  try{
+    const d = new DOMParser().parseFromString(txt, "text/xml"); if(d.querySelector("parsererror")) return [];
+    const tx = (n, s) => ((n.querySelector(s) || {}).textContent || "").trim();
+    let it = [...d.querySelectorAll("item")].map(n => ({ title:tx(n, "title"), link:tx(n, "link"), t:Date.parse(tx(n, "pubDate")) || 0 }));
+    if(!it.length) it = [...d.querySelectorAll("entry")].map(n => ({ title:tx(n, "title"), link:(n.querySelector("link") && n.querySelector("link").getAttribute("href")) || "", t:Date.parse(tx(n, "updated") || tx(n, "published")) || 0 }));
+    return it.filter(i => i.title && /^https?:/.test(i.link));
+  }catch(e){ return []; }
+}
+// いくつかの経路を同時に試し、最初に見出しが取れたものを使う
+function fetchFeed(url){
+  const tries = [
+    ...(wkOK(url) ? [() => fetchText(wk(url), 9000, true).then(parseFeed)] : []),
+    () => fetchText(url, 7000, true).then(parseFeed),
+    () => fetchText("https://api.rss2json.com/v1/api.json?rss_url=" + encodeURIComponent(url), 9000, true).then(t => { const j = JSON.parse(t); return j.status === "ok" ? j.items.map(i => ({ title:(i.title || "").trim(), link:i.link, t:Date.parse((i.pubDate || "").replace(" ", "T") + "Z") || 0 })) : []; }),
+    () => fetchText("https://api.allorigins.win/raw?url=" + encodeURIComponent(url), 9000, true).then(parseFeed),
+    () => fetchText("https://corsproxy.io/?url=" + encodeURIComponent(url), 9000, true).then(parseFeed),
+    () => fetchText("https://api.codetabs.com/v1/proxy/?quest=" + encodeURIComponent(url), 9000, true).then(parseFeed)
+  ];
+  return new Promise(res => { let left = tries.length, done = false;
+    for(const f of tries) f().then(r => { if(!done && r && r.length){ done = true; res(r); } }).catch(() => {}).finally(() => { if(--left === 0 && !done) res([]); }); });
+}
+async function wikiNewsList(){
+  const out = [];
+  try{
+    const j = JSON.parse(await fetchText("https://ja.wikinews.org/w/api.php?action=query&format=json&formatversion=2&list=recentchanges&rcnamespace=0&rctype=new&rcshow=!redirect&rclimit=15&origin=*", 9000, true));
+    for(const r of (j.query && j.query.recentchanges) || []) if(r.title && r.title.length >= 6) out.push({ title:r.title, link:"https://ja.wikinews.org/wiki/" + encodeURIComponent(r.title), t:Date.parse(r.timestamp) || 0, c:"ウィキニュース" });
+  }catch(e){ quiet("ウィキニュース", e); }
+  if(out.length) return out;
+  try{
+    const pg = "Portal:最近の出来事", j = JSON.parse(await fetchText("https://ja.wikipedia.org/w/api.php?action=parse&format=json&formatversion=2&prop=text&origin=*&page=" + encodeURIComponent(pg), 9000, true));
+    const dv = document.createElement("div"); dv.innerHTML = (j.parse && j.parse.text) || ""; dv.querySelectorAll("sup,style,.mw-editsection,.reference").forEach(e => e.remove());
+    for(const li of dv.querySelectorAll("li")){ if(li.querySelector("li")) continue;
+      const t = (li.textContent || "").replace(/\s+/g, " ").replace(/[（(][^）)]*[）)]\s*$/, "").trim().replace(/[。．.]+$/, "");
+      if(t.length < 12 || t.length > 140 || /^(Portal|カテゴリ|ウィキ|編集|履歴|一覧)/.test(t)) continue;
+      out.push({ title:t, link:"https://ja.wikipedia.org/wiki/" + encodeURIComponent(pg), t:0, c:"ウィキペディア" }); if(out.length >= 12) break; }
+  }catch(e){ quiet("ウィキペディア", e); }
+  return out;
+}
+let newsBusy = false;
+async function loadNews(){
+  if(FORCE_DEMO || newsBusy) return; newsBusy = true;
+  try{
+    const res = await Promise.all(NEWS_FEEDS.map(f => fetchFeed(f.url).then(items => items.slice(0, 8).map(i => ({ ...i, c:f.c })))));
+    const seen = new Set(), all = [];
+    // 主要ニュースを先頭に、そのあとは新しい順
+    const main = res[0].slice(0, 5), rest = res.slice(1).flat().sort((a, b) => b.t - a.t);
+    for(const it of main.concat(rest)){ const k = it.title.replace(/\s/g, ""); if(seen.has(k)) continue; seen.add(k); all.push(it); }
+    let list = all.slice(0, 15);
+    if(!list.length) list = await wikiNewsList();
+    if(!list.length){ if(!$("#news").querySelector("li")) $("#news").innerHTML = '<span class="muted">ニュースを取得できませんでした。</span>'; return; }
+    const today = new Date().toLocaleDateString("ja-JP", { timeZone:"Asia/Tokyo" });
+    const hm = t => { if(!t) return ""; const d = new Date(t), o = { timeZone:"Asia/Tokyo" };
+      return (d.toLocaleDateString("ja-JP", o) === today ? "" : d.toLocaleDateString("ja-JP", { ...o, month:"numeric", day:"numeric" }) + " ") + d.toLocaleTimeString("ja-JP", { ...o, hour:"2-digit", minute:"2-digit" }); };
+    $("#news").innerHTML = '<ul class="list nw">' + list.map(n => `<li><span class="nw-c">${esc(n.c)}</span><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a><span class="nw-t">${esc(hm(n.t))}</span></li>`).join("") + "</ul>";
+    $("#newsTime").textContent = new Date().toLocaleTimeString("ja-JP", { timeZone:"Asia/Tokyo", hour:"2-digit", minute:"2-digit" }) + " 更新";
+  }catch(e){ quiet("ニュース", e); }
+  finally{ newsBusy = false; }
 }
 
 /* ---------- 地震・津波 (P2P地震情報) ---------- */
@@ -3488,7 +3560,7 @@ async function loadElevation(){
 
 /* ---------- 前回の表示を記憶して、起動時にすぐ出す ---------- */
 // 起動時は前回の表示をそのまま出し、裏で最新の情報に更新する（サンプルの欄は記憶しない）
-const SNAP_IDS = ["place","weather","hourly","pops","popTime","daily","warnings","warnTime","quakes","quakeSub","typhoons","tcTime","trains","trainTime"];
+const SNAP_IDS = ["place","weather","hourly","pops","popTime","daily","warnings","warnTime","quakes","quakeSub","typhoons","tcTime","trains","trainTime","news","newsTime"];
 const SNAP_S = ["tz","lat","lon","prefName","city","town","abroad","country","countryCode","prefCode","class20","class10","office","elevText"];
 let SNAP_SHOWN = false, SNAP_T = 0;
 function snapSave(){
@@ -3537,6 +3609,7 @@ async function loadAll(){
     }
     PLACE_DEMO = placeDemo; renderPlace(placeDemo);
   })();
+  loadNews().then(() => { if(!loading) snapSave(); });   // ニュースは場所に関係ないので並行して読む
   await Promise.allSettled([
     loadWeather(gen),
     pPlace.then(() => gen === LOAD_GEN && Promise.allSettled([loadWarnings(), loadPops(), loadQuakes(), loadTyphoons(), loadTrains()]))
