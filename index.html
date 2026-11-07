@@ -417,7 +417,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-07 14:34</div>
+  <div style="margin-bottom:4px">版：2026-11-07 14:45</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1557,7 +1557,7 @@ async function loadWarnings(){
 /* ---------- ニュース（浮遊島ぐらしと同じ仕組み：NHKのRSS＋Yahoo!エンタメ。取れなければウィキニュース・ウィキペディア） ---------- */
 const NHKRSS = c => `https://news.web.nhk/n-data/conf/na/rss/${c}.xml`;
 const NEWS_FEEDS = [["主要","cat0"],["社会","cat1"],["暮らし","cat2"],["科学・医療","cat3"],["政治","cat4"],["経済","cat5"],["国際","cat6"],["スポーツ","cat7"]]
-  .map(([c, k]) => ({ c, url:NHKRSS(k) })).concat([{ c:"エンタメ", url:"https://news.yahoo.co.jp/rss/categories/entertainment.xml" }]);
+  .map(([c, k]) => ({ c, url:NHKRSS(k) })).concat([{ c:"IT", url:"https://news.yahoo.co.jp/rss/categories/it.xml" }, { c:"エンタメ", url:"https://news.yahoo.co.jp/rss/categories/entertainment.xml" }]);
 function parseFeed(txt){
   try{
     const d = new DOMParser().parseFromString(txt, "text/xml"); if(d.querySelector("parsererror")) return [];
