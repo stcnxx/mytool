@@ -419,7 +419,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-07 21:18</div>
+  <div style="margin-bottom:4px">版：2026-11-07 21:46</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2602,7 +2602,8 @@ const PLANE = (() => {
   function look(lat, lon, alt, sk){
     const R = 6371e3, f0 = sk.lat*D2R, l0 = sk.lon*D2R, f = lat*D2R, l = lon*D2R;
     const ecef = (ff, ll, h) => [(R+h)*Math.cos(ff)*Math.cos(ll), (R+h)*Math.cos(ff)*Math.sin(ll), (R+h)*Math.sin(ff)];
-    const o = ecef(f0, l0, TERR.eye || EYE_ALT), p = ecef(f, l, alt)   // 視点は上空（標高1000m）, d = [p[0]-o[0], p[1]-o[1], p[2]-o[2]];
+    // 視点は上空（標高1000m）
+    const o = ecef(f0, l0, TERR.eye || EYE_ALT), p = ecef(f, l, alt), d = [p[0]-o[0], p[1]-o[1], p[2]-o[2]];
     const e = -Math.sin(l0)*d[0] + Math.cos(l0)*d[1];
     const n = -Math.sin(f0)*Math.cos(l0)*d[0] - Math.sin(f0)*Math.sin(l0)*d[1] + Math.cos(f0)*d[2];
     const u = Math.cos(f0)*Math.cos(l0)*d[0] + Math.cos(f0)*Math.sin(l0)*d[1] + Math.sin(f0)*d[2];
