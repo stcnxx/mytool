@@ -207,7 +207,8 @@ body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opa
 #skyv:fullscreen .sv-bar,#skyv.pseudo-full .sv-bar,#skyv:-webkit-full-screen .sv-bar{bottom:calc(max(env(safe-area-inset-bottom,0px), 56px) + 16px)}
 #skyv:fullscreen .sv-hint,#skyv.pseudo-full .sv-hint,#skyv:-webkit-full-screen .sv-hint{bottom:calc(max(env(safe-area-inset-bottom,0px), 56px) + 52px)}#skyv:-webkit-full-screen{height:100%}
 #skyv.pseudo-full{position:fixed;inset:0;height:100vh;height:100dvh;z-index:50}
-#skyv canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:none}
+#skyv canvas{position:absolute;left:0;top:0;width:100%;height:100%;display:block;touch-action:pan-y}   /* 横のドラッグは見回し、縦のフリックは画面のスクロール */
+#skyv.pseudo-full canvas,#skyv:fullscreen canvas{touch-action:none}
 #skyv .sv-top{position:absolute;top:8px;left:0;right:0;text-align:center;color:#fff;font-size:12px;font-weight:600;letter-spacing:.06em;text-shadow:0 1px 3px rgba(0,0,0,.8);pointer-events:none}
 #skyv .sv-bar{position:absolute;left:8px;right:8px;bottom:12px;display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px}
 #skyv .sv-bar button{min-width:0;height:26px;margin:0;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;overflow:hidden;white-space:nowrap;line-height:1.15;background:rgba(24,22,44,.6);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:5px;padding:0 2px;font-size:12px;font-weight:600;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
@@ -419,7 +420,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-08 07:52</div>
+  <div style="margin-bottom:4px">版：2026-11-08 08:41</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2687,7 +2688,7 @@ const PLANE = (() => {
   }
   return { toggle, draw, refresh, look, status, hit, info, _dbg:() => ({ n:list.length, state, routes, failShown, hit:HIT.map(h => [h.x, h.y]), lb:HIT.map(h => h.lb ? [h.lb.x, h.lb.y, h.lb.w, h.lb.h, h.o.cs] : null) }), _set:(a, r) => { list = a; routes = r || routes; at = Date.now(); state = "ok"; } };
 })();
-try{ window.__plane = PLANE; window.__terrReady = () => !!TERR.pan && !!NAMES.list; window.__setAz = a => { SKYV.A0 = a; }; }catch(_){}
+try{ window.__plane = PLANE; window.__terrReady = () => !!TERR.pan && !!NAMES.list; window.__setAz = a => { SKYV.A0 = a; }; window.__getAz = () => SKYV.A0; }catch(_){}
 function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
   const Wc=c.clientWidth||360,Hc=c.clientHeight||420,dpr=Math.min(2,DPR||1);if(c.width!==Math.round(Wc*dpr)||c.height!==Math.round(Hc*dpr)){c.width=Math.round(Wc*dpr);c.height=Math.round(Hc*dpr);}
   const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';
