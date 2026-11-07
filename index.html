@@ -419,7 +419,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-07 21:10</div>
+  <div style="margin-bottom:4px">版：2026-11-07 21:18</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2809,7 +2809,7 @@ async function computeTerrain(lat, lon){
   };
   // 近く（12km以内）は細かいデータ、遠く（100kmまで）は粗いデータ
   const [near, far] = await Promise.all([grid(12, 12500), grid(10, PAN.R)]);
-  if(!near.got && !far.got) throw new Error("標高タイルを取得できません");
+  if(!near.got && !far.got) throw new Error("標高タイルが1枚も読めません");
   const elevAt = (ex, ny, d) => { let v = d < 11500 && near.got ? near.at(ex, ny) : null; if(v == null) v = far.at(ex, ny); return v; };
   const c0 = near.got ? near.at(0, 0) : far.at(0, 0), h0 = c0 == null || c0 === -9999 ? 0 : Math.max(0, c0);
   const eye = Math.max(EYE_ALT, h0 + 100);
@@ -2847,10 +2847,11 @@ async function computeTerrain(lat, lon){
 }
 function loadTerrain(lat, lon){
   const key = lat.toFixed(3) + "," + lon.toFixed(3);
+  loadNames(lat, lon);   // 失敗していたら10分ごとに取り直す
   if(TERR.key === key && TERR.ready) return TERR.ready;
-  TERR.key = key; TERR.prof = null; TERR.elev = null; TERR.pan = null; TERR.ck = ""; TERR.eye = null;
-  TERR.ready = computeTerrain(lat, lon).then(r => { if(TERR.key === key){ TERR.prof = r.prof; TERR.elev = r.elev; TERR.eye = r.eye; TERR.pan = r.pan; TERR.ck = ""; } return r; });
-  loadNames(lat, lon);
+  TERR.key = key; TERR.prof = null; TERR.elev = null; TERR.pan = null; TERR.ck = ""; TERR.eye = null; TERR.st = "読み込み中";
+  TERR.ready = computeTerrain(lat, lon).then(r => { if(TERR.key === key){ TERR.prof = r.prof; TERR.elev = r.elev; TERR.eye = r.eye; TERR.pan = r.pan; TERR.ck = ""; TERR.st = ""; } return r; },
+    e => { if(TERR.key === key){ TERR.st = "取得できませんでした（" + (e && e.message || e) + "）"; TERR.ready = null; TERR.key = ""; } throw e; });
   return TERR.ready;
 }
 // 地面の色（海・海岸・高さ・雪・斜面の陰・遠くのかすみ）。太陽や空の色が変わったときだけ塗り直す
@@ -2883,12 +2884,18 @@ function terrColor(sa, sun, hor){
   }
   T.cv.getContext("2d").putImageData(T.img, 0, 0);
 }
+// 天体の説明欄に出す地形・地名の状況
+function terrStatus(){
+  const t = TERR.pan ? `上空${Math.round(TERR.eye)}mから` : TERR.st ? TERR.st : "読み込み中";
+  const n = NAMES.list ? `${NAMES.list.length}件のうち見える${NAMES.vis || 0}件` + (NAMES.st ? "・" + NAMES.st : "") : (NAMES.st || "読み込み中");
+  return `地形：${t}・地名：${n}`;
+}
 /* --- 地名・山の名前（ウィキデータ）。地形ボタンがオンのときに表示 --- */
-const NAMES = { key:"", list:null, busy:false, failAt:0 };
+const NAMES = { key:"", list:null, busy:false, failAt:0, st:"" };
 async function loadNames(lat, lon){
   const key = lat.toFixed(2) + "," + lon.toFixed(2);
   if(NAMES.key === key && (NAMES.list || NAMES.busy || Date.now() - NAMES.failAt < 600e3)) return;
-  NAMES.key = key; NAMES.list = null; NAMES.failAt = 0;
+  NAMES.key = key; NAMES.list = null; NAMES.failAt = 0; NAMES.st = "読み込み中";
   try{ const c = JSON.parse(localStorage.getItem("terrNames") || "null"); if(c && c.key === key && Date.now() - c.t < 30*864e5){ NAMES.list = c.list; return; } }catch(_){}
   NAMES.busy = true;
   const pt = `"Point(${lon.toFixed(4)} ${lat.toFixed(4)})"^^geo:wktLiteral`, jp = inJapanBox(lat, lon);
@@ -2904,13 +2911,15 @@ async function loadNames(lat, lon){
     for(const b of j.results.bindings){ const m = /Point\(([-\d.]+) ([-\d.]+)\)/.exec(b.loc.value), n = b.itLabel && b.itLabel.value; if(!m || !n || /^Q\d+$/.test(n) || seen.has(b.it.value)) continue; seen.add(b.it.value);
       out.push({ n, lat:+m[2], lon:+m[1], pop:b.pop ? +b.pop.value : 0, h:b.h ? Math.round(+b.h.value) : null, mt:!!b.h }); }
     return out; };
-  try{
-    const [towns, mts] = await Promise.all(qs.map(run));
-    if(NAMES.key !== key) return;
-    NAMES.list = towns.concat(mts);
-    try{ localStorage.setItem("terrNames", JSON.stringify({ key, t:Date.now(), list:NAMES.list })); }catch(_){}
-  }catch(e){ quiet("地名", e); if(NAMES.key === key) NAMES.failAt = Date.now(); }
-  finally{ NAMES.busy = false; }
+  // 市区町村と山は別々に問い合わせ、片方が失敗しても取れたほうを使う
+  const rs = await Promise.allSettled(qs.map(run));
+  NAMES.busy = false;
+  if(NAMES.key !== key) return;
+  const ok = rs.filter(r => r.status === "fulfilled").map(r => r.value), bad = rs.filter(r => r.status === "rejected").map(r => r.reason && r.reason.message || String(r.reason));
+  bad.forEach(m => quiet("地名", m));
+  if(!ok.length){ NAMES.failAt = Date.now(); NAMES.st = "取得できませんでした（" + bad[0] + "）"; return; }
+  NAMES.list = ok.flat(); NAMES.st = bad.length ? "一部だけ取得（" + bad[0] + "）" : "";
+  if(!bad.length) try{ localStorage.setItem("terrNames", JSON.stringify({ key, t:Date.now(), list:NAMES.list })); }catch(_){}
 }
 // 名前の置き場所：その方角の地面の絵から、その距離の地面が見えているかを調べる
 function namePlaces(lat, lon){
@@ -2943,7 +2952,7 @@ function drawTerrain(x, Wc, Hc, hy, kk, sc2, sa, sk, P, LB, hitLB){
   x.restore();
   if(!SKYV.terr || !NAMES.list) return;
   // 名前：山（高い順に10、近くの丘は3）→ 市区町村（人口の多い順に24）
-  const pl = namePlaces(S.lat, S.lon), mts = pl.filter(q => q.mt), tw = pl.filter(q => !q.mt);
+  const pl = namePlaces(S.lat, S.lon), mts = pl.filter(q => q.mt), tw = pl.filter(q => !q.mt); NAMES.vis = pl.length;
   const pick = mts.filter(q => q.d >= 12000 || q.h >= 400).sort((a, b) => b.h - a.h).slice(0, 10)
     .concat(mts.filter(q => q.d < 12000 && q.h < 400).sort((a, b) => a.d - b.d).slice(0, 3))
     .concat(tw.sort((a, b) => b.pop - a.pop).slice(0, 24));
@@ -2990,7 +2999,7 @@ function setupUI(){
   ov.querySelector('#svLines').onclick = e => { SKYV.lines = !SKYV.lines; setTog(e.currentTarget, SKYV.lines); };
   // 地形：地名と山の名前のオン・オフ（地形そのものはいつも描く）
   const tb = ov.querySelector('#svTerr');
-  tb.onclick = () => { SKYV.terr = !SKYV.terr; setTog(tb, SKYV.terr); try{ localStorage.setItem('skyTerr', SKYV.terr ? '1' : '0'); }catch(_){} if(SKYV.terr && S.lat != null) loadNames(S.lat, S.lon); };
+  tb.onclick = () => { SKYV.terr = !SKYV.terr; setTog(tb, SKYV.terr); try{ localStorage.setItem('skyTerr', SKYV.terr ? '1' : '0'); }catch(_){} if(SKYV.terr && S.lat != null) loadNames(S.lat, S.lon); infoAt = 0; updateInfo(); };
   try{ SKYV.terr = localStorage.getItem('skyTerr') !== '0'; }catch(_){ SKYV.terr = true; }
   setTog(tb, SKYV.terr);
   const sb = ov.querySelector('#svSat');
@@ -3040,7 +3049,7 @@ function updateInfo(){
   const phase = SKYV.night ? '夜にした表示（太陽なし）' : sa > 0 ? '昼' : sa > -6 ? '薄明' : sa > -18 ? (placeNow().getHours() < 12 ? '明け方' : '夕暮れ') : '夜';
   SAT.info();
   document.getElementById('skyInfo').textContent =
-    `${phase}・月齢${age.toFixed(1)}（${moonName(age)}）・月は${sk.moon.alt > 0 ? `${azName(sk.moon.az)}の空 高さ${Math.round(sk.moon.alt)}°` : '地平線の下'}` + (SKYV.plane ? "\n" + PLANE.status() : "") + (SKYV.sat && SAT.text() ? "\n人工衛星：" + SAT.text() : "");
+    `${phase}・月齢${age.toFixed(1)}（${moonName(age)}）・月は${sk.moon.alt > 0 ? `${azName(sk.moon.az)}の空 高さ${Math.round(sk.moon.alt)}°` : '地平線の下'}` + (SKYV.plane ? "\n" + PLANE.status() : "") + (SKYV.sat && SAT.text() ? "\n人工衛星：" + SAT.text() : "") + (SKYV.terr ? "\n" + terrStatus() : "");
 }
 function aimDefault(){
   if(SKYV.aimed) return; SKYV.aimed = true;
