@@ -419,7 +419,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-08 07:31</div>
+  <div style="margin-bottom:4px">版：2026-11-08 07:52</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2625,13 +2625,15 @@ const PLANE = (() => {
       const p = P(L.az, L.alt); if(Math.abs(p.d) > half) continue;
       // 画面上の進行方向（少し先の位置との差）
       const a2 = o.trk*D2R, la2 = la + 2000*Math.cos(a2)/111320, lo2 = lo + 2000*Math.sin(a2)/(111320*Math.cos(la*D2R)), L2 = look(la2, lo2, Math.max(0, al + (o.vr || 0)*2000/Math.max(30, o.v)), sk), p2 = P(L2.az, L2.alt);   // 上昇・降下も含めた見かけの進む向き
-      items.push({ o, p, ang:Math.atan2(p2.y - p.y, p2.x - p.x), dist:L.dist, near:rank < 10 });
+      // 視線方向の動き：-1＝まっすぐこちらへ、+1＝まっすぐ遠ざかる
+      const rad = Math.max(-1, Math.min(1, (L2.dist - L.dist)/2000));
+      items.push({ o, p, ang:Math.atan2(p2.y - p.y, p2.x - p.x), dist:L.dist, near:rank < 10, rad });
     }
     inView = items.length; HIT = items.map(it => ({ x:it.p.x, y:it.p.y, o:it.o, dist:it.dist }));
     items.sort((a, b) => b.dist - a.dist);   // 遠い順に描いて、近い機体を上に
     x.save(); const labs = [], night = SKYV.night || sk.sun.alt < -4;
     for(const it of items){
-      const { o, p, near } = it, sz = near ? 1 : .68;
+      const { o, p, near } = it, sz = Math.max(.55, Math.min(1.3, 1.35 - it.dist/40e3*.8))*(near ? 1 : .85);   // 近いほど大きく
       x.globalAlpha = near ? 1 : .5;   // 遠い機体は小さく薄く
       // 通り道（これまでの受信位置）：近い機体だけ
       const tr = near ? trails[o.id] : null;
@@ -2639,12 +2641,19 @@ const PLANE = (() => {
         for(const q of tr){ const L = look(q[0], q[1], q[2], sk), pp = P(L.az, L.alt); if(L.alt < 0 || Math.abs(pp.x - p.x) > Wc*.5){ pen = false; continue; } pen ? x.lineTo(pp.x, pp.y) : x.moveTo(pp.x, pp.y); pen = true; }
         if(pen) x.lineTo(p.x, p.y); x.stroke(); x.setLineDash([]); }
       // 機体
-      x.save(); x.translate(p.x, p.y); x.rotate(it.ang + Math.PI/2); x.scale(sz, sz);
+      // 奥行き：こちらへ向かう・遠ざかる機体ほど胴体が短く見える（縮んだ向き）
+      const fs = Math.max(.32, Math.sqrt(1 - it.rad*it.rad));
+      x.save(); x.translate(p.x, p.y); x.rotate(it.ang + Math.PI/2); x.scale(sz, sz*fs);
       x.fillStyle = night ? "#9aa3ad" : "#eef4ff"; x.strokeStyle = "rgba(0,0,0,.55)"; x.lineWidth = .7;   // 夜はグレー
       x.beginPath(); x.moveTo(-1.3, -4.2); x.quadraticCurveTo(-1.3, -7.2, 0, -7.2); x.quadraticCurveTo(1.3, -7.2, 1.3, -4.2); x.lineTo(1.3, -2); x.lineTo(7, 1.5); x.lineTo(7, 3); x.lineTo(1.3, 1.2); x.lineTo(1, 5.2); x.lineTo(2.8, 6.6); x.lineTo(2.8, 7.6); x.lineTo(0, 6.8); x.lineTo(-2.8, 7.6); x.lineTo(-2.8, 6.6); x.lineTo(-1, 5.2); x.lineTo(-1.3, 1.2); x.lineTo(-7, 3); x.lineTo(-7, 1.5); x.lineTo(-1.3, -2); x.closePath(); x.fill(); x.stroke();
       // 赤い衝突防止灯：夜だけ、機体の胴体の真ん中で点滅（機体と一緒に回る）
       if(night && (ms/600 | 0) % 2){ x.fillStyle = "#ff4d4d"; x.beginPath(); x.arc(0, 1, 1.7, 0, TAU); x.fill(); }
       x.restore();
+      // こちらへ近づく機体：機首側に白い前照灯（夜ははっきり、昼はうっすら）
+      if(it.rad < -.35){ const k = (-it.rad - .35)/.65, nx = Math.cos(it.ang)*7.2*sz*fs, ny = Math.sin(it.ang)*7.2*sz*fs;
+        const gr = x.createRadialGradient(p.x + nx, p.y + ny, 0, p.x + nx, p.y + ny, (night ? 7 : 4.5)*sz);
+        gr.addColorStop(0, `rgba(255,255,240,${(night ? .95 : .6)*(.5 + .5*k)})`); gr.addColorStop(1, "rgba(255,255,240,0)");
+        x.fillStyle = gr; x.beginPath(); x.arc(p.x + nx, p.y + ny, (night ? 7 : 4.5)*sz, 0, TAU); x.fill(); }
       x.globalAlpha = 1;
       if(p.x > 0 && p.x < Wc) labs.push(it);   // 札はすべての機体に（画面の外にいる機体には付けない）
     }
@@ -2770,7 +2779,8 @@ const TERR = { key:"", prof:null, elev:null, eye:null, pan:null, cv:null, img:nu
 function demTile(z, X, Y, src){
   return new Promise((res, rej) => {
     const img = new Image(); img.crossOrigin = "anonymous";
-    img.onload = () => {
+    const to = setTimeout(() => { img.src = ""; rej(new Error("時間切れ")); }, 10000);   // 1枚が止まっても全体が待たされないように
+    img.onload = () => { clearTimeout(to);
       const c = document.createElement("canvas"); c.width = c.height = 256;
       const g = c.getContext("2d"); g.drawImage(img, 0, 0);
       let d; try{ d = g.getImageData(0, 0, 256, 256).data; }catch(e){ return rej(e); }
@@ -2809,7 +2819,7 @@ async function computeTerrain(lat, lon){
     return { got, mpp, at };
   };
   // 近く（12km以内）は細かいデータ、遠く（100kmまで）は粗いデータ
-  const [near, far] = await Promise.all([grid(12, 12500), grid(10, PAN.R)]);
+  const [near, far] = await Promise.all([grid(12, 12500), grid(9, PAN.R)]);   // 近く25枚＋遠く25枚
   if(!near.got && !far.got) throw new Error("標高タイルが1枚も読めません");
   const elevAt = (ex, ny, d) => { let v = d < 11500 && near.got ? near.at(ex, ny) : null; if(v == null) v = far.at(ex, ny); return v; };
   const c0 = near.got ? near.at(0, 0) : far.at(0, 0), h0 = c0 == null || c0 === -9999 ? 0 : Math.max(0, c0);
@@ -2822,7 +2832,7 @@ async function computeTerrain(lat, lon){
     if(c % 60 === 59) await new Promise(r => setTimeout(r, 0));   // 計算中もボタンなどがすぐ反応するように、ときどき手を離す
     const az = c*360/W, sx = Math.sin(az*D2R), sy = Math.cos(az*D2R);
     let curTop = H, maxA = -90, lastSea = false;
-    for(let d = Math.max(30, (eye - h0)/Math.tan(62*D2R)); d <= R; d += Math.max(12, d*.005)){
+    for(let d = Math.max(30, (eye - h0)/Math.tan(62*D2R)); d <= R; d += Math.max(12, d*.008)){
       const ex = sx*d, ny = sy*d, g = d < 11500 && near.got ? near : far;
       let e = g.at(ex, ny); if(e == null && g === near) e = far.at(ex, ny); if(e == null) continue;
       const sea = e === -9999, ee = sea ? 0 : e; lastSea = sea;
@@ -2846,12 +2856,26 @@ async function computeTerrain(lat, lon){
   }
   return { prof, elev:h0, eye, pan:{ elevA, distA, gxA, gyA, coastA } };
 }
+// 計算した地形はスマホ（IndexedDB）に保存し、同じ場所なら次回はすぐ出す（最新4か所まで）
+const TDB = { db:null };
+function tdb(){ if(TDB.db) return TDB.db; TDB.db = new Promise((res, rej) => { try{ const r = indexedDB.open("myspot-terrain", 1); r.onupgradeneeded = () => r.result.createObjectStore("t"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }catch(e){ rej(e); } }); return TDB.db; }
+async function tdbGet(k){ try{ const db = await tdb(); return await new Promise(res => { const q = db.transaction("t").objectStore("t").get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); }catch(_){ return null; } }
+async function tdbPut(k, v){ try{ const db = await tdb(); const st = db.transaction("t", "readwrite").objectStore("t");
+  st.put({ ...v, t:Date.now(), ver:2 }, k);
+  const ks = await new Promise(res => { const q = st.getAllKeys(); q.onsuccess = () => res(q.result); q.onerror = () => res([]); });
+  if(ks.length > 4){ const all = await Promise.all(ks.map(async kk => [kk, (await tdbGet(kk) || {}).t || 0])); all.sort((a, b) => a[1] - b[1]); const tx = db.transaction("t", "readwrite").objectStore("t"); all.slice(0, ks.length - 4).forEach(([kk]) => tx.delete(kk)); }
+}catch(_){} }
+async function terrainCached(lat, lon, key){
+  const c = await tdbGet(key);
+  if(c && c.ver === 2 && Date.now() - c.t < 60*864e5 && c.pan && c.pan.elevA && c.pan.elevA.length === PAN.W*PAN.H) return c;
+  const r = await computeTerrain(lat, lon); tdbPut(key, r); return r;
+}
 function loadTerrain(lat, lon){
   const key = lat.toFixed(3) + "," + lon.toFixed(3);
   loadNames(lat, lon);   // 失敗していたら10分ごとに取り直す
   if(TERR.key === key && TERR.ready) return TERR.ready;
   TERR.key = key; TERR.prof = null; TERR.elev = null; TERR.pan = null; TERR.ck = ""; TERR.eye = null; TERR.st = "読み込み中";
-  TERR.ready = computeTerrain(lat, lon).then(r => { if(TERR.key === key){ TERR.prof = r.prof; TERR.elev = r.elev; TERR.eye = r.eye; TERR.pan = r.pan; TERR.ck = ""; TERR.st = ""; } return r; },
+  TERR.ready = terrainCached(lat, lon, key).then(r => { if(TERR.key === key){ TERR.prof = r.prof; TERR.elev = r.elev; TERR.eye = r.eye; TERR.pan = r.pan; TERR.ck = ""; TERR.st = ""; } return r; },
     e => { if(TERR.key === key){ TERR.st = "取得できませんでした（" + (e && e.message || e) + "）"; TERR.ready = null; TERR.key = ""; } throw e; });
   return TERR.ready;
 }
@@ -3720,11 +3744,11 @@ function bgInit(){
 let PLACE_DEMO = false;
 async function loadElevation(){
   let e = null;
+  if(!FORCE_DEMO) Sky.terrain(S.lat, S.lon).catch(() => {});   // 地形は標高の問い合わせを待たずにすぐ読み始める
   if(!FORCE_DEMO){
     if(inJapanBox(S.lat, S.lon)) try{ const j = await getJSON(`https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon=${S.lon}&lat=${S.lat}&outtype=JSON`); if(j && j.elevation !== "-----" && !isNaN(+j.elevation)) e = +j.elevation; }catch(_){}
     if(e == null){ try{ const j = await getJSON(`https://api.open-meteo.com/v1/elevation?latitude=${S.lat}&longitude=${S.lon}`); const v = j && j.elevation && j.elevation[0]; if(v != null && !isNaN(+v)) e = +v; }catch(_){} }
     if(e == null){ try{ const r = await Sky.terrain(S.lat, S.lon); e = r.elev; }catch(_){} }
-    else Sky.terrain(S.lat, S.lon).catch(() => {});
     if(e == null && S.gpsAlt != null && !S.demoLoc) e = S.gpsAlt;
   }
   S.elevText = e == null ? "" : `約${Math.round(e)}m`;
