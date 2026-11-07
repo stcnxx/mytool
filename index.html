@@ -418,7 +418,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-07 15:19</div>
+  <div style="margin-bottom:4px">版：2026-11-07 16:14</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -893,7 +893,7 @@ const FASH = [
   [17, "cardi", "カーディガン", "長袖に薄手のカーディガンやパーカーを1枚"],
   [13, "jacket", "ジャケット", "セーターにジャケットや薄手のコートなど、秋の上着を"],
   [9,  "coat", "コート", "ウールのコートなど、しっかりした上着が必要です"],
-  [5,  "scarf", "厚手のコート", "厚手のコートにマフラーを。インナーも暖かいものに"],
+  [5,  "heavy", "厚手のコート", "厚手のコートにマフラーを。インナーも暖かいものに"],
   [-99,"down", "真冬の防寒", "ダウンコート・マフラー・手袋・帽子で万全の防寒を"]
 ];
 function fashionDay(w, di){
@@ -1439,6 +1439,8 @@ const CLO = (() => {
     cardi: c("#e0b04a", "#8a6416", '<path d="M8.5 3.5 12 4l3.5-.5L19 5.5l2 12.5-2.8.6L17 10.5V21H7V10.5l-1.2 8.1L3 18 5 5.5Z"/><path d="M9 4l3 8.5L15 4Z" fill="#fff"/>', '<path d="M12 12.5V21M7 19h10M3.4 16.6l2.6.4M20.6 16.6l-2.6.4"/><circle cx="12" cy="14.6" r=".55" fill="#8a6416"/><circle cx="12" cy="17" r=".55" fill="#8a6416"/>'),
     jacket: c("#3f5a8a", "#1f2f4f", '<path d="M8.5 3.5 12 4.2l3.5-.7 4 2L21 16h-2.7l-.8-5.5V19h-11v-8.5L5.7 16H3L4.5 5.5Z"/><path d="M10 6.5 12 13.5 14 6.5Z" fill="#f8fafc"/><path d="M8.5 3.5l2 5.5L9 10l3 4.5-2-8Z M15.5 3.5l-2 5.5L15 10l-3 4.5 2-8Z" fill="#2c4470"/>', '<circle cx="12" cy="16.6" r=".6" fill="#f8fafc" stroke="none"/><path d="M7.8 14.6h2.4M13.8 14.6h2.4"/>'),
     coat: c("#b48a5a", "#6b4c2a", '<path d="M8.5 3.5 12 4l3.5-.5L19 5.5l1.8 12-2.8.5-.9-6 1 10H5.9l1-10-.9 6-2.8-.5L5 5.5Z"/><path d="M9 4l3 4 3-4Z" fill="#9c7448"/>', '<path d="M12 8v14M8 13.2h8"/><circle cx="10.3" cy="10.5" r=".55" fill="#4a321a"/><circle cx="13.7" cy="10.5" r=".55" fill="#4a321a"/><circle cx="10.3" cy="16" r=".55" fill="#4a321a"/><circle cx="13.7" cy="16" r=".55" fill="#4a321a"/>'),
+    // 厚手のコート＋マフラー：長め・濃い色のダブルのコートに、赤いマフラーを首に巻いて片側に垂らす
+    heavy: c("#5b4636", "#2e2118", '<path d="M8.5 4 12 4.6l3.5-.6L19 5.8l1.9 12.4-2.8.5-.9-6.2.9 9.5H5.9l.9-9.5-.9 6.2-2.8-.5L5 5.8Z"/><path d="M6.8 4.6c3-1.9 7.4-1.9 10.4 0l-.4 2.2c-3 1.4-6.6 1.4-9.6 0Z" fill="#dc2626" stroke="#7f1515"/><path d="M13.6 6.6l.5 6.6h2.6l-.9-7.1Z" fill="#dc2626" stroke="#7f1515"/>', '<path d="M12 7.4V22M7.6 7.2c2.9 1 5.9 1 8.8 0M14.1 13.2v1.2M15.4 13.2v1.2M16.6 13.2v1.2"/><circle cx="9.6" cy="15.6" r=".55" fill="#1c140e"/><circle cx="14.4" cy="15.6" r=".55" fill="#1c140e"/><circle cx="9.6" cy="19" r=".55" fill="#1c140e"/><circle cx="14.4" cy="19" r=".55" fill="#1c140e"/>'),
     scarf: c("#dc2626", "#7f1515", '<path d="M4.5 7.5c3.5-3 11.5-3 15 0-3.5 3-11.5 3-15 0Z"/><path d="M13.3 9.3l1.2 10.7h3.6L16.6 8.8Z"/>', '<path d="M7 6.3c3 1.6 7 1.6 10 0M15.2 11.5l2 .1M15.5 15l2 .1M14.6 20v1.6M16.3 20v1.6M18 20v1.6"/>'),
     down: c("#2f8f83", "#16544c", '<path d="M8.5 3.5Q12 5.5 15.5 3.5L19.5 6Q21.3 12 20.3 19H17.5v2h-11v-2H3.7Q2.7 12 4.5 6Z"/>', '<path d="M6.4 9.5h11.2M6.2 13.5h11.6M6.4 17.5h11.2M12 5v16"/>')
   };
