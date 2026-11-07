@@ -195,7 +195,7 @@ body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opa
 .chip b{margin-left:4px}.st-ok b{color:var(--ok)}.st-bad{background:#fee2e2;color:#991b1b}.st-bad b{color:#dc2626}.st-unk b{color:var(--muted)}
 #skyCard{padding:0;overflow:hidden}
 #skyCard h2{padding:14px 16px 0}
-#skyInfo{padding:0 16px 8px;font-size:.8rem;color:var(--muted);white-space:pre-line;line-height:1.55}
+#skyInfo{padding:8px 16px 0;font-size:.8rem;color:var(--muted);white-space:pre-line;line-height:1.55}
 #skyv{position:relative;height:440px;background:#000;overflow:hidden;touch-action:pan-y;-webkit-user-select:none;user-select:none}
 #skyv:fullscreen{height:100%;border-radius:0}
 #skyv:fullscreen .sv-top,#skyv.pseudo-full .sv-top{top:calc(env(safe-area-inset-top,0px) + 44px);font-size:14px}
@@ -290,7 +290,7 @@ footer{background:none!important}
 .di-stat{padding:4px 10px}.di-stat .v{display:flex;align-items:baseline;gap:8px;line-height:1.25}.di-note{font-size:.78rem;font-weight:600;color:var(--muted)}
 #skyCard{padding:4px 2px}
 #skyCard h2{padding:0}
-#skyInfo{padding:0 0 8px}
+#skyInfo{padding:8px 0 0}
 #skyv{border-radius:14px}
 .hw{white-space:nowrap}.hw .ico{width:1em;height:1em;margin-right:1px;vertical-align:-.15em}
 </style>
@@ -389,7 +389,6 @@ footer{background:none!important}
 
   <section class="card wide" id="skyCard">
     <h2>天体 <small>現在地・現在時刻の空</small></h2>
-    <div id="skyInfo"></div>
     <div id="skyv">
       <canvas id="skyc"></canvas>
       <div class="sv-top" id="svDir"></div>
@@ -406,11 +405,12 @@ footer{background:none!important}
         <button type="button" id="svFull" aria-pressed="false"><b>全画面</b></button>
       </div>
     </div>
+    <div id="skyInfo"></div>
   </section>
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-07 10:24</div>
+  <div style="margin-bottom:4px">版：2026-11-07 10:36</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
