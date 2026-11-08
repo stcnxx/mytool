@@ -420,7 +420,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-08 13:21</div>
+  <div style="margin-bottom:4px">版：2026-11-08 20:59</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2760,13 +2760,11 @@ function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
   for(let a=0;a<360;a+=45){const p=P(a,0);if(p.x>-30&&p.x<Wc+30)LB.push({x:p.x-22,y:hy+3,w:44,h:23});}
   {const hn=ov.querySelector('#svHint');if(hn&&getComputedStyle(hn).display!=='none'&&hn.offsetWidth)LB.push({x:hn.offsetLeft,y:hn.offsetTop,w:hn.offsetWidth,h:hn.offsetHeight});}
   drawTerrain(x,Wc,Hc,hy,kk,sc2,sa,sk,P,LB,hitLB);
-  // 方角：地平線に丸い札。昼は暗い札に白い字、夜は白黒反転（白い札に黒い字）。北は赤
-  {const nt=SKYV.night||sa<-4;x.font='700 12px "Zen Maru Gothic",sans-serif';x.textAlign='center';
-  for(let a=0;a<360;a+=45){const p=P(a,0);if(p.x<-30||p.x>Wc+30)continue;const t=AZ_JP[a/22.5],w=x.measureText(t).width+14,h=19,bx=p.x-w/2,by=hy+5,n=a===0;
-    x.fillStyle=nt?(n?'rgba(255,236,232,.95)':'rgba(245,247,250,.92)'):(n?'rgba(200,40,30,.9)':'rgba(15,23,42,.72)');
-    x.beginPath();x.roundRect(bx,by,w,h,9.5);x.fill();x.strokeStyle=nt?'rgba(15,23,42,.35)':'rgba(255,255,255,.55)';x.lineWidth=1;x.stroke();
-    x.fillStyle=nt?(n?'#c8281e':'#111827'):'#fff';x.textBaseline='middle';x.fillText(t,p.x,by+h/2+.5);x.textBaseline='alphabetic';
-    x.fillStyle=nt?'rgba(235,240,250,.9)':'rgba(255,255,255,.9)';x.fillRect(p.x-1,hy-4,2,9);}}
+  // 方角：地平線に丸い札（暗い札に白い字。昼も夜も同じ）
+  {x.font='700 12px "Zen Maru Gothic",sans-serif';x.textAlign='center';
+  for(let a=0;a<360;a+=45){const p=P(a,0);if(p.x<-30||p.x>Wc+30)continue;const t=AZ_JP[a/22.5],w=x.measureText(t).width+14,h=19,bx=p.x-w/2,by=hy+5;
+    x.fillStyle='rgba(15,23,42,.72)';x.beginPath();x.roundRect(bx,by,w,h,9.5);x.fill();x.strokeStyle='rgba(255,255,255,.55)';x.lineWidth=1;x.stroke();
+    x.fillStyle='#fff';x.textBaseline='middle';x.fillText(t,p.x,by+h/2+.5);x.textBaseline='alphabetic';x.fillStyle='rgba(255,255,255,.9)';x.fillRect(p.x-1,hy-4,2,9);}}
   ov.querySelector('#svDir').textContent=`${azName(SKYV.A0)}の空を見ています`;
   if(SKYV.zoom)skyvZoom(x,Wc,Hc,sk,t);}
 function skyvZoom(x,Wc,Hc,sk,t){x.fillStyle='rgba(2,3,10,.95)';x.fillRect(0,0,Wc,Hc);
