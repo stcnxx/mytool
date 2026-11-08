@@ -397,7 +397,7 @@ footer{background:none!important}
 
 
   <section class="card wide" id="skyCard">
-    <h2>天体 <small>現在地・現在時刻の空</small></h2>
+    <h2>天体と地形 <small>現在地・現在時刻の空</small></h2>
     <div id="skyv">
       <canvas id="skyc"></canvas>
       <div class="sv-top" id="svDir"></div>
@@ -409,7 +409,7 @@ footer{background:none!important}
         <button type="button" id="svNight" aria-pressed="false"><b>夜</b></button>
         <button type="button" id="svMoon" title="月の方角を向く"><b>月</b></button>
         <button type="button" id="svLines" aria-pressed="true"><b>星座</b></button>
-        <button type="button" id="svTerr" aria-pressed="true"><b>地形</b></button>
+        <button type="button" id="svTerr" aria-pressed="true"><b>地名</b></button>
         <button type="button" id="svSat" aria-pressed="false"><b>人工衛星</b></button>
         <button type="button" id="svPlane" aria-pressed="false"><b>飛行機</b></button>
         <button type="button" id="svFull" aria-pressed="false"><b>全画面</b></button>
@@ -420,7 +420,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-08 20:59</div>
+  <div style="margin-bottom:4px">版：2026-11-09 07:30</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2799,8 +2799,8 @@ function demTile(z, X, Y, src){
 }
 /* 星空ビューの視点：標高1000mに浮かんで見下ろす（その場所の地面が900mより高いときは地面の100m上） */
 const EYE_ALT = 1000;
-// 見下ろした地面の絵（方角×角度）。横は1/3°ごと、縦は+3°〜-61°を0.25°ごと
-const PAN = { W:1080, H:256, top:3, res:.25, R:100000 };
+// 見下ろした地面の絵（方角×角度）。横は1/3°ごと、縦は+60°〜-61°を0.25°ごと（視点より高い山も地平線の上に描けるように）
+const PAN = { W:1080, H:484, top:60, res:.25, R:100000 };
 async function computeTerrain(lat, lon){
   const Re = 6371000, jp = inJapanBox(lat, lon);
   const grid = async (z, R) => {
@@ -2865,13 +2865,13 @@ const TDB = { db:null };
 function tdb(){ if(TDB.db) return TDB.db; TDB.db = new Promise((res, rej) => { try{ const r = indexedDB.open("myspot-terrain", 1); r.onupgradeneeded = () => r.result.createObjectStore("t"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }catch(e){ rej(e); } }); return TDB.db; }
 async function tdbGet(k){ try{ const db = await tdb(); return await new Promise(res => { const q = db.transaction("t").objectStore("t").get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); }catch(_){ return null; } }
 async function tdbPut(k, v){ try{ const db = await tdb(); const st = db.transaction("t", "readwrite").objectStore("t");
-  st.put({ ...v, t:Date.now(), ver:2 }, k);
+  st.put({ ...v, t:Date.now(), ver:4 }, k);
   const ks = await new Promise(res => { const q = st.getAllKeys(); q.onsuccess = () => res(q.result); q.onerror = () => res([]); });
   if(ks.length > 4){ const all = await Promise.all(ks.map(async kk => [kk, (await tdbGet(kk) || {}).t || 0])); all.sort((a, b) => a[1] - b[1]); const tx = db.transaction("t", "readwrite").objectStore("t"); all.slice(0, ks.length - 4).forEach(([kk]) => tx.delete(kk)); }
 }catch(_){} }
 async function terrainCached(lat, lon, key){
   const c = await tdbGet(key);
-  if(c && c.ver === 2 && Date.now() - c.t < 60*864e5 && c.pan && c.pan.elevA && c.pan.elevA.length === PAN.W*PAN.H) return c;
+  if(c && c.ver === 4 && Date.now() - c.t < 60*864e5 && c.pan && c.pan.elevA && c.pan.elevA.length === PAN.W*PAN.H) return c;
   const r = await computeTerrain(lat, lon); tdbPut(key, r); return r;
 }
 function loadTerrain(lat, lon){
@@ -2899,9 +2899,9 @@ function terrColor(sa, sun, hor){
     if(e < 0) col = pn.coastA[i] ? mixRgb(seaD, [120,170,190], .4) : seaD;
     else{
       col = pn.coastA[i] ? [192,182,146] : e > snow ? [236,240,246] : ramp(e);
-      // 斜面の陰（太陽の向き）：起伏を2倍に強調
-      const nx = -pn.gxA[i]*2, ny = -pn.gyA[i]*2, ln = Math.hypot(nx, ny, 1), lam = (nx*L[0] + ny*L[1] + L[2])/ln;
-      const sh = Math.max(.45, Math.min(1.35, .9 + 1.4*(lam - L[2])));
+      // 斜面の陰（太陽の向き）：なだらかな所は起伏を強調、急な山は強調しすぎない
+      const gk = 2/(1 + Math.hypot(pn.gxA[i], pn.gyA[i])*2), nx = -pn.gxA[i]*gk, ny = -pn.gyA[i]*gk, ln = Math.hypot(nx, ny, 1), lam = (nx*L[0] + ny*L[1] + L[2])/ln;
+      const sh = Math.max(e > snow ? .68 : .55, Math.min(1.3, .92 + 1.1*(lam - L[2])));
       col = [col[0]*sh, col[1]*sh, col[2]*sh];
     }
     col = mixRgb(col, hor, (1 - Math.exp(-d/60000))*.75);               // 遠いほど空の色にかすむ
