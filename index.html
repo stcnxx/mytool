@@ -179,6 +179,11 @@ body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opa
 .wcs-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .wcs-box input{font:inherit;border:1px solid #cbd5e1;border-radius:10px;padding:8px 10px;width:100%}
 .wcs-list{list-style:none;margin:8px 0 0;padding:0;overflow:auto}
+.locs-mapbtn{margin-top:8px;width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;color:#0f172a;font:inherit;font-weight:700;font-size:.85rem}
+.locs-mapbtn[aria-pressed=true]{background:#3b6fd8;border-color:#3b6fd8;color:#fff}
+#locsMap{height:min(46vh,340px);margin-top:8px;border-radius:10px;overflow:hidden;background:#dde5ef}
+.locs-mapbar{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:.78rem}.locs-mapbar span{flex:1;min-width:0;line-height:1.35}
+.locs-mapbar button{flex:none;padding:7px 12px;border:0;border-radius:9px;background:#3b6fd8;color:#fff;font:inherit;font-weight:700;font-size:.8rem}.locs-mapbar button:disabled{opacity:.4}
 .wcs-list li{padding:8px 6px;border-bottom:1px solid #e2e8f0;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
 .wcs-list li:hover{background:#f1f5f9}
 .wcs-list .sub{color:#64748b;font-size:.8rem}
@@ -318,6 +323,11 @@ footer{background:none!important}
   <div class="wcs-box">
     <div class="wcs-head"><b>表示する場所</b><button id="locsClose">閉じる</button></div>
     <input type="search" id="locsInput" placeholder="地名で検索（例：札幌、那覇、Paris）" autocomplete="off">
+    <button type="button" id="locsMapBtn" class="locs-mapbtn">地図で選ぶ</button>
+    <div id="locsMapWrap" hidden>
+      <div id="locsMap"></div>
+      <div class="locs-mapbar"><span id="locsMapName" class="muted">地図をタップして場所を選んでください</span><button type="button" id="locsMapOk" disabled>この場所にする</button></div>
+    </div>
     <ul id="locsList" class="wcs-list"></ul>
     <div class="muted" style="font-size:.72rem;margin-top:6px">検索：<a href="https://open-meteo.com/en/docs/geocoding-api" target="_blank" rel="noopener">Open-Meteo Geocoding</a></div>
   </div>
@@ -420,7 +430,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-09 07:30</div>
+  <div style="margin-bottom:4px">版：2026-11-09 09:35</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -641,7 +651,39 @@ function useChosen(c){
   loadAll();
 }
 function useHere(){ S.tz = null; tickClock(); S.chosen = null; store("selLoc", null); S.locMsg = ""; document.body.classList.add("reloading"); SNAP_SHOWN = false; locate(); }
-function locOpen(){ ovOpen("loc", () => { $("#locSheet").hidden = true; }); $("#locSheet").hidden = false; $("#locsInput").value = ""; locSearch(""); setTimeout(() => $("#locsInput").focus(), 50); }
+function locOpen(){ ovOpen("loc", () => { $("#locSheet").hidden = true; }); $("#locSheet").hidden = false; $("#locsInput").value = ""; locSearch(""); locMapShow(false); setTimeout(() => $("#locsInput").focus(), 50); }
+// 地図で選ぶ：地図をタップすると印を置き、地名を調べて「この場所にする」で決定
+const LOCMAP = { map:null, mk:null, pick:null, seq:0 };
+async function locMapShow(on){
+  $("#locsMapWrap").hidden = !on; $("#locsList").hidden = on; $("#locsMapBtn").setAttribute("aria-pressed", on ? "true" : "false");
+  $("#locsMapBtn").textContent = on ? "検索に戻る" : "地図で選ぶ";
+  if(!on) return;
+  $("#locsInput").blur();
+  const lat = S.lat ?? DEMO_PLACE.lat, lon = S.lon ?? DEMO_PLACE.lon;
+  try{
+    await ensureLeaflet();
+    if(!LOCMAP.map){
+      const m = LOCMAP.map = L.map("locsMap", { worldCopyJump:true, zoomControl:true, attributionControl:true }).setView([lat, lon], 9);
+      L.tileLayer(BASES.std.url, BASES.std.opt).addTo(m);
+      m.on("click", e => locMapPick(e.latlng.lat, e.latlng.lng));
+    }else LOCMAP.map.setView([lat, lon], LOCMAP.map.getZoom());
+    setTimeout(() => LOCMAP.map.invalidateSize(), 60);
+  }catch(e){ $("#locsMapName").textContent = "地図を読み込めませんでした（通信を確認してください）"; }
+}
+async function locMapPick(lat, lon){
+  lon = ((lon + 540) % 360) - 180;
+  const c = { name:"地図で選んだ地点", sub:`${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat:+lat.toFixed(4), lon:+lon.toFixed(4), tz:null };
+  LOCMAP.pick = c; const seq = ++LOCMAP.seq;
+  if(LOCMAP.mk) LOCMAP.mk.setLatLng([lat, lon]); else LOCMAP.mk = L.marker([lat, lon], { icon:L.divIcon({ className:"pin-ico", html:PIN_SVG, iconSize:[32,40], iconAnchor:[16,38] }), keyboard:false, interactive:false }).addTo(LOCMAP.map);
+  $("#locsMapOk").disabled = false; $("#locsMapName").textContent = "地名を調べています…（このままでも決定できます）";
+  try{
+    const j = await getJSON(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${c.lat}&longitude=${c.lon}&localityLanguage=ja`, { keep:true });
+    if(seq !== LOCMAP.seq) return;
+    const nm = [j.city || j.locality, j.locality && j.city && j.locality !== j.city ? j.locality : ""].filter(Boolean).join(" ") || j.principalSubdivision || j.countryName || "";
+    if(nm){ c.name = nm; c.sub = [j.principalSubdivision, j.countryName].filter(Boolean).join("・"); }
+  }catch(_){}
+  if(seq === LOCMAP.seq) $("#locsMapName").textContent = `${c.name}（${c.sub}）`;
+}
 function locClose(){ ovClose("loc"); }
 function locItem(c, sub){ return `<li data-loc="${esc(JSON.stringify(c))}"><span>${esc(c.name)} <span class="sub">${esc(sub || c.sub || "")}</span></span>${S.chosen && Math.abs(S.chosen.lat - c.lat) < 1e-3 && Math.abs(S.chosen.lon - c.lon) < 1e-3 ? '<span class="tm">表示中</span>' : ""}</li>`; }
 let LOC_T = 0;
@@ -667,7 +709,9 @@ function locSearch(q){
 function locSetup(){
   $("#locBtn").onclick = locOpen; $("#locsClose").onclick = locClose;
   $("#locSheet").addEventListener("click", e => { if(e.target.id === "locSheet") locClose(); });
-  $("#locsInput").addEventListener("input", e => locSearch(e.target.value));
+  $("#locsInput").addEventListener("input", e => { if(!$("#locsMapWrap").hidden) locMapShow(false); locSearch(e.target.value); });
+  $("#locsMapBtn").onclick = () => locMapShow($("#locsMapWrap").hidden);
+  $("#locsMapOk").onclick = () => { const c = LOCMAP.pick; if(!c) return; locClose(); useChosen({ ...c }); };
   $("#locsList").addEventListener("click", e => {
     const li = e.target.closest("li[data-loc],li[data-here]"); if(!li) return;
     locClose();
