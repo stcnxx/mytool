@@ -180,6 +180,8 @@ body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opa
 .wcs-box input{font:inherit;border:1px solid #cbd5e1;border-radius:10px;padding:8px 10px;width:100%}
 .wcs-list{list-style:none;margin:8px 0 0;padding:0;overflow:auto}
 .locs-here{font-weight:700;font-size:.72rem;padding:1px 6px}
+.locs-cur-ico span{display:block;width:18px;height:18px;border-radius:50%;background:#7c3aed;border:3px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.45);box-sizing:border-box}
+.locs-res span{display:block;width:14px;height:14px;border-radius:50%;background:#f59e0b;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);box-sizing:border-box}.locs-restip{font-size:.7rem;padding:0 5px;font-weight:700}
 .locs-mapbtn{margin-top:8px;width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;color:#0f172a;font:inherit;font-weight:700;font-size:.85rem}
 .locs-mapbtn[aria-pressed=true]{background:#3b6fd8;border-color:#3b6fd8;color:#fff}
 #locsMap{height:min(46vh,340px);margin-top:8px;border-radius:10px;overflow:hidden;background:#dde5ef}
@@ -431,7 +433,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-10 16:27</div>
+  <div style="margin-bottom:4px">版：2026-11-10 18:23</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -654,7 +656,7 @@ function useChosen(c){
 function useHere(){ S.tz = null; tickClock(); S.chosen = null; store("selLoc", null); S.locMsg = ""; document.body.classList.add("reloading"); SNAP_SHOWN = false; locate(); }
 function locOpen(){ ovOpen("loc", () => { $("#locSheet").hidden = true; }); $("#locSheet").hidden = false; $("#locsInput").value = ""; locSearch(""); locMapShow(false); setTimeout(() => $("#locsInput").focus(), 50); }
 // 地図で選ぶ：地図をタップすると印を置き、地名を調べて「この場所にする」で決定
-const LOCMAP = { map:null, mk:null, pick:null, seq:0 };
+const LOCMAP = { map:null, mk:null, pick:null, seq:0, results:[], rq:"", rlayer:null };
 async function locMapShow(on){
   $("#locsMapWrap").hidden = !on; $("#locsList").hidden = on; $("#locsMapBtn").setAttribute("aria-pressed", on ? "true" : "false");
   $("#locsMapBtn").textContent = on ? "検索に戻る" : "地図で選ぶ";
@@ -671,9 +673,30 @@ async function locMapShow(on){
       L.tileLayer(BASES.std.url, BASES.std.opt).addTo(m);
       m.on("click", e => locMapPick(e.latlng.lat, e.latlng.lng));
     }else LOCMAP.map.setView([lat, lon], LOCMAP.map.getZoom());
-    setTimeout(() => LOCMAP.map.invalidateSize(), 60);
-    locMapHere();
+    setTimeout(() => { LOCMAP.map.invalidateSize(); locMapResults(); }, 60);
+    locMapCur(); locMapHere();
   }catch(e){ $("#locsMapName").textContent = "地図を読み込めませんでした（通信を確認してください）"; }
+}
+// 検索した地名の候補を地図に出す（タップでその地点を選ぶ）。候補が見えるように地図を合わせる
+function locMapResults(){
+  const m = LOCMAP.map; if(!m) return;
+  if(LOCMAP.rlayer){ LOCMAP.rlayer.remove(); LOCMAP.rlayer = null; }
+  const q = $("#locsInput").value.trim(), rs = q && q === LOCMAP.rq ? LOCMAP.results : [];
+  if(!rs.length) return;
+  LOCMAP.rlayer = L.layerGroup(rs.map(c => L.marker([c.lat, c.lon], { icon:L.divIcon({ className:"locs-res", html:'<span></span>', iconSize:[14,14], iconAnchor:[7,7] }) })
+    .bindTooltip(esc(c.name), { permanent:true, direction:"top", offset:[0,-6], className:"locs-restip" })
+    .on("click", () => locMapPick(c.lat, c.lon, c)))).addTo(m);
+  if(rs.length === 1) m.setView([rs[0].lat, rs[0].lon], 11);
+  else m.fitBounds(L.latLngBounds(rs.map(c => [c.lat, c.lon])).pad(.25), { maxZoom:11 });
+  $("#locsMapName").textContent = `「${q}」の候補を${rs.length}か所出しました。印か地図をタップして選んでください`;
+}
+// 今表示している場所（選んだ場所）を紫の印で示す。GPSの現在地を表示中なら青い点だけ
+function locMapCur(){
+  const m = LOCMAP.map; if(!m) return;
+  if(LOCMAP.cur){ LOCMAP.cur.remove(); LOCMAP.cur = null; }
+  const c = S.chosen; if(!c) return;
+  LOCMAP.cur = L.marker([c.lat, c.lon], { icon:L.divIcon({ className:"locs-cur-ico", html:'<span></span>', iconSize:[18,18], iconAnchor:[9,9] }), interactive:false, keyboard:false })
+    .bindTooltip("表示中：" + esc(c.name || ""), { permanent:true, direction:"right", offset:[10,0], className:"locs-here" }).addTo(m);
 }
 // 現在地（GPS）を青い点で示す。取れないときは前回のGPSの位置
 function locMapHere(){
@@ -686,12 +709,14 @@ function locMapHere(){
   if(FORCE_DEMO || !("geolocation" in navigator)) return;
   navigator.geolocation.getCurrentPosition(p => { const la = p.coords.latitude, lo = p.coords.longitude; store("lastLoc", { lat:+la.toFixed(4), lon:+lo.toFixed(4) }); put(la, lo, true); }, () => {}, { enableHighAccuracy:true, timeout:15000, maximumAge:120000 });
 }
-async function locMapPick(lat, lon){
+async function locMapPick(lat, lon, known){
   lon = ((lon + 540) % 360) - 180;
-  const c = { name:"地図で選んだ地点", sub:`${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat:+lat.toFixed(4), lon:+lon.toFixed(4), tz:null };
+  const c = known ? { ...known } : { name:"地図で選んだ地点", sub:`${lat.toFixed(3)}, ${lon.toFixed(3)}`, lat:+lat.toFixed(4), lon:+lon.toFixed(4), tz:null };
   LOCMAP.pick = c; const seq = ++LOCMAP.seq;
   if(LOCMAP.mk) LOCMAP.mk.setLatLng([lat, lon]); else LOCMAP.mk = L.marker([lat, lon], { icon:L.divIcon({ className:"pin-ico", html:PIN_SVG, iconSize:[32,40], iconAnchor:[16,38] }), keyboard:false, interactive:false }).addTo(LOCMAP.map);
-  $("#locsMapOk").disabled = false; $("#locsMapName").textContent = "地名を調べています…（このままでも決定できます）";
+  $("#locsMapOk").disabled = false;
+  if(known){ $("#locsMapName").textContent = `${c.name}（${c.sub}）`; return; }
+  $("#locsMapName").textContent = "地名を調べています…（このままでも決定できます）";
   try{
     const j = await getJSON(`https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${c.lat}&longitude=${c.lon}&localityLanguage=ja`, { keep:true });
     if(seq !== LOCMAP.seq) return;
@@ -711,13 +736,14 @@ function locBase(){
 function locSearch(q){
   q = q.trim(); const list = $("#locsList");
   clearTimeout(LOC_T);
-  if(q.length < 1){ list.innerHTML = locBase(); return; }
+  if(q.length < 1){ list.innerHTML = locBase(); LOCMAP.results = []; return; }
   list.innerHTML = '<li class="locs-h">検索中…</li>';
   LOC_T = setTimeout(async () => {
     try{
       const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=12&language=ja&format=json`, { keep:true });
       if($("#locsInput").value.trim() !== q) return;
       const rs = (j.results || []).map(r => ({ name:r.name, sub:[r.admin1, r.country].filter(Boolean).join("・"), lat:+(+r.latitude).toFixed(4), lon:+(+r.longitude).toFixed(4), tz:r.timezone || null }));
+      LOCMAP.results = rs; LOCMAP.rq = q;
       list.innerHTML = rs.length ? rs.map(c => locItem(c)).join("") : '<li class="locs-h">見つかりませんでした</li>';
     }catch(e){ list.innerHTML = '<li class="locs-h">検索できませんでした（通信を確認してください）</li>'; }
   }, 350);
