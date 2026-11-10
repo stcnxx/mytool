@@ -179,6 +179,7 @@ body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opa
 .wcs-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .wcs-box input{font:inherit;border:1px solid #cbd5e1;border-radius:10px;padding:8px 10px;width:100%}
 .wcs-list{list-style:none;margin:8px 0 0;padding:0;overflow:auto}
+.locs-here{font-weight:700;font-size:.72rem;padding:1px 6px}
 .locs-mapbtn{margin-top:8px;width:100%;padding:8px;border:1px solid #cbd5e1;border-radius:10px;background:#f8fafc;color:#0f172a;font:inherit;font-weight:700;font-size:.85rem}
 .locs-mapbtn[aria-pressed=true]{background:#3b6fd8;border-color:#3b6fd8;color:#fff}
 #locsMap{height:min(46vh,340px);margin-top:8px;border-radius:10px;overflow:hidden;background:#dde5ef}
@@ -430,7 +431,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-10 15:41</div>
+  <div style="margin-bottom:4px">版：2026-11-10 16:27</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -659,6 +660,9 @@ async function locMapShow(on){
   $("#locsMapBtn").textContent = on ? "検索に戻る" : "地図で選ぶ";
   if(!on) return;
   $("#locsInput").blur();
+  // 開くたびに前回の選択を消す
+  LOCMAP.pick = null; LOCMAP.seq++; if(LOCMAP.mk){ LOCMAP.mk.remove(); LOCMAP.mk = null; }
+  $("#locsMapOk").disabled = true; $("#locsMapName").textContent = "地図をタップして場所を選んでください";
   const lat = S.lat ?? DEMO_PLACE.lat, lon = S.lon ?? DEMO_PLACE.lon;
   try{
     await ensureLeaflet();
@@ -668,7 +672,19 @@ async function locMapShow(on){
       m.on("click", e => locMapPick(e.latlng.lat, e.latlng.lng));
     }else LOCMAP.map.setView([lat, lon], LOCMAP.map.getZoom());
     setTimeout(() => LOCMAP.map.invalidateSize(), 60);
+    locMapHere();
   }catch(e){ $("#locsMapName").textContent = "地図を読み込めませんでした（通信を確認してください）"; }
+}
+// 現在地（GPS）を青い点で示す。取れないときは前回のGPSの位置
+function locMapHere(){
+  const put = (la, lo, fresh) => { if(!LOCMAP.map) return;
+    if(LOCMAP.here) LOCMAP.here.setLatLng([la, lo]);
+    else LOCMAP.here = L.circleMarker([la, lo], { radius:7, color:"#fff", weight:2.5, fillColor:"#1a73e8", fillOpacity:1, interactive:false })
+      .bindTooltip("現在地", { permanent:true, direction:"right", offset:[8, 0], className:"locs-here" }).addTo(LOCMAP.map);
+    LOCMAP.here.setTooltipContent(fresh ? "現在地" : "現在地（前回）"); };
+  const last = load("lastLoc"); if(last) put(last.lat, last.lon, false);
+  if(FORCE_DEMO || !("geolocation" in navigator)) return;
+  navigator.geolocation.getCurrentPosition(p => { const la = p.coords.latitude, lo = p.coords.longitude; store("lastLoc", { lat:+la.toFixed(4), lon:+lo.toFixed(4) }); put(la, lo, true); }, () => {}, { enableHighAccuracy:true, timeout:15000, maximumAge:120000 });
 }
 async function locMapPick(lat, lon){
   lon = ((lon + 540) % 360) - 180;
