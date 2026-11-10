@@ -195,7 +195,7 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 .tzx-c.z{border-left:2px solid #94a3b8}
 .tzx-line{position:absolute;top:10px;bottom:4px;width:1px;margin-left:-.5px;background:#ff4d5e;box-shadow:0 0 5px #ff4d5e;pointer-events:none;z-index:2}.tzx-line b{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:.62rem;color:#ff7b87;white-space:nowrap}
 .tzx-line.sel{background:#f9fafb;box-shadow:0 0 4px rgba(255,255,255,.55)}.tzx-line.sel b{color:#f3f4f6}
-.tzx-nowm{position:absolute;top:0;bottom:0;width:1px;margin-left:-.5px;background:#ff4d5e;box-shadow:0 0 4px #ff4d5e;z-index:1;pointer-events:none}.tzx-nowm b{position:absolute;top:0;left:4px;white-space:nowrap;font-size:.6rem;color:#ff7b87;background:#151b26;padding:0 3px;border-radius:3px;line-height:14px}
+.tzx-nowm{position:absolute;top:0;bottom:0;width:1px;margin-left:-.5px;background:rgba(255,77,94,.85);transform:scaleX(.6);z-index:1;pointer-events:none}.tzx-nowm b{position:absolute;top:0;left:4px;white-space:nowrap;font-size:.6rem;color:#ff7b87;background:#151b26;padding:0 3px;border-radius:3px;line-height:14px}
 .tzx-lg{display:flex;gap:10px;flex-wrap:wrap;font-size:.68rem;color:#9ca3af;margin-top:2px}.tzx-lg i{display:inline-block;width:14px;height:9px;border-radius:2px;margin-right:3px;vertical-align:-1px}
 .tzx-lg .w{background:#22e3e8}.tzx-lg .m{background:#f5b942}.tzx-lg .e{background:#f04ad0}.tzx-lg .n{background:#262b36;border:1px solid #4b5563}
 .tzx-hint{font-size:.68rem;color:#6b7280;margin-top:6px}
@@ -385,7 +385,7 @@ footer{background:none!important}
     <div class="wcs-head"><b>時差早見表</b><span><button type="button" id="tzxNow" class="tzx-now" hidden>現在時刻に戻す</button><button type="button" id="tzxClose">閉じる</button></span></div>
     <div id="tzxRows" class="tzx-rows"></div>
     <div class="tzx-lg"><span><i class="w"></i>仕事時間(9-18時)</span><span><i class="m"></i>朝(6-9時)</span><span><i class="e"></i>夜(18-22時)</span><span><i class="n"></i>深夜</span></div>
-    <div class="tzx-hint">帯を左右にドラッグすると時刻を動かせます。どの場所も一緒に動きます。</div>
+    <div class="tzx-hint">帯を左右にドラッグすると時刻を動かせます（どの場所も一緒に動きます）。2本指でつまむと、表示する時間の幅を8〜24時間で変えられます。</div>
   </div>
 </div>
 <main>
@@ -471,7 +471,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-11 07:56</div>
+  <div style="margin-bottom:4px">版：2026-11-11 08:22</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -3375,7 +3375,8 @@ function wcSetup(){
   tzxSetup();
 }
 /* ---------- 時差早見表（現在地＋世界時計を24時間の帯で並べる。帯をドラッグで時刻を動かす） ---------- */
-const TZX = { T:0, follow:true, ph:30, drag:null, tick:0 };
+const TZX = { T:0, follow:true, ph:30, drag:null, tick:0, hrs:12, pts:new Map(), pinch:null };
+try{ const v = +localStorage.getItem("tzxHrs"); if(v >= 8 && v <= 24) TZX.hrs = v; }catch(_){}
 const tzOffMin = (tz, ms) => { const f = new Intl.DateTimeFormat("en-US", { timeZone:tz, hourCycle:"h23", year:"numeric", month:"numeric", day:"numeric", hour:"numeric", minute:"numeric" }), o = {};
   for(const p of f.formatToParts(new Date(ms))) o[p.type] = p.value;
   return Math.round((Date.UTC(+o.year, +o.month - 1, +o.day, +o.hour % 24, +o.minute) - Math.floor(ms/60000)*60000)/60000); };
@@ -3399,7 +3400,7 @@ function tzxRender(){
   const box = $("#tzxRows"); if(!box) return;
   const zs = tzxZones(), T = TZX.T, P = TZX.ph;
   if(box.children.length !== zs.length + 1) box.innerHTML = zs.map(() => '<div class="tzx-row"><div class="tzx-name"><span></span><span class="tzx-at"></span></div><div class="tzx-track"></div></div>').join("") + '<div class="tzx-line"><b></b></div>';
-  const W = box.querySelector(".tzx-track").clientWidth || 360; TZX.ph = W/12; const P2 = TZX.ph, cx = W/2, half = cx/P2 + 1, base = tzOffMin(zs[0][1], T);
+  const W = box.querySelector(".tzx-track").clientWidth || 360; TZX.ph = W/TZX.hrs; const P2 = TZX.ph, fs = Math.max(8, Math.min(12, P2*.4)), cx = W/2, half = cx/P2 + 1, base = tzOffMin(zs[0][1], T);
   zs.forEach(([name, tz], i) => {
     const row = box.children[i], off = tzOffMin(tz, T), L = T + off*60000;   // その場所の時刻（UTCとして扱う）
     const ld = new Date(L), df = (off - base)/60;
@@ -3411,16 +3412,16 @@ function tzxRender(){
     // 日付の帯
     for(let d0 = Date.UTC(ld.getUTCFullYear(), ld.getUTCMonth(), ld.getUTCDate()) - 2*864e5; d0 < L + half*36e5; d0 += 864e5){
       const a = x(d0), b = x(d0 + 864e5); if(b < 0 || a > W) continue;
-      const dd = new Date(d0), lx = Math.max(a, 0), lb = Math.min(Math.max(4, -a + 4), b - a - 60);
-      h += `<div class="tzx-d" style="left:${a}px;width:${b - a}px"><b style="left:${Math.max(4, lb)}px">${dd.getUTCMonth()+1}/${dd.getUTCDate()}(${TZX_WD[dd.getUTCDay()]})</b></div>`;
+      const dd = new Date(d0), lb0 = Math.max(4, -a + 4), lb = Math.min(lb0, b - a - 58), showLb = lb >= lb0 - .5 && a + lb + 58 <= W;   // 日付の文字が入りきらない所では出さない
+      h += `<div class="tzx-d" style="left:${a}px;width:${b - a}px">${showLb ? `<b style="left:${lb}px">${dd.getUTCMonth()+1}/${dd.getUTCDate()}(${TZX_WD[dd.getUTCDay()]})</b>` : ""}</div>`;
     }
     // 1時間ごとのます
     for(let hs = Math.floor((L - half*36e5)/36e5)*36e5; hs < L + half*36e5; hs += 36e5){
       const a = x(hs), hr = new Date(hs).getUTCHours(), k = hr < 6 ? "n" : hr < 9 ? "m" : hr < 18 ? "w" : hr < 22 ? "e" : "n";
-      h += `<div class="tzx-c ${k}${hr === 0 ? " z" : ""}" style="left:${a}px;width:${P2}px">${hr}</div>`;
+      h += `<div class="tzx-c ${k}${hr === 0 ? " z" : ""}" style="left:${a}px;width:${P2}px;font-size:${fs}px">${hr}</div>`;
     }
     // ずらしているときは、本当の今の位置に赤い線を残す（帯と一緒に動く）
-    if(!TZX.follow){ const nx = x(Date.now() + off*60000); if(nx > -2 && nx < W + 2) h += `<div class="tzx-nowm" style="left:${nx}px">${i === 0 ? "<b>現在時刻</b>" : ""}</div>`; }
+    if(!TZX.follow){ const nx = x(Date.now() + off*60000); if(nx > -2 && nx < W + 2) h += `<div class="tzx-nowm" style="left:${nx}px"></div>`; }
     row.querySelector(".tzx-track").innerHTML = h;
   });
   const line = box.querySelector(".tzx-line"); line.style.left = (box.querySelector(".tzx-track").offsetLeft + cx) + "px";
@@ -3432,11 +3433,20 @@ function tzxSetup(){
   $("#tzxClose").onclick = () => ovClose("tzx");
   $("#tzxSheet").addEventListener("click", e => { if(e.target.id === "tzxSheet") ovClose("tzx"); });
   $("#tzxNow").onclick = () => { TZX.follow = true; TZX.T = Date.now(); tzxRender(); };
-  box.addEventListener("pointerdown", e => { TZX.drag = { x:e.clientX, T:TZX.T, id:e.pointerId }; try{ box.setPointerCapture(e.pointerId); }catch(_){} });
-  box.addEventListener("pointermove", e => { const d = TZX.drag; if(!d || d.id !== e.pointerId) return; const dx = e.clientX - d.x; if(Math.abs(dx) < 3 && TZX.follow) return;
+  // 1本指：左右にドラッグで時刻を動かす／2本指：ピンチで表示する時間の幅（8〜24時間）を変える
+  const setHrs = v => { TZX.hrs = Math.round(Math.max(8, Math.min(24, v))*2)/2; try{ localStorage.setItem("tzxHrs", TZX.hrs); }catch(_){} tzxRender(); };
+  box.addEventListener("pointerdown", e => { TZX.pts.set(e.pointerId, e.clientX); try{ box.setPointerCapture(e.pointerId); }catch(_){}
+    if(TZX.pts.size === 2){ const [a, b] = [...TZX.pts.values()]; TZX.pinch = { d:Math.max(20, Math.abs(a - b)), h:TZX.hrs }; TZX.drag = null; }
+    else if(TZX.pts.size === 1) TZX.drag = { x:e.clientX, T:TZX.T, id:e.pointerId }; });
+  box.addEventListener("pointermove", e => { if(!TZX.pts.has(e.pointerId)) return; TZX.pts.set(e.pointerId, e.clientX);
+    if(TZX.pinch && TZX.pts.size >= 2){ const [a, b] = [...TZX.pts.values()]; setHrs(TZX.pinch.h*TZX.pinch.d/Math.max(20, Math.abs(a - b))); return; }
+    const d = TZX.drag; if(!d || d.id !== e.pointerId) return; const dx = e.clientX - d.x; if(Math.abs(dx) < 3 && TZX.follow) return;
     TZX.follow = false; TZX.T = Math.round((d.T - dx/TZX.ph*36e5)/60000)*60000; tzxRender(); });
-  const up = e => { const d = TZX.drag; if(!d || d.id !== e.pointerId) return; TZX.drag = null; if(!TZX.follow){ TZX.T = Math.round(TZX.T/(5*60000))*5*60000; tzxRender(); } };
+  const up = e => { TZX.pts.delete(e.pointerId); if(TZX.pts.size < 2) TZX.pinch = null;
+    const d = TZX.drag; if(!d || d.id !== e.pointerId) return; TZX.drag = null; if(!TZX.follow){ TZX.T = Math.round(TZX.T/(5*60000))*5*60000; tzxRender(); } };
   box.addEventListener("pointerup", up); box.addEventListener("pointercancel", up);
+  // パソコン：Ctrl＋ホイール（トラックパッドのピンチ）でも幅を変える
+  box.addEventListener("wheel", e => { if(!e.ctrlKey) return; e.preventDefault(); setHrs(TZX.hrs*Math.exp(e.deltaY*.01)); }, { passive:false });
   addEventListener("resize", () => { if(!$("#tzxSheet").hidden) tzxRender(); });
 }
 function renderMoon(){
