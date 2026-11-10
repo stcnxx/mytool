@@ -430,7 +430,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-09 09:35</div>
+  <div style="margin-bottom:4px">版：2026-11-10 15:41</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2987,7 +2987,7 @@ async function loadNames(lat, lon){
     return out; };
   // 山は OpenStreetMap（Overpass）の山頂データから取る（ウィキデータの山の検索は重くて時間切れになりやすい）。取れなければウィキデータ
   const peaks = async () => {
-    const q = `[out:json][timeout:25];(node["natural"="peak"]["name"]["ele"](around:100000,${lat.toFixed(4)},${lon.toFixed(4)})(if:number(t["ele"])>=400);node["natural"~"^(peak|hill)$"]["name"](around:12000,${lat.toFixed(4)},${lon.toFixed(4)}););out body;`;
+    const q = `[out:json][timeout:25];(node["natural"~"^(peak|volcano)$"]["name"]["ele"](around:100000,${lat.toFixed(4)},${lon.toFixed(4)})(if:number(t["ele"])>=400);node["natural"~"^(peak|hill|volcano)$"]["name"](around:12000,${lat.toFixed(4)},${lon.toFixed(4)}););out body;`;
     let lastErr;
     for(const ep of ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]){
       try{
@@ -3022,12 +3022,22 @@ function namePlaces(lat, lon){
     let rNear = -1, rAt = -1;
     for(let r=H-1; r>=0; r--){ const i = r*W + c; if(Number.isNaN(pn.elevA[i])) continue; const dd = pn.distA[i]; if(dd < d*.95) rNear = r; else { rAt = r; break; } }
     let alt;
-    if(q.mt && q.h > 0){ alt = Math.atan2(q.h - d*d/(2*Re)*.87 - T.eye, d)*R2D; if(rNear >= 0 && top - rNear*res > alt + .05) continue; }
+    if(q.mt && q.h > 0){
+      alt = Math.atan2(q.h - d*d/(2*Re)*.87 - T.eye, d)*R2D;
+      if(rNear >= 0 && top - rNear*res > alt + .05){
+        // 山頂が手前の稜線に隠れていても、隠しているのがその山自身の斜面（山頂から4割以内の距離）なら、見えている稜線の上に名前を出す
+        let rOwn = -1, rFar = -1;   // rFar：山の手前4割より近い地面の一番上
+        for(let r=H-1; r>=0; r--){ const i = r*W + c; if(Number.isNaN(pn.elevA[i])) continue; const dd = pn.distA[i]; if(dd > d*1.05) break; if(dd < d*.6) rFar = r; else rOwn = r; }
+        if(rOwn < 0 || (rFar >= 0 && rFar <= rOwn)) continue;
+        alt = top - (rOwn + .5)*res;
+      }
+    }
     else{ if(rAt < 0 || pn.distA[rAt*W + c] > d*1.1 + 400) continue; alt = top - (rAt + .5)*res; }
     out.push({ ...q, az, d, alt });
   }
   return out;
 }
+try{ window.__np = (a, b) => namePlaces(a, b); }catch(_){}
 function drawTerrain(x, Wc, Hc, hy, kk, sc2, sa, sk, P, LB, hitLB){
   const T = TERR;
   if(!T.pan){   // 読み込み中・取れないとき：平らな地面
@@ -3044,7 +3054,10 @@ function drawTerrain(x, Wc, Hc, hy, kk, sc2, sa, sk, P, LB, hitLB){
   if(!SKYV.terr || !NAMES.list) return;
   // 名前：山（高い順に10、近くの丘は3）→ 市区町村（人口の多い順に24）
   const pl = namePlaces(S.lat, S.lon), mts = pl.filter(q => q.mt), tw = pl.filter(q => !q.mt); NAMES.vis = pl.length;
-  const pick = mts.filter(q => q.h >= 400).sort((a, b) => b.h - a.h).slice(0, 10)
+  // 高い山から選び、それより低くて1.5km以内の峰（同じ山の別の頂など）は省く
+  const near15 = (a, b) => Math.hypot((a.lat - b.lat)*111320, (a.lon - b.lon)*111320*Math.cos(a.lat*D2R)) < 1500;
+  const big = []; for(const q of mts.filter(q => q.h >= 400).sort((a, b) => b.h - a.h || (b.n === "富士山") - (a.n === "富士山"))){ if(big.length >= 10) break; if(!big.some(b => near15(b, q))) big.push(q); }
+  const pick = big
     .concat(mts.filter(q => q.d < 12000 && !(q.h >= 400)).sort((a, b) => a.d - b.d).slice(0, 3))
     .concat(tw.sort((a, b) => b.pop - a.pop).slice(0, 24));
   const day = Math.max(0, Math.min(1, (sa + 6)/12));
