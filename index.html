@@ -193,7 +193,9 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 .tzx-c.w{background:#073a3f;color:#8ff6f8;box-shadow:inset 0 -2px 0 #22e3e8}
 .tzx-c.e{background:#3a0c33;color:#ff9be8;box-shadow:inset 0 -2px 0 #f04ad0}
 .tzx-c.z{border-left:2px solid #94a3b8}
-.tzx-line{position:absolute;top:10px;bottom:4px;width:2px;margin-left:-1px;background:#ff4d5e;box-shadow:0 0 8px #ff4d5e;pointer-events:none;z-index:2}.tzx-line b{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:.62rem;color:#ff7b87;white-space:nowrap}
+.tzx-line{position:absolute;top:10px;bottom:4px;width:1px;margin-left:-.5px;background:#ff4d5e;box-shadow:0 0 5px #ff4d5e;pointer-events:none;z-index:2}.tzx-line b{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:.62rem;color:#ff7b87;white-space:nowrap}
+.tzx-line.sel{background:#f9fafb;box-shadow:0 0 4px rgba(255,255,255,.55)}.tzx-line.sel b{color:#f3f4f6}
+.tzx-nowm{position:absolute;top:0;bottom:0;width:1px;margin-left:-.5px;background:#ff4d5e;box-shadow:0 0 4px #ff4d5e;z-index:1;pointer-events:none}.tzx-nowm b{position:absolute;top:0;left:4px;white-space:nowrap;font-size:.6rem;color:#ff7b87;background:#151b26;padding:0 3px;border-radius:3px;line-height:14px}
 .tzx-lg{display:flex;gap:10px;flex-wrap:wrap;font-size:.68rem;color:#9ca3af;margin-top:2px}.tzx-lg i{display:inline-block;width:14px;height:9px;border-radius:2px;margin-right:3px;vertical-align:-1px}
 .tzx-lg .w{background:#22e3e8}.tzx-lg .m{background:#f5b942}.tzx-lg .e{background:#f04ad0}.tzx-lg .n{background:#262b36;border:1px solid #4b5563}
 .tzx-hint{font-size:.68rem;color:#6b7280;margin-top:6px}
@@ -380,7 +382,7 @@ footer{background:none!important}
 </div>
 <div id="tzxSheet" hidden>
   <div class="tzx-box">
-    <div class="wcs-head"><b>時差早見表</b><span><button type="button" id="tzxNow" class="tzx-now" hidden>今に戻す</button><button type="button" id="tzxClose">閉じる</button></span></div>
+    <div class="wcs-head"><b>時差早見表</b><span><button type="button" id="tzxNow" class="tzx-now" hidden>現在時刻に戻す</button><button type="button" id="tzxClose">閉じる</button></span></div>
     <div id="tzxRows" class="tzx-rows"></div>
     <div class="tzx-lg"><span><i class="w"></i>仕事時間(9-18時)</span><span><i class="m"></i>朝(6-9時)</span><span><i class="e"></i>夜(18-22時)</span><span><i class="n"></i>深夜</span></div>
     <div class="tzx-hint">帯を左右にドラッグすると時刻を動かせます。どの場所も一緒に動きます。</div>
@@ -469,7 +471,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-11 07:42</div>
+  <div style="margin-bottom:4px">版：2026-11-11 07:56</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -3417,10 +3419,12 @@ function tzxRender(){
       const a = x(hs), hr = new Date(hs).getUTCHours(), k = hr < 6 ? "n" : hr < 9 ? "m" : hr < 18 ? "w" : hr < 22 ? "e" : "n";
       h += `<div class="tzx-c ${k}${hr === 0 ? " z" : ""}" style="left:${a}px;width:${P2}px">${hr}</div>`;
     }
+    // ずらしているときは、本当の今の位置に赤い線を残す（帯と一緒に動く）
+    if(!TZX.follow){ const nx = x(Date.now() + off*60000); if(nx > -2 && nx < W + 2) h += `<div class="tzx-nowm" style="left:${nx}px">${i === 0 ? "<b>現在時刻</b>" : ""}</div>`; }
     row.querySelector(".tzx-track").innerHTML = h;
   });
   const line = box.querySelector(".tzx-line"); line.style.left = (box.querySelector(".tzx-track").offsetLeft + cx) + "px";
-  line.querySelector("b").textContent = TZX.follow ? "今" : "選んだ時刻";
+  line.querySelector("b").textContent = TZX.follow ? "現在時刻" : "選んだ時刻"; line.classList.toggle("sel", !TZX.follow);
   $("#tzxNow").hidden = TZX.follow;
 }
 function tzxSetup(){
