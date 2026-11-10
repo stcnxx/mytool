@@ -68,6 +68,7 @@ a{color:var(--accent)}
 .nw-temp .ico{width:22px;height:22px;opacity:.8;align-self:center}
 .nw-hum .ico{width:20px;height:20px}
 .nw-temp .temp{font-size:clamp(2rem,10vw,2.5rem);font-weight:700;line-height:1.1}
+.nw-grid>.nw-temp{flex-direction:row}
 .nw-feel{display:flex;flex-wrap:nowrap;gap:clamp(12px,5vw,28px);align-items:baseline;margin-top:2px;white-space:nowrap}.nw-feel>span{display:flex;align-items:baseline;gap:6px}.nw-feel .k{font-size:.9rem;color:var(--muted)}.nw-feel b{font-size:clamp(1.05rem,5vw,1.3rem)}
 .now .wx{font-size:1.05rem;font-weight:600}
 .t-row{margin-top:2px}
@@ -113,9 +114,9 @@ td.d{text-align:left}
 .list{list-style:none;margin:0;padding:0}
 .list li{padding:8px 0;border-bottom:1px solid var(--line)}
 .list li:last-child{border-bottom:none}
-.nw li{padding:5px 0;display:flex;gap:7px;align-items:flex-start;font-size:.8rem}.nw a{color:inherit;text-decoration:none;flex:1;min-width:0;line-height:1.45;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}.nw a:active{opacity:.6}
-.nw .nw-l{flex:none;width:5.6em;display:flex;flex-direction:column;align-items:center;gap:1px;padding-top:1px}.nw .nw-s{font-size:.6rem;font-weight:700;color:var(--muted);white-space:nowrap;line-height:1.3}
-.nw .nw-c{display:block;box-sizing:border-box;width:100%;font-size:.62rem;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 2px;text-align:center;white-space:nowrap;overflow:hidden}.nw .nw-t{flex:none;font-size:.66rem;color:var(--muted);white-space:nowrap;padding-top:2px}
+.nws li{padding:5px 0;display:flex;gap:7px;align-items:flex-start;font-size:.8rem}.nws a{color:inherit;text-decoration:none;flex:1;min-width:0;line-height:1.45;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}.nws a:active{opacity:.6}
+.nws .nws-l{flex:none;width:5.6em;display:flex;flex-direction:column;align-items:center;gap:1px;padding-top:1px}.nws .nws-s{font-size:.6rem;font-weight:700;color:var(--muted);white-space:nowrap;line-height:1.3}
+.nws .nws-c{display:block;box-sizing:border-box;width:100%;font-size:.62rem;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 2px;text-align:center;white-space:nowrap;overflow:hidden}.nws .nws-t{flex:none;font-size:.66rem;color:var(--muted);white-space:nowrap;padding-top:2px}
 .scale{display:inline-block;text-align:center;border-radius:5px;padding:1px 6px;font-size:.72rem;font-weight:700;margin-right:6px;vertical-align:2px;white-space:nowrap}
 .s1{background:#e0f2fe;color:#075985}.s3{background:#bbf7d0;color:#14532d}.s4{background:#fef08a;color:#713f12}
 .s5{background:#fb923c;color:#fff}.s6{background:#dc2626;color:#fff}.s7{background:#7e22ce;color:#fff}
@@ -170,6 +171,32 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 .wc:hover{background:var(--chip)}
 #wcSheet{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 16px 16px;text-shadow:none}
 #wcSheet[hidden]{display:none}
+.wcol{display:flex;flex-direction:column;gap:4px;min-width:0}
+.wc-acts{display:flex;gap:6px;padding-left:6px}.wc-acts button{font:inherit;font-size:.72rem;font-weight:700;border:1px solid rgba(127,140,160,.45);background:rgba(255,255,255,.12);color:inherit;border-radius:8px;padding:3px 9px;cursor:pointer;white-space:nowrap}
+#wcAdd{font-size:.9rem;line-height:1;padding:2px 9px}
+.wcs-del{margin-top:8px;font:inherit;font-size:.8rem;font-weight:700;color:#b91c1c;background:#fff;border:1px solid #fca5a5;border-radius:10px;padding:7px}
+#tzxSheet{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 10px 16px;text-shadow:none}
+#tzxSheet[hidden]{display:none}
+.tzx-box{background:#0b0d12;color:#e5e7eb;border-radius:14px;width:100%;max-width:520px;padding:14px 12px 12px;max-height:84vh;overflow:auto;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.tzx-box .wcs-head b{color:#fff}
+.tzx-box .wcs-head button{font:inherit;font-size:.8rem;border:1px solid #374151;background:transparent;color:#d1d5db;border-radius:9px;padding:5px 10px;margin-left:6px}
+.tzx-box .wcs-head button.tzx-now{color:#fff;background:#e11d48;border-color:#e11d48;font-weight:700}
+.tzx-rows{position:relative;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;padding-top:16px}
+.tzx-row{margin:0 0 10px}.tzx-name{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:.8rem;font-weight:700;margin-bottom:3px;color:#f3f4f6}
+.tzx-name>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tzx-name i{font-style:normal;font-weight:500;color:#9ca3af;font-size:.72rem;margin-left:4px}
+.tzx-at{font-variant-numeric:tabular-nums;font-size:.95rem;white-space:nowrap;color:#fff}
+.tzx-track{position:relative;height:42px;overflow:hidden;border-radius:7px;background:#111827}
+.tzx-d{position:absolute;top:0;height:14px;border-left:1px solid #64748b;font-size:.62rem;font-weight:700;color:#cbd5e1;background:#151b26;white-space:nowrap;overflow:hidden}.tzx-d b{position:absolute;top:0;font-weight:700}
+.tzx-c{position:absolute;top:15px;height:27px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-variant-numeric:tabular-nums;border-right:1px solid rgba(0,0,0,.35);box-sizing:border-box}
+.tzx-c.n{background:#161a22;color:#6b7280;box-shadow:inset 0 -2px 0 #262b36}
+.tzx-c.m{background:#3a2a0c;color:#ffd27a;box-shadow:inset 0 -2px 0 #f5b942}
+.tzx-c.w{background:#073a3f;color:#8ff6f8;box-shadow:inset 0 -2px 0 #22e3e8}
+.tzx-c.e{background:#3a0c33;color:#ff9be8;box-shadow:inset 0 -2px 0 #f04ad0}
+.tzx-c.z{border-left:2px solid #94a3b8}
+.tzx-line{position:absolute;top:10px;bottom:4px;width:2px;margin-left:-1px;background:#ff4d5e;box-shadow:0 0 8px #ff4d5e;pointer-events:none;z-index:2}.tzx-line b{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:.62rem;color:#ff7b87;white-space:nowrap}
+.tzx-lg{display:flex;gap:10px;flex-wrap:wrap;font-size:.68rem;color:#9ca3af;margin-top:2px}.tzx-lg i{display:inline-block;width:14px;height:9px;border-radius:2px;margin-right:3px;vertical-align:-1px}
+.tzx-lg .w{background:#22e3e8}.tzx-lg .m{background:#f5b942}.tzx-lg .e{background:#f04ad0}.tzx-lg .n{background:#262b36;border:1px solid #4b5563}
+.tzx-hint{font-size:.68rem;color:#6b7280;margin-top:6px}
 #locSheet{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 16px 16px;text-shadow:none}#locSheet[hidden]{display:none}
 .locs-cur{font-weight:700}.locs-h{font-size:.72rem;color:#64748b;padding:8px 6px 2px;cursor:default!important;border-bottom:none!important}.locs-h:hover{background:none!important}
 body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opacity .2s}
@@ -347,13 +374,22 @@ footer{background:none!important}
     <div class="wcs-head"><b id="wcsTitle">都市を選ぶ</b><button id="wcsClose">閉じる</button></div>
     <input type="search" id="wcsInput" placeholder="都市名で検索（例：パリ、Vancouver）" autocomplete="off">
     <ul id="wcsList" class="wcs-list"></ul>
+    <button type="button" id="wcsDel" class="wcs-del" hidden>この時計を消す</button>
     <div class="muted" style="font-size:.72rem;margin-top:6px">検索：<a href="https://open-meteo.com/en/docs/geocoding-api" target="_blank" rel="noopener">Open-Meteo Geocoding</a></div>
+  </div>
+</div>
+<div id="tzxSheet" hidden>
+  <div class="tzx-box">
+    <div class="wcs-head"><b>時差早見表</b><span><button type="button" id="tzxNow" class="tzx-now" hidden>今に戻す</button><button type="button" id="tzxClose">閉じる</button></span></div>
+    <div id="tzxRows" class="tzx-rows"></div>
+    <div class="tzx-lg"><span><i class="w"></i>仕事時間(9-18時)</span><span><i class="m"></i>朝(6-9時)</span><span><i class="e"></i>夜(18-22時)</span><span><i class="n"></i>深夜</span></div>
+    <div class="tzx-hint">帯を左右にドラッグすると時刻を動かせます。どの場所も一緒に動きます。</div>
   </div>
 </div>
 <main>
   <section class="card wide" id="calCard">
     <div id="calDate" class="cal-date"></div>
-    <div class="clock-row"><div><div id="calClock" class="cal-clock"></div><div id="calTz" class="cal-tz" hidden></div></div><div id="wclocks" class="wclocks"></div></div>
+    <div class="clock-row"><div><div id="calClock" class="cal-clock"></div><div id="calTz" class="cal-tz" hidden></div></div><div class="wcol"><div id="wclocks" class="wclocks"></div><div class="wc-acts"><button type="button" id="wcAdd" title="時計を追加">＋</button><button type="button" id="tzxBtn">時差早見表</button></div></div></div>
     <div id="calRoku"></div>
     <div id="calMoon"><canvas id="moonIco" width="92" height="92"></canvas><span id="moonTxt"></span></div>
     <div class="cal-sec"><div class="cal-h">今日は何の日</div><div id="calAnniv"></div></div>
@@ -433,7 +469,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-10 18:23</div>
+  <div style="margin-bottom:4px">版：2026-11-11 07:42</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -1704,7 +1740,7 @@ async function loadNews(){
     const today = new Date().toLocaleDateString("ja-JP", { timeZone:"Asia/Tokyo" });
     const hm = t => { if(!t) return ""; const d = new Date(t), o = { timeZone:"Asia/Tokyo" };
       return (d.toLocaleDateString("ja-JP", o) === today ? "" : d.toLocaleDateString("ja-JP", { ...o, month:"numeric", day:"numeric" }) + " ") + d.toLocaleTimeString("ja-JP", { ...o, hour:"2-digit", minute:"2-digit" }); };
-    $("#news").innerHTML = '<ul class="list nw">' + list.map(n => `<li><span class="nw-l"><span class="nw-c">${esc(n.c)}</span><span class="nw-s">${esc(n.s || "")}</span></span><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a><span class="nw-t">${esc(hm(n.t))}</span></li>`).join("") + "</ul>";
+    $("#news").innerHTML = '<ul class="list nws">' + list.map(n => `<li><span class="nws-l"><span class="nws-c">${esc(n.c)}</span><span class="nws-s">${esc(n.s || "")}</span></span><a href="${esc(n.link)}" target="_blank" rel="noopener">${esc(n.title)}</a><span class="nws-t">${esc(hm(n.t))}</span></li>`).join("") + "</ul>";
     $("#newsTime").textContent = new Date().toLocaleTimeString("ja-JP", { timeZone:"Asia/Tokyo", hour:"2-digit", minute:"2-digit" }) + " 更新";
   }catch(e){ quiet("ニュース", e); }
   finally{ newsBusy = false; }
@@ -3290,7 +3326,9 @@ function tickClock(){
 /* ---------- 世界時計（2つ。タップで都市を変更） ---------- */
 const WC_CITIES = [["ニューヨーク","America/New_York"],["ロンドン","Europe/London"],["パリ","Europe/Paris"],["ロサンゼルス","America/Los_Angeles"],["ホノルル","Pacific/Honolulu"],["シドニー","Australia/Sydney"],["ソウル","Asia/Seoul"],["上海","Asia/Shanghai"],["シンガポール","Asia/Singapore"],["バンコク","Asia/Bangkok"],["ドバイ","Asia/Dubai"],["ベルリン","Europe/Berlin"],["サンパウロ","America/Sao_Paulo"],["UTC","UTC"]];
 let WC = [["ニューヨーク","America/New_York"],["ロンドン","Europe/London"]];
-try{ const v = JSON.parse(localStorage.getItem("wclocks")); if(Array.isArray(v) && v.length === 2) WC = v; }catch(_){}
+try{ const v = JSON.parse(localStorage.getItem("wclocks")); if(Array.isArray(v) && v.every(x => Array.isArray(x) && x.length === 2)) WC = v; }catch(_){}
+const WC_MAX = 6;
+function wcSave(){ try{ localStorage.setItem("wclocks", JSON.stringify(WC)); }catch(_){} }
 const PIN_S = '<svg viewBox="0 0 24 30" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2C6.6 2 2.5 6.1 2.5 11.3 2.5 18.4 11 26.6 11.4 27c.3.3.9.3 1.2 0 .4-.4 8.9-8.6 8.9-15.7C21.5 6.1 17.4 2 12 2z"/><circle cx="12" cy="11" r="3.4"/></svg>';
 function wcParts(tz, d){
   const f = new Intl.DateTimeFormat("ja-JP", { timeZone:tz, month:"numeric", day:"numeric", weekday:"short", hour:"2-digit", minute:"2-digit", hourCycle:"h23" });
@@ -3298,12 +3336,12 @@ function wcParts(tz, d){
   return `${o.month}/${o.day}(${o.weekday}) ${o.hour}:${o.minute}`;
 }
 function renderWorldClocks(){
-  const d = new Date();
+  const d = new Date(), ad = $("#wcAdd"); if(ad) ad.hidden = WC.length >= WC_MAX;
   $("#wclocks").innerHTML = WC.map(([name, tz], i) => `<button class="wc" data-i="${i}" title="タップで都市を変更"><div class="wc-city">${PIN_S}${esc(name)}</div><div class="wc-time">${wcParts(tz, d)}</div></button>`).join("");
 }
 // 都市の検索（よく使う都市は手元で即時に、それ以外は Open-Meteo の地名検索で）
 let WC_EDIT = 0, WC_T = 0;
-function wcOpen(i){ ovOpen("wc", () => { $("#wcSheet").hidden = true; }); WC_EDIT = i; $("#wcsTitle").textContent = `${i+1}つ目の時計の都市`; $("#wcSheet").hidden = false; $("#wcsInput").value = ""; wcSearch(""); setTimeout(() => $("#wcsInput").focus(), 50); }
+function wcOpen(i){ ovOpen("wc", () => { $("#wcSheet").hidden = true; }); WC_EDIT = i; $("#wcsTitle").textContent = i >= WC.length ? "時計を追加" : `${i+1}つ目の時計の都市`; $("#wcsDel").hidden = i >= WC.length; $("#wcSheet").hidden = false; $("#wcsInput").value = ""; wcSearch(""); setTimeout(() => $("#wcsInput").focus(), 50); }
 function wcClose(){ ovClose("wc"); }
 function wcItem(name, sub, tz){ return `<li data-name="${esc(name)}" data-tz="${esc(tz)}"><span>${esc(name)} <span class="sub">${esc(sub)}</span></span><span class="tm">${wcParts(tz, new Date()).split(" ")[1]}</span></li>`; }
 async function wcSearch(q){
@@ -3327,8 +3365,75 @@ function wcSetup(){
   $("#wcSheet").addEventListener("click", e => { if(e.target.id === "wcSheet") wcClose(); });
   $("#wcsInput").addEventListener("input", e => wcSearch(e.target.value));
   $("#wcsList").addEventListener("click", e => { const li = e.target.closest("li[data-tz]"); if(!li) return;
-    WC[WC_EDIT] = [li.dataset.name, li.dataset.tz]; try{ localStorage.setItem("wclocks", JSON.stringify(WC)); }catch(_){}
-    renderWorldClocks(); wcClose(); });
+    WC[Math.min(WC_EDIT, WC.length)] = [li.dataset.name, li.dataset.tz]; wcSave();
+    renderWorldClocks(); wcClose(); if(!$("#tzxSheet").hidden) tzxRender(); });
+  $("#wcsDel").onclick = () => { if(WC_EDIT < WC.length){ WC.splice(WC_EDIT, 1); wcSave(); renderWorldClocks(); } wcClose(); };
+  $("#wcAdd").onclick = () => { if(WC.length < WC_MAX) wcOpen(WC.length); };
+  $("#tzxBtn").onclick = tzxOpen;
+  tzxSetup();
+}
+/* ---------- 時差早見表（現在地＋世界時計を24時間の帯で並べる。帯をドラッグで時刻を動かす） ---------- */
+const TZX = { T:0, follow:true, ph:30, drag:null, tick:0 };
+const tzOffMin = (tz, ms) => { const f = new Intl.DateTimeFormat("en-US", { timeZone:tz, hourCycle:"h23", year:"numeric", month:"numeric", day:"numeric", hour:"numeric", minute:"numeric" }), o = {};
+  for(const p of f.formatToParts(new Date(ms))) o[p.type] = p.value;
+  return Math.round((Date.UTC(+o.year, +o.month - 1, +o.day, +o.hour % 24, +o.minute) - Math.floor(ms/60000)*60000)/60000); };
+const tzxZones = () => [[S.chosen ? `現在地（${S.chosen.name}）` : "現在地", S.tz || Intl.DateTimeFormat().resolvedOptions().timeZone]].concat(WC);
+// タイムゾーンの略称（JST・EST/EDT・GMT/BST など）。略称がない所は UTC+8 の形
+const TZ_AB = { "Asia/Tokyo":"JST", "Asia/Seoul":"KST", "Asia/Shanghai":"CST", "Asia/Taipei":"CST", "Asia/Hong_Kong":"HKT", "Asia/Singapore":"SGT", "Asia/Kuala_Lumpur":"MYT", "Asia/Bangkok":"ICT", "Asia/Ho_Chi_Minh":"ICT", "Asia/Jakarta":"WIB", "Asia/Manila":"PHT", "Asia/Kolkata":"IST", "Asia/Calcutta":"IST", "Asia/Dubai":"GST", "Europe/Moscow":"MSK", "Asia/Karachi":"PKT", "Asia/Kathmandu":"NPT", "Pacific/Auckland":"NZT" };
+function tzAbbr(tz, ms){
+  const d = new Date(ms);
+  for(const lc of ["en-US", "en-GB", "en-AU", "en-NZ"]){
+    try{ const v = new Intl.DateTimeFormat(lc, { timeZone:tz, timeZoneName:"short" }).formatToParts(d).find(p => p.type === "timeZoneName").value;
+      if(v && !/^(GMT|UTC)[+−-]/.test(v)) return v; }catch(_){}
+  }
+  if(TZ_AB[tz]) return TZ_AB[tz];
+  const m = tzOffMin(tz, ms), h = Math.trunc(Math.abs(m)/60), mm = Math.abs(m) % 60;
+  return `UTC${m < 0 ? "−" : "+"}${h}${mm ? ":" + String(mm).padStart(2, "0") : ""}`;
+}
+const TZX_WD = ["日","月","火","水","木","金","土"];
+function tzxOpen(){ ovOpen("tzx", () => { $("#tzxSheet").hidden = true; clearInterval(TZX.tick); }); TZX.follow = true; TZX.T = Date.now(); $("#tzxSheet").hidden = false;
+  tzxRender(); clearInterval(TZX.tick); TZX.tick = setInterval(() => { if(TZX.follow){ TZX.T = Date.now(); tzxRender(); } }, 20000); }
+function tzxRender(){
+  const box = $("#tzxRows"); if(!box) return;
+  const zs = tzxZones(), T = TZX.T, P = TZX.ph;
+  if(box.children.length !== zs.length + 1) box.innerHTML = zs.map(() => '<div class="tzx-row"><div class="tzx-name"><span></span><span class="tzx-at"></span></div><div class="tzx-track"></div></div>').join("") + '<div class="tzx-line"><b></b></div>';
+  const W = box.querySelector(".tzx-track").clientWidth || 360; TZX.ph = W/12; const P2 = TZX.ph, cx = W/2, half = cx/P2 + 1, base = tzOffMin(zs[0][1], T);
+  zs.forEach(([name, tz], i) => {
+    const row = box.children[i], off = tzOffMin(tz, T), L = T + off*60000;   // その場所の時刻（UTCとして扱う）
+    const ld = new Date(L), df = (off - base)/60;
+    const dfs = df === 0 ? "時差なし" : (df > 0 ? "+" : "−") + (Number.isInteger(df) ? Math.abs(df) : Math.abs(df).toFixed(1)) + "時間";
+    row.querySelector(".tzx-name span").innerHTML = `${esc(name)}<i>（${esc(tzAbbr(tz, T))}${i ? " " + dfs : ""}）</i>`;
+    row.querySelector(".tzx-at").textContent = `${ld.getUTCMonth()+1}/${ld.getUTCDate()}(${TZX_WD[ld.getUTCDay()]}) ${String(ld.getUTCHours()).padStart(2,"0")}:${String(ld.getUTCMinutes()).padStart(2,"0")}`;
+    const x = ms => cx + (ms - L)/36e5*P2;   // その場所の時刻 → 帯の上の位置
+    let h = "";
+    // 日付の帯
+    for(let d0 = Date.UTC(ld.getUTCFullYear(), ld.getUTCMonth(), ld.getUTCDate()) - 2*864e5; d0 < L + half*36e5; d0 += 864e5){
+      const a = x(d0), b = x(d0 + 864e5); if(b < 0 || a > W) continue;
+      const dd = new Date(d0), lx = Math.max(a, 0), lb = Math.min(Math.max(4, -a + 4), b - a - 60);
+      h += `<div class="tzx-d" style="left:${a}px;width:${b - a}px"><b style="left:${Math.max(4, lb)}px">${dd.getUTCMonth()+1}/${dd.getUTCDate()}(${TZX_WD[dd.getUTCDay()]})</b></div>`;
+    }
+    // 1時間ごとのます
+    for(let hs = Math.floor((L - half*36e5)/36e5)*36e5; hs < L + half*36e5; hs += 36e5){
+      const a = x(hs), hr = new Date(hs).getUTCHours(), k = hr < 6 ? "n" : hr < 9 ? "m" : hr < 18 ? "w" : hr < 22 ? "e" : "n";
+      h += `<div class="tzx-c ${k}${hr === 0 ? " z" : ""}" style="left:${a}px;width:${P2}px">${hr}</div>`;
+    }
+    row.querySelector(".tzx-track").innerHTML = h;
+  });
+  const line = box.querySelector(".tzx-line"); line.style.left = (box.querySelector(".tzx-track").offsetLeft + cx) + "px";
+  line.querySelector("b").textContent = TZX.follow ? "今" : "選んだ時刻";
+  $("#tzxNow").hidden = TZX.follow;
+}
+function tzxSetup(){
+  const box = $("#tzxRows");
+  $("#tzxClose").onclick = () => ovClose("tzx");
+  $("#tzxSheet").addEventListener("click", e => { if(e.target.id === "tzxSheet") ovClose("tzx"); });
+  $("#tzxNow").onclick = () => { TZX.follow = true; TZX.T = Date.now(); tzxRender(); };
+  box.addEventListener("pointerdown", e => { TZX.drag = { x:e.clientX, T:TZX.T, id:e.pointerId }; try{ box.setPointerCapture(e.pointerId); }catch(_){} });
+  box.addEventListener("pointermove", e => { const d = TZX.drag; if(!d || d.id !== e.pointerId) return; const dx = e.clientX - d.x; if(Math.abs(dx) < 3 && TZX.follow) return;
+    TZX.follow = false; TZX.T = Math.round((d.T - dx/TZX.ph*36e5)/60000)*60000; tzxRender(); });
+  const up = e => { const d = TZX.drag; if(!d || d.id !== e.pointerId) return; TZX.drag = null; if(!TZX.follow){ TZX.T = Math.round(TZX.T/(5*60000))*5*60000; tzxRender(); } };
+  box.addEventListener("pointerup", up); box.addEventListener("pointercancel", up);
+  addEventListener("resize", () => { if(!$("#tzxSheet").hidden) tzxRender(); });
 }
 function renderMoon(){
   try{
