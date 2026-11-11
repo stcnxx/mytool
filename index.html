@@ -182,9 +182,9 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 .tzx-box .wcs-head button{font:inherit;font-size:.8rem;border:1px solid #374151;background:transparent;color:#d1d5db;border-radius:9px;padding:5px 10px;margin-left:6px}
 .tzx-box .wcs-head button.tzx-now{color:#fff;background:#e11d48;border-color:#e11d48;font-weight:700}
 .tzx-rows{position:relative;touch-action:pan-y;user-select:none;-webkit-user-select:none;cursor:grab;padding-top:16px}
-.tzx-row{margin:0 0 10px}.tzx-name{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:.8rem;font-weight:700;margin-bottom:3px;color:#f3f4f6}
-.tzx-name>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tzx-name i{font-style:normal;font-weight:500;color:#9ca3af;font-size:.72rem;margin-left:4px}
-.tzx-at{font-variant-numeric:tabular-nums;font-size:.95rem;white-space:nowrap;color:#fff}
+.tzx-row{margin:0 0 8px}.tzx-row:last-of-type{margin-bottom:10px}.tzx-name{position:relative;display:flex;align-items:baseline;font-size:.8rem;font-weight:700;margin-bottom:3px;color:#f3f4f6;min-height:1.3em}
+.tzx-name>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:calc(50% - 10px)}.tzx-name i{font-style:normal;font-weight:500;color:#9ca3af;font-size:.72rem;margin-left:4px}
+.tzx-at{position:absolute;left:calc(50% + 6px);bottom:0;font-variant-numeric:tabular-nums;font-size:.8rem;font-weight:700;white-space:nowrap;color:#fff}
 .tzx-track{position:relative;height:42px;overflow:hidden;border-radius:7px;background:#111827}
 .tzx-d{position:absolute;top:0;height:14px;border-left:1px solid #64748b;font-size:.62rem;font-weight:700;color:#cbd5e1;background:#151b26;white-space:nowrap;overflow:hidden}.tzx-d b{position:absolute;top:0;font-weight:700}
 .tzx-c{position:absolute;top:15px;height:27px;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-variant-numeric:tabular-nums;border-right:1px solid rgba(0,0,0,.35);box-sizing:border-box}
@@ -193,6 +193,10 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 .tzx-c.w{background:#073a3f;color:#8ff6f8;box-shadow:inset 0 -2px 0 #22e3e8}
 .tzx-c.e{background:#3a0c33;color:#ff9be8;box-shadow:inset 0 -2px 0 #f04ad0}
 .tzx-c.z{border-left:1px solid #64748b}
+.tzx-selbox{position:absolute;top:15px;height:27px;box-sizing:border-box;border:1px solid #fff;border-radius:2px;pointer-events:none;z-index:2}
+.tzx-sub{position:relative;height:13px;z-index:3}.tzx-sub span{position:absolute;top:1px;width:31px;text-align:center;background:#0b0d12;border-radius:3px;font-size:.6rem;font-weight:700;color:#e5e7eb;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tzx-c.hl{color:#fff!important;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.45);box-shadow:none!important}
+.tzx-c.hl.n{background:#4b5563}.tzx-c.hl.m{background:#f5b942}.tzx-c.hl.w{background:#22e3e8}.tzx-c.hl.e{background:#f04ad0}
 .tzx-line{position:absolute;top:10px;bottom:4px;width:1px;margin-left:-.5px;background:#ff4d5e;box-shadow:0 0 5px #ff4d5e;pointer-events:none;z-index:2}.tzx-line b{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:.62rem;color:#ff7b87;white-space:nowrap}
 .tzx-line.sel{background:#f9fafb;box-shadow:0 0 4px rgba(255,255,255,.55)}.tzx-line.sel b{color:#f3f4f6}
 .tzx-nowm{position:absolute;top:0;bottom:0;width:1px;margin-left:-.5px;background:rgba(255,77,94,.85);transform:scaleX(.6);z-index:1;pointer-events:none}.tzx-nowm b{position:absolute;top:0;left:4px;white-space:nowrap;font-size:.6rem;color:#ff7b87;background:#151b26;padding:0 3px;border-radius:3px;line-height:14px}
@@ -470,7 +474,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-11 08:41</div>
+  <div style="margin-bottom:4px">版：2026-11-11 09:48</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -3374,7 +3378,7 @@ function wcSetup(){
   tzxSetup();
 }
 /* ---------- 時差早見表（現在地＋世界時計を24時間の帯で並べる。帯をドラッグで時刻を動かす） ---------- */
-const TZX = { T:0, follow:true, ph:30, drag:null, tick:0, hrs:12, pts:new Map(), pinch:null };
+const TZX = { T:0, follow:true, ph:30, drag:null, tick:0, hrs:12, pts:new Map(), pinch:null, sel:null };
 try{ const v = +localStorage.getItem("tzxHrs"); if(v >= 8 && v <= 24) TZX.hrs = v; }catch(_){}
 const tzOffMin = (tz, ms) => { const f = new Intl.DateTimeFormat("en-US", { timeZone:tz, hourCycle:"h23", year:"numeric", month:"numeric", day:"numeric", hour:"numeric", minute:"numeric" }), o = {};
   for(const p of f.formatToParts(new Date(ms))) o[p.type] = p.value;
@@ -3398,7 +3402,7 @@ function tzxOpen(){ ovOpen("tzx", () => { $("#tzxSheet").hidden = true; clearInt
 function tzxRender(){
   const box = $("#tzxRows"); if(!box) return;
   const zs = tzxZones(), T = TZX.T, P = TZX.ph;
-  if(box.children.length !== zs.length + 1) box.innerHTML = zs.map(() => '<div class="tzx-row"><div class="tzx-name"><span></span><span class="tzx-at"></span></div><div class="tzx-track"></div></div>').join("") + '<div class="tzx-line"><b></b></div>';
+  if(box.children.length !== zs.length + 1) box.innerHTML = zs.map(() => '<div class="tzx-row"><div class="tzx-name"><span></span><span class="tzx-at"></span></div><div class="tzx-track"></div><div class="tzx-sub"></div></div>').join("") + '<div class="tzx-line"><b></b></div>';
   const W = box.querySelector(".tzx-track").clientWidth || 360; TZX.ph = W/TZX.hrs; const P2 = TZX.ph, fs = Math.max(8, Math.min(12, P2*.4)), cx = W/2, half = cx/P2 + 1, base = tzOffMin(zs[0][1], T);
   zs.forEach(([name, tz], i) => {
     const row = box.children[i], off = tzOffMin(tz, T), L = T + off*60000;   // その場所の時刻（UTCとして扱う）
@@ -3417,21 +3421,35 @@ function tzxRender(){
     // 1時間ごとのます
     for(let hs = Math.floor((L - half*36e5)/36e5)*36e5; hs < L + half*36e5; hs += 36e5){
       const a = x(hs), hr = new Date(hs).getUTCHours(), k = hr < 6 ? "n" : hr < 9 ? "m" : hr < 18 ? "w" : hr < 22 ? "e" : "n";
-      h += `<div class="tzx-c ${k}${hr === 0 ? " z" : ""}" style="left:${a}px;width:${P2}px;font-size:${fs}px">${hr}</div>`;
+      const on = TZX.sel && hs - off*60000 < TZX.sel.b && hs + 36e5 - off*60000 > TZX.sel.a;   // 選んだ時間帯（実時刻）に重なるます
+      h += `<div class="tzx-c ${k}${hr === 0 ? " z" : ""}${on ? " hl" : ""}" data-t="${hs - off*60000}" style="left:${a}px;width:${P2}px;font-size:${fs}px">${hr}</div>`;
     }
     // ずらしているときは、本当の今の位置に赤い線を残す（帯と一緒に動く）
     if(!TZX.follow){ const nx = x(Date.now() + off*60000); if(nx > -2 && nx < W + 2) h += `<div class="tzx-nowm" style="left:${nx}px"></div>`; }
+    // 選んだ時間帯：全体を細い白い枠で囲み、帯の下に開始・終了の時刻を小さく書く
+    let sub = "";
+    if(TZX.sel){ const sa = x(TZX.sel.a + off*60000), sb = x(TZX.sel.b + off*60000);
+      if(sb > 0 && sa < W){ h += `<div class="tzx-selbox" style="left:${sa}px;width:${sb - sa}px"></div>`;
+        const hm = t => { const d = new Date(t + off*60000); return String(d.getUTCHours()).padStart(2, "0") + ":" + String(d.getUTCMinutes()).padStart(2, "0"); };
+        // 文字の位置：ふつうは枠の端の真下。枠が狭くて重なるときは、真ん中から左右に振り分ける。帯の外にははみ出さない
+        const LW = 31, mid = (sa + sb)/2, clamp = v => Math.max(0, Math.min(W - LW, v));
+        let la = sa - LW/2, lb = sb - LW/2;
+        if(lb - la < LW + 4){ la = mid - LW - 2; lb = mid + 2; }
+        la = clamp(la); lb = clamp(lb); if(lb - la < LW + 2){ if(la + LW + 2 > W - LW) la = lb - LW - 2; else lb = la + LW + 2; }
+        if(sa >= -LW/2) sub += `<span style="left:${la}px">${hm(TZX.sel.a)}</span>`;
+        if(sb <= W + LW/2) sub += `<span style="left:${lb}px">${hm(TZX.sel.b)}</span>`; } }
+    row.querySelector(".tzx-sub").innerHTML = sub;
     row.querySelector(".tzx-track").innerHTML = h;
   });
   const line = box.querySelector(".tzx-line"); line.style.left = (box.querySelector(".tzx-track").offsetLeft + cx) + "px";
-  line.querySelector("b").textContent = TZX.follow ? "現在時刻" : "選んだ時刻"; line.classList.toggle("sel", !TZX.follow);
-  $("#tzxNow").hidden = TZX.follow;
+  line.querySelector("b").textContent = TZX.follow ? "現在時刻" : ""; line.classList.toggle("sel", !TZX.follow);
+  const nb = $("#tzxNow"); nb.hidden = TZX.follow && !TZX.sel; nb.textContent = TZX.sel ? "選択を解除する" : "現在時刻に戻す";
 }
 function tzxSetup(){
   const box = $("#tzxRows");
   $("#tzxClose").onclick = () => ovClose("tzx");
   $("#tzxSheet").addEventListener("click", e => { if(e.target.id === "tzxSheet") ovClose("tzx"); });
-  $("#tzxNow").onclick = () => { TZX.follow = true; TZX.T = Date.now(); tzxRender(); };
+  $("#tzxNow").onclick = () => { if(TZX.sel){ TZX.sel = null; tzxRender(); return; } TZX.follow = true; TZX.T = Date.now(); tzxRender(); };
   // 1本指：左右にドラッグで時刻を動かす／2本指：ピンチで表示する時間の幅（8〜24時間）を変える
   const setHrs = v => { TZX.hrs = Math.round(Math.max(8, Math.min(24, v))*2)/2; try{ localStorage.setItem("tzxHrs", TZX.hrs); }catch(_){} tzxRender(); };
   box.addEventListener("pointerdown", e => { TZX.pts.set(e.pointerId, e.clientX); try{ box.setPointerCapture(e.pointerId); }catch(_){}
@@ -3439,10 +3457,20 @@ function tzxSetup(){
     else if(TZX.pts.size === 1) TZX.drag = { x:e.clientX, T:TZX.T, id:e.pointerId }; });
   box.addEventListener("pointermove", e => { if(!TZX.pts.has(e.pointerId)) return; TZX.pts.set(e.pointerId, e.clientX);
     if(TZX.pinch && TZX.pts.size >= 2){ const [a, b] = [...TZX.pts.values()]; setHrs(TZX.pinch.h*TZX.pinch.d/Math.max(20, Math.abs(a - b))); return; }
-    const d = TZX.drag; if(!d || d.id !== e.pointerId) return; const dx = e.clientX - d.x; if(Math.abs(dx) < 3 && TZX.follow) return;
+    const d = TZX.drag; if(!d || d.id !== e.pointerId) return; const dx = e.clientX - d.x; if(!d.moved && Math.abs(dx) < 6) return; d.moved = true;
     TZX.follow = false; TZX.T = Math.round((d.T - dx/TZX.ph*36e5)/60000)*60000; tzxRender(); });
   const up = e => { TZX.pts.delete(e.pointerId); if(TZX.pts.size < 2) TZX.pinch = null;
-    const d = TZX.drag; if(!d || d.id !== e.pointerId) return; TZX.drag = null; if(!TZX.follow){ TZX.T = Math.round(TZX.T/(5*60000))*5*60000; tzxRender(); } };
+    const d = TZX.drag; if(!d || d.id !== e.pointerId) return; TZX.drag = null;
+    // 動かさずに離した＝タップ：選んでいる時刻から、タップした時刻のますまでを時間帯として選ぶ
+    if(!d.moved && e.type === "pointerup"){ const c = document.elementsFromPoint(e.clientX, e.clientY).find(el => el.classList && el.classList.contains("tzx-c"));
+      // 1回目のタップ＝開始、2回目＝終了。選んでいる時間帯の中をタップすると選択を解除
+      if(c){ const t0 = +c.dataset.t, t1 = t0 + 36e5, sl = TZX.sel;
+        if(sl && t0 < sl.b && t1 > sl.a) TZX.sel = null;
+        else if(sl && sl.open) TZX.sel = { a:Math.min(sl.a, t0), b:Math.max(sl.b, t1) };
+        else TZX.sel = { a:t0, b:t1, open:true };
+        tzxRender(); }
+      return; }
+    if(!TZX.follow){ TZX.T = Math.round(TZX.T/(5*60000))*5*60000; tzxRender(); } };
   box.addEventListener("pointerup", up); box.addEventListener("pointercancel", up);
   // パソコン：Ctrl＋ホイール（トラックパッドのピンチ）でも幅を変える
   box.addEventListener("wheel", e => { if(!e.ctrlKey) return; e.preventDefault(); setHrs(TZX.hrs*Math.exp(e.deltaY*.01)); }, { passive:false });
