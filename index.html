@@ -475,7 +475,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-11 10:01</div>
+  <div style="margin-bottom:4px">版：2026-11-11 10:27</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2618,13 +2618,20 @@ const PLANE = (() => {
     THA:["TG","#5b2d82"],MAS:["MH","#0a2d6e"],GIA:["GA","#0a6aa1"],PAL:["PR","#0b3d91"],VJC:["VJ","#d61e2a"],HVN:["VN","#0a6e7a"],QFA:["QF","#d52b1e"],UAE:["EK","#c8102e"],QTR:["QR","#5c0a32"],
     ETD:["EY","#a8875a"],DAL:["DL","#0b2a5b"],UAL:["UA","#1c3f94"],AAL:["AA","#0078d2"],ACA:["AC","#c8102e"],AFR:["AF","#0b2a6e"],BAW:["BA","#1b3c8a"],DLH:["LH","#0b2a5b"],KLM:["KL","#00a1de"],
     FIN:["AY","#0b2a6e"],SWR:["LX","#c8102e"],TAY:["3V","#1d4f91"],FDX:["FX","#4d148c"],UPS:["5X","#6b4a2a"],ASL:["JU","#0b3a6e"],JBU:["B6","#003876"],HAL:["HA","#5b2d82"],TWB:["TW","#c8102e"],
-    JNA:["LJ","#e2231a"],TGW:["TR","#f2b230"],AIQ:["FD","#d41f26"],CEB:["5J","#f4c300"],HKE:["UO","#6b2d82"],AXM:["AK","#d41f26"] };
+    JNA:["LJ","#e2231a"],TGW:["TR","#f2b230"],AIQ:["FD","#d41f26"],CEB:["5J","#f4c300"],HKE:["UO","#6b2d82"],AXM:["AK","#d41f26"] , CSS:["O3","#3f3f46"], CKK:["CK","#1e3a8a"], CXA:["MF","#1d4ed8"], CSZ:["ZH","#b91c1c"], CHH:["HU","#b91c1c"], CQH:["9C","#16a34a"], JJA:["7C","#ea580c"], ABL:["BX","#2563eb"], ESR:["ZE","#0891b2"], GTI:["5Y","#334155"], CLX:["CV","#1e40af"], ABW:["RU","#334155"], NCA:["KZ","#1e3a8a"], ANZ:["NZ","#111827"], VOZ:["VA","#b91c1c"]};
   const AL_NAME = { JL:"日本航空", NH:"全日空", BC:"スカイマーク", HD:"AIRDO", "6J":"ソラシドエア", "7G":"スターフライヤー", "3V":"ASL航空ベルギー", JU:"エア・セルビア", MM:"ピーチ", GK:"ジェットスター・ジャパン", ZG:"ZIPAIR", IJ:"スプリング・ジャパン", NU:"日本トランスオーシャン航空", JC:"日本エアコミューター", FW:"アイベックス", OC:"オリエンタルエアブリッジ", JH:"フジドリームエアラインズ",
     SQ:"シンガポール航空", CX:"キャセイパシフィック航空", KE:"大韓航空", OZ:"アシアナ航空", BR:"エバー航空", CI:"チャイナエアライン", CA:"中国国際航空", MU:"中国東方航空", CZ:"中国南方航空", TG:"タイ国際航空", MH:"マレーシア航空", GA:"ガルーダ・インドネシア航空", PR:"フィリピン航空", VJ:"ベトジェット", VN:"ベトナム航空", QF:"カンタス航空", EK:"エミレーツ航空", QR:"カタール航空", EY:"エティハド航空",
-    DL:"デルタ航空", UA:"ユナイテッド航空", AA:"アメリカン航空", AC:"エア・カナダ", AF:"エールフランス", BA:"ブリティッシュ・エアウェイズ", LH:"ルフトハンザ", KL:"KLMオランダ航空", AY:"フィンエアー", LX:"スイス インターナショナル エアラインズ", FX:"フェデックス", "5X":"UPS", B6:"ジェットブルー", HA:"ハワイアン航空", TW:"ティーウェイ航空", LJ:"ジンエアー", TR:"スクート", "5J":"セブパシフィック", UO:"香港エクスプレス", AK:"エアアジア", FD:"タイ・エアアジア" };
+    DL:"デルタ航空", UA:"ユナイテッド航空", AA:"アメリカン航空", AC:"エア・カナダ", AF:"エールフランス", BA:"ブリティッシュ・エアウェイズ", LH:"ルフトハンザ", KL:"KLMオランダ航空", AY:"フィンエアー", LX:"スイス インターナショナル エアラインズ", FX:"フェデックス", "5X":"UPS", B6:"ジェットブルー", HA:"ハワイアン航空", TW:"ティーウェイ航空", LJ:"ジンエアー", TR:"スクート", "5J":"セブパシフィック", UO:"香港エクスプレス", AK:"エアアジア", FD:"タイ・エアアジア" , O3:"順豊航空", CK:"中国貨運航空", MF:"厦門航空", ZH:"深セン航空", HU:"海南航空", "9C":"春秋航空", "7C":"チェジュ航空", BX:"エアプサン", ZE:"イースター航空", "5Y":"アトラス航空", CV:"カーゴルクス", RU:"エアブリッジ・カーゴ", KZ:"日本貨物航空", NZ:"ニュージーランド航空", VA:"ヴァージン・オーストラリア"};
   const AP = { HND:"東京・羽田", NRT:"東京・成田", KIX:"大阪・関西", ITM:"大阪・伊丹", UKB:"神戸", NGO:"名古屋・中部", NKM:"名古屋・小牧", CTS:"札幌・新千歳", OKD:"札幌・丘珠", FUK:"福岡", OKA:"那覇", KOJ:"鹿児島", KMJ:"熊本", NGS:"長崎", OIT:"大分", KMI:"宮崎", HIJ:"広島", OKJ:"岡山", TAK:"高松", MYJ:"松山", KCZ:"高知", TKS:"徳島", KMQ:"小松", TOY:"富山", KIJ:"新潟", SDJ:"仙台", AOJ:"青森", AXT:"秋田", HKD:"函館", AKJ:"旭川", KUH:"釧路", MMB:"女満別", ISG:"石垣", MMY:"宮古", HSG:"佐賀", KKJ:"北九州", IZO:"出雲", UBJ:"山口宇部", FSZ:"静岡", HAC:"八丈島", OIM:"大島",
-    ICN:"ソウル・仁川", GMP:"ソウル・金浦", PUS:"釜山", TPE:"台北・桃園", TSA:"台北・松山", KHH:"高雄", HKG:"香港", MFM:"マカオ", PEK:"北京・首都", PKX:"北京・大興", PVG:"上海・浦東", SHA:"上海・虹橋", CAN:"広州", SIN:"シンガポール", BKK:"バンコク", DMK:"バンコク・ドンムアン", KUL:"クアラルンプール", MNL:"マニラ", CGK:"ジャカルタ", DPS:"デンパサール", SGN:"ホーチミン", HAN:"ハノイ", DEL:"デリー", BOM:"ムンバイ", DXB:"ドバイ", DOH:"ドーハ", AUH:"アブダビ", SYD:"シドニー", MEL:"メルボルン", HNL:"ホノルル", GUM:"グアム", LAX:"ロサンゼルス", SFO:"サンフランシスコ", SEA:"シアトル", JFK:"ニューヨーク", ORD:"シカゴ", DFW:"ダラス", YVR:"バンクーバー", LHR:"ロンドン", CDG:"パリ", FRA:"フランクフルト", MUC:"ミュンヘン", AMS:"アムステルダム", HEL:"ヘルシンキ", ZRH:"チューリッヒ", IST:"イスタンブール", ANC:"アンカレッジ" };
-  const apName = c => AP[c] ? `${AP[c]}（${c}）` : c;
+    ICN:"ソウル・仁川", GMP:"ソウル・金浦", PUS:"釜山", TPE:"台北・桃園", TSA:"台北・松山", KHH:"高雄", HKG:"香港", MFM:"マカオ", PEK:"北京・首都", PKX:"北京・大興", PVG:"上海・浦東", SHA:"上海・虹橋", CAN:"広州", SIN:"シンガポール", BKK:"バンコク", DMK:"バンコク・ドンムアン", KUL:"クアラルンプール", MNL:"マニラ", CGK:"ジャカルタ", DPS:"デンパサール", SGN:"ホーチミン", HAN:"ハノイ", DEL:"デリー", BOM:"ムンバイ", DXB:"ドバイ", DOH:"ドーハ", AUH:"アブダビ", SYD:"シドニー", MEL:"メルボルン", HNL:"ホノルル", GUM:"グアム", LAX:"ロサンゼルス", SFO:"サンフランシスコ", SEA:"シアトル", JFK:"ニューヨーク", ORD:"シカゴ", DFW:"ダラス", YVR:"バンクーバー", LHR:"ロンドン", CDG:"パリ", FRA:"フランクフルト", MUC:"ミュンヘン", AMS:"アムステルダム", HEL:"ヘルシンキ", ZRH:"チューリッヒ", IST:"イスタンブール", ANC:"アンカレッジ",
+    SZX:"深セン", CTU:"成都・双流", TFU:"成都・天府", CKG:"重慶", XIY:"西安", KMG:"昆明", HGH:"杭州", NKG:"南京", WUH:"武漢", CSX:"長沙", XMN:"厦門", FOC:"福州", TAO:"青島", DLC:"大連", SHE:"瀋陽", TSN:"天津", HRB:"ハルビン", CGO:"鄭州", NNG:"南寧", HAK:"海口", SYX:"三亜", URC:"ウルムチ", YNJ:"延吉",
+    CJU:"済州", TAE:"大邱", CJJ:"清州", RMQ:"台中", ULN:"ウランバートル", UBN:"ウランバートル", CEB:"セブ", CRK:"クラーク", DAD:"ダナン", CXR:"ニャチャン", PNH:"プノンペン", REP:"シェムリアップ", VTE:"ビエンチャン", RGN:"ヤンゴン", HKT:"プーケット", CNX:"チェンマイ", PEN:"ペナン", BKI:"コタキナバル", KTM:"カトマンズ", CMB:"コロンボ", DAC:"ダッカ", MLE:"マレ", BLR:"ベンガルール", MAA:"チェンナイ", CCU:"コルカタ", HYD:"ハイデラバード",
+    BNE:"ブリスベン", OOL:"ゴールドコースト", CNS:"ケアンズ", PER:"パース", AKL:"オークランド", CHC:"クライストチャーチ", NAN:"ナンディ", PPT:"パペーテ", NOU:"ヌメア", SPN:"サイパン", KOA:"コナ", OGG:"マウイ",
+    YYZ:"トロント", YUL:"モントリオール", YYC:"カルガリー", SAN:"サンディエゴ", LAS:"ラスベガス", PHX:"フェニックス", DEN:"デンバー", IAH:"ヒューストン", ATL:"アトランタ", MIA:"マイアミ", BOS:"ボストン", IAD:"ワシントン", EWR:"ニューアーク", MSP:"ミネアポリス", DTW:"デトロイト", PDX:"ポートランド", MEX:"メキシコシティ", GRU:"サンパウロ",
+    LGW:"ロンドン・ガトウィック", MAD:"マドリード", BCN:"バルセロナ", FCO:"ローマ", MXP:"ミラノ", VIE:"ウィーン", CPH:"コペンハーゲン", ARN:"ストックホルム", OSL:"オスロ", BRU:"ブリュッセル", WAW:"ワルシャワ", PRG:"プラハ", DUS:"デュッセルドルフ", LUX:"ルクセンブルク", SVO:"モスクワ", TLV:"テルアビブ", RUH:"リヤド", JED:"ジッダ", CAI:"カイロ", ADD:"アディスアベバ", JNB:"ヨハネスブルグ", NBO:"ナイロビ", LEJ:"ライプツィヒ", CGN:"ケルン", LGG:"リエージュ" };
+  // 一覧にない空港は、路線データに入っている都市名（英語）で出す
+  const AP_DYN = {};
+  const apName = c => AP[c] ? `${AP[c]}（${c}）` : AP_DYN[c] ? `${AP_DYN[c]}（${c}）` : c;
   // タップした機体の情報（画面上の位置から一番近い機体）
   function hit(x, y){
     for(const h of HIT){ const b = h.lb; if(b && x > b.x - 6 && x < b.x + b.w + 6 && y > b.y - 6 && y < b.y + b.h + 6) return h; }   // 札（文字）をタップしたとき
@@ -2679,7 +2686,9 @@ const PLANE = (() => {
     try{
       const j = await getRouteJSON("https://api.adsbdb.com/v0/callsign/" + encodeURIComponent(cs)), fr = j && j.response && j.response.flightroute;
       const o = fr && fr.origin, d = fr && fr.destination, c = v => v && (v.iata_code || v.icao_code);
-      if(c(o) && c(d)){ routes[cs] = [c(o), c(d)]; routeSt[cs] = "ok"; } else routeSt[cs] = "none";
+      if(c(o) && c(d)){ routes[cs] = [c(o), c(d)]; routeSt[cs] = "ok";
+        for(const v of [o, d]) if(v.iata_code && !AP_DYN[v.iata_code] && (v.municipality || v.name)) AP_DYN[v.iata_code] = String(v.municipality || v.name).trim(); }
+      else routeSt[cs] = "none";
     }catch(e){ quiet("路線(adsbdb)", e); routeSt[cs] = "err"; }
     cardSync(cs);
   }
@@ -2693,7 +2702,8 @@ const PLANE = (() => {
         if(!r.ok) throw new Error("HTTP " + r.status);
         const j = await r.json(); ok = true;
         for(const x of (Array.isArray(j) ? j : [])){ const cs = (x.callsign || "").trim(), ap = x._airport_codes_iata || "";
-          if(cs && /^[A-Z0-9]{3}(-[A-Z0-9]{3})+$/.test(ap)){ routes[cs] = ap.split("-"); routeSt[cs] = "ok"; } }
+          if(cs && /^[A-Z0-9]{3}(-[A-Z0-9]{3})+$/.test(ap)){ routes[cs] = ap.split("-"); routeSt[cs] = "ok"; }
+          for(const a of (Array.isArray(x._airports) ? x._airports : [])) if(a && a.iata && !AP_DYN[a.iata]){ const nm = a.location || a.name; if(nm) AP_DYN[a.iata] = String(nm).trim(); } }
       }catch(e){ quiet("路線", e); }
       ask.forEach(a => { if(!routes[a.cs]){ routes[a.cs] = null; routeSt[a.cs] = ok ? "none" : "err"; } });
     }
@@ -3050,6 +3060,8 @@ function terrStatus(){
 }
 /* --- 地名・山の名前（ウィキデータ）。地形ボタンがオンのときに表示 --- */
 const NAMES = { key:"", list:null, busy:false, failAt:0, st:"" };
+// 山の名前が取れないときに使う、日本の主な山（名前・緯度・経度・標高）
+const JP_PEAKS = [["富士山",35.3606,138.7274,3776],["北岳",35.6742,138.2389,3193],["奥穂高岳",36.2894,137.6481,3190],["間ノ岳",35.6461,138.2283,3190],["槍ヶ岳",36.3420,137.6476,3180],["赤石岳",35.4611,138.1572,3121],["御嶽山",35.8933,137.4806,3067],["乗鞍岳",36.1064,137.5536,3026],["立山",36.5753,137.6197,3015],["甲斐駒ヶ岳",35.7578,138.2364,2967],["赤岳",35.9708,138.3703,2899],["鳳凰山",35.7033,138.3014,2841],["白山",36.1553,136.7714,2702],["金峰山",35.8711,138.6253,2599],["浅間山",36.4064,138.5231,2568],["蓼科山",36.1033,138.2950,2531],["男体山",36.7650,139.4908,2486],["甲武信ヶ岳",35.9089,138.7283,2475],["大菩薩嶺",35.7486,138.8450,2057],["雲取山",35.8556,138.9439,2017],["谷川岳",36.8375,138.9300,1977],["三ツ峠山",35.5469,138.8072,1785],["丹沢山",35.4742,139.1636,1567],["愛鷹山",35.2242,138.7739,1504],["箱根山",35.2333,139.0211,1438],["天城山",34.8636,139.0000,1406],["大山",35.4408,139.2314,1252],["金時山",35.2969,139.0094,1212],["筑波山",36.2253,140.1067,877],["高尾山",35.6253,139.2436,599]];
 async function loadNames(lat, lon){
   const key = lat.toFixed(2) + "," + lon.toFixed(2);
   if(NAMES.key === key && (NAMES.list || NAMES.busy || Date.now() - NAMES.failAt < 600e3)) return;
@@ -3071,30 +3083,35 @@ async function loadNames(lat, lon){
     return out; };
   // 山は OpenStreetMap（Overpass）の山頂データから取る（ウィキデータの山の検索は重くて時間切れになりやすい）。取れなければウィキデータ
   const peaks = async () => {
-    const q = `[out:json][timeout:25];(node["natural"~"^(peak|volcano)$"]["name"]["ele"](around:100000,${lat.toFixed(4)},${lon.toFixed(4)})(if:number(t["ele"])>=400);node["natural"~"^(peak|hill|volcano)$"]["name"](around:12000,${lat.toFixed(4)},${lon.toFixed(4)}););out body;`;
-    let lastErr;
-    for(const ep of ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter"]){
-      try{
-        const j = JSON.parse(await fetchText(ep + "?data=" + encodeURIComponent(q), 30000, true)), out = [], seen = new Set();
-        for(const e of j.elements || []){ const t = e.tags || {}, n = (jp ? t["name:ja"] || t.name : t["name:ja"] || t["name:en"] || t.name) || "", h = parseFloat(String(t.ele || "").replace(",", "."));
-          if(!n || seen.has(n + "|" + Math.round(e.lat*100))) continue; seen.add(n + "|" + Math.round(e.lat*100));
-          out.push({ n, lat:e.lat, lon:e.lon, pop:0, h:Number.isFinite(h) ? Math.round(h) : null, mt:true }); }
-        return out;
-      }catch(e){ lastErr = e; }
-    }
-    quiet("山(Overpass)", lastErr);
+    // 遠くは高い山だけ、近くは低い山や丘まで：問い合わせを軽くして時間切れを防ぐ
+    const L = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+    const q = `[out:json][timeout:20];(node["natural"~"^(peak|volcano)$"]["name"]["ele"](around:100000,${L})(if:number(t["ele"])>=1200);node["natural"~"^(peak|volcano)$"]["name"]["ele"](around:40000,${L})(if:number(t["ele"])>=400);node["natural"~"^(peak|hill|volcano)$"]["name"](around:12000,${L}););out body;`;
+    const parse = txt => { const j = JSON.parse(txt), out = [], seen = new Set();
+      for(const e of j.elements || []){ const t = e.tags || {}, n = (jp ? t["name:ja"] || t.name : t["name:ja"] || t["name:en"] || t.name) || "", h = parseFloat(String(t.ele || "").replace(",", "."));
+        if(!n || seen.has(n + "|" + Math.round(e.lat*100))) continue; seen.add(n + "|" + Math.round(e.lat*100));
+        out.push({ n, lat:e.lat, lon:e.lon, pop:0, h:Number.isFinite(h) ? Math.round(h) : null, mt:true }); }
+      return out; };
+    // 3か所の Overpass に同時に問い合わせ、最初に返ってきた答えを使う
+    try{
+      return await Promise.any(["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"]
+        .map(ep => fetchText(ep + "?data=" + encodeURIComponent(q), 25000, true).then(parse)));
+    }catch(e){ quiet("山(Overpass)", e && e.errors ? e.errors[0] : e); }
+    // 取れなかったとき：日本なら主な山を手元の一覧から、海外はウィキデータ
+    if(jp){ const cl = Math.cos(lat*D2R), r = JP_PEAKS.map(([n, la, lo, h]) => ({ n, lat:la, lon:lo, h, pop:0, mt:true })).filter(q => Math.hypot((q.lat - lat)*111320, (q.lon - lon)*111320*cl) < 100000); r.fb = true; return r; }
     return run(qs[1]);
   };
   // 市区町村と山は別々に問い合わせ、片方が失敗しても取れたほうを使う
   const rs = await Promise.allSettled([run(qs[0]), peaks()]);
   NAMES.nTown = rs[0].status === "fulfilled" ? rs[0].value.length : null; NAMES.nMt = rs[1].status === "fulfilled" ? rs[1].value.length : null;
+  const mtFb = rs[1].status === "fulfilled" && rs[1].value.fb;   // 主な山の一覧で代わりにしたとき（保存せず、次回また取りに行く）
   NAMES.busy = false;
   if(NAMES.key !== key) return;
   const ok = rs.filter(r => r.status === "fulfilled").map(r => r.value), bad = rs.filter(r => r.status === "rejected").map(r => r.reason && r.reason.message || String(r.reason));
   bad.forEach(m => quiet("地名", m));
   if(!ok.length){ NAMES.failAt = Date.now(); NAMES.st = "取得できませんでした（" + bad[0] + "）"; return; }
   NAMES.list = ok.flat(); NAMES.st = bad.length ? "一部だけ取得（" + bad[0] + "）" : "";
-  if(!bad.length) try{ localStorage.setItem("terrNames2", JSON.stringify({ key, t:Date.now(), list:NAMES.list, nT:NAMES.nTown, nM:NAMES.nMt })); }catch(_){}
+  if(mtFb && !NAMES.st) NAMES.st = "山は主な山だけ表示";
+  if(!bad.length && !mtFb) try{ localStorage.setItem("terrNames2", JSON.stringify({ key, t:Date.now(), list:NAMES.list, nT:NAMES.nTown, nM:NAMES.nMt })); }catch(_){}
 }
 // 名前の置き場所：その方角の地面の絵から、その距離の地面が見えているかを調べる
 function namePlaces(lat, lon){
