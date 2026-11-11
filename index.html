@@ -461,7 +461,7 @@ footer{background:none!important}
       <div class="sv-plane" id="svPlaneCard" hidden></div>
       <div class="sv-hint" id="svHint">左右にドラッグで見回す・月をタップで拡大</div>
       <div class="sv-bar">
-        <button type="button" id="svNight" aria-pressed="false"><b>夜</b></button>
+        <button type="button" id="svNight" aria-pressed="false" title="現時刻・夜・昼を切り替え"><b>現時刻</b></button>
         <button type="button" id="svMoon" title="月の方角を向く"><b>月</b></button>
         <button type="button" id="svLines" aria-pressed="true"><b>星座</b></button>
         <button type="button" id="svTerr" aria-pressed="true"><b>地名</b></button>
@@ -475,7 +475,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-11 10:27</div>
+  <div style="margin-bottom:4px">版：2026-11-11 10:36</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2255,7 +2255,7 @@ function moonName(a){return a<1.5||a>28?'新月':a<5.5?'三日月':a<9?'上弦�
 function codeKind(c){if(c==null)return null;if(c<=1)return'clear';if(c<=3)return'cloudy';if(c===45||c===48)return'fog';if((c>=51&&c<=67)||(c>=80&&c<=82))return'rain';if((c>=71&&c<=77)||c===85||c===86)return'snow';if(c>=95)return'thunder';return'cloudy';}
 function wKind(){ return codeKind(ENV.code) || 'clear'; }
 function astroLoc(){ return { lat:ENV.lat, lon:ENV.lon }; }
-const SKYV = { open:true, A0:180, fov:96, lines:true, terr:true, clear:false, zoom:false, zoomReady:false, ptr:null, lastTap:{t:0,x:0,y:0}, moonP:null, raf:0, flash:0, nextFlash:3, aimed:false };
+const SKYV = { open:true, A0:180, fov:96, lines:true, terr:true, night:false, day:false, clear:false, zoom:false, zoomReady:false, ptr:null, lastTap:{t:0,x:0,y:0}, moonP:null, raf:0, flash:0, nextFlash:3, aimed:false };
 function skyvEl(){ return document.getElementById('skyv'); }
 const D2R=Math.PI/180,R2D=180/Math.PI;
 function asJd(d){return(d.getTime()-TZS())/86400000+2440587.5;}
@@ -2555,7 +2555,7 @@ const SAT = (() => {
     const tn = performance.now(); if(!force && tn - infoAt < 1000) return; infoAt = tn;
     if(state === "loading" || state === "idle"){ satText = "衛星データを読み込み中…"; return; }
     if(state === "error"){ satText = "衛星データを取得できませんでした"; return; }
-    const sk = skyNow(), jd = sk.jd, { lat, lon } = sk, dark = SKYV.night || sk.sun.alt < -4;
+    const sk = skyNow(), jd = sk.jd, { lat, lon } = sk, dark = SKYV.night || (!SKYV.day && sk.sun.alt < -4);
     const nowVis = recs.map(o => ({ o, L:look(o.s, jd, lat, lon) })).filter(v => v.L.alt > 0 && v.L.lit && dark);
     const iss = recs.find(o => o.id === 25544);
     if(iss && (!passC.v || tn - passC.at > 60e3)){ passC = { at:tn, v:nextPass(iss, jd, lat, lon) }; }
@@ -2770,7 +2770,7 @@ const PLANE = (() => {
     }
     inView = items.length; HIT = items.map(it => ({ x:it.p.x, y:it.p.y, o:it.o, dist:it.dist }));
     items.sort((a, b) => b.dist - a.dist);   // 遠い順に描いて、近い機体を上に
-    x.save(); const labs = [], night = SKYV.night || sk.sun.alt < -4;
+    x.save(); const labs = [], night = SKYV.night || (!SKYV.day && sk.sun.alt < -4);
     for(const it of items){
       const { o, p, near } = it, sz = Math.max(.55, Math.min(1.3, 1.35 - it.dist/40e3*.8))*(near ? 1 : .85);   // 近いほど大きく
       x.globalAlpha = near ? 1 : .5;   // 遠い機体は小さく薄く
@@ -2830,7 +2830,7 @@ try{ window.__plane = PLANE; window.__terrReady = () => !!TERR.pan && !!NAMES.li
 function skyvDraw(t){const ov=skyvEl(),c=ov.querySelector('#skyc');
   const Wc=c.clientWidth||360,Hc=c.clientHeight||420,dpr=Math.min(2,DPR||1);if(c.width!==Math.round(Wc*dpr)||c.height!==Math.round(Hc*dpr)){c.width=Math.round(Wc*dpr);c.height=Math.round(Hc*dpr);}
   const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';
-  const sk=skyNow(),k='clear',sa=SKYV.night?-90:sk.sun.alt,hy=Hc*.7,kk=Wc/SKYV.fov;
+  const sk=skyNow(),k='clear',sa=SKYV.night?-90:SKYV.day?Math.max(sk.sun.alt,35):sk.sun.alt,hy=Hc*.7,kk=Wc/SKYV.fov;
   const P=(az,alt)=>{const d=((az-SKYV.A0+540)%360)-180;return{x:Wc/2+d*kk,y:hy-alt*kk,d};};
   // 描いた文字の場所（天の川の名前を重ねないため）
   const LB=[],SN=[],CN=[],AN=[],SEG=[],STP=[],hitLB=(a,b)=>a.x<b.x+b.w+3&&b.x<a.x+a.w+3&&a.y<b.y+b.h+2&&b.y<a.y+a.h+2;
@@ -3235,7 +3235,9 @@ function setupUI(){
     for(let m=5; m<=36*60; m+=5){ if(moonAltAt(jd0 + m/1440, lat, lon) + .3 >= 0){ rise = new Date(now().getTime() + m*60e3); break; } }
     const day = rise ? (rise.getDate() !== now().getDate() ? "明日 " : "") : "";
     toast(`月は地平線の下で見えません（${azName(sk.moon.az)}）` + (rise ? `\n次の月の出 ${day}${rise.getHours()}:${pad(rise.getMinutes())}ごろ` : "")); };
-  ov.querySelector('#svNight').onclick = e => { SKYV.night = !SKYV.night; e.currentTarget.setAttribute('aria-pressed', SKYV.night); infoAt = 0; updateInfo(); SAT.info(true); };
+  // 現時刻 → 夜 → 昼 → 現時刻 の順に切り替え（現時刻以外は青）
+  ov.querySelector('#svNight').onclick = e => { const b = e.currentTarget, m = SKYV.night ? 'day' : SKYV.day ? 'now' : 'night';
+    SKYV.night = m === 'night'; SKYV.day = m === 'day'; b.setAttribute('aria-pressed', m !== 'now'); b.querySelector('b').textContent = { now:'現時刻', night:'夜', day:'昼' }[m]; infoAt = 0; updateInfo(); SAT.info(true); };
   const h = ov.querySelector('#svHint'); setTimeout(() => { h.style.opacity = '0'; }, 6000);
   new IntersectionObserver(es => { visible = es[0].isIntersecting; loop(); }, { threshold:0.05 }).observe(ov);
   document.addEventListener('visibilitychange', loop);
@@ -3250,8 +3252,8 @@ function updateInfo(){
   const tn = performance.now(); if(tn - infoAt < 1000) return; infoAt = tn;
   const ov = skyvEl(), sk = skyNow();
   ov.querySelector('#svDir').textContent = `${azName(SKYV.A0)}の空を見ています`;
-  const age = moonAge(now()), sa = SKYV.night ? -90 : sk.sun.alt;
-  const phase = SKYV.night ? '夜にした表示（太陽なし）' : sa > 0 ? '昼' : sa > -6 ? '薄明' : sa > -18 ? (placeNow().getHours() < 12 ? '明け方' : '夕暮れ') : '夜';
+  const age = moonAge(now()), sa = SKYV.night ? -90 : SKYV.day ? Math.max(sk.sun.alt, 35) : sk.sun.alt;
+  const phase = SKYV.night ? '夜にした表示（太陽なし）' : SKYV.day ? '昼にした表示' : sa > 0 ? '昼' : sa > -6 ? '薄明' : sa > -18 ? (placeNow().getHours() < 12 ? '明け方' : '夕暮れ') : '夜';
   SAT.info();
   document.getElementById('skyInfo').textContent =
     `${phase}・月齢${age.toFixed(1)}（${moonName(age)}）・月は${sk.moon.alt > 0 ? `${azName(sk.moon.az)}の空 高さ${Math.round(sk.moon.alt)}°` : '地平線の下'}` + (SKYV.plane ? "\n" + PLANE.status() : "") + (SKYV.sat && SAT.text() ? "\n人工衛星：" + SAT.text() : "") + (SKYV.terr ? "\n" + terrStatus() : "");
