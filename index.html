@@ -195,7 +195,8 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 .tzx-c.z{border-left:1px solid #64748b}
 .tzx-selbox{position:absolute;top:15px;height:27px;box-sizing:border-box;border:1px solid #fff;border-radius:2px;pointer-events:none;z-index:2}
 .tzx-sub{position:relative;height:13px;z-index:3}.tzx-sub span{position:absolute;top:1px;width:31px;text-align:center;background:#0b0d12;border-radius:3px;font-size:.6rem;font-weight:700;color:#e5e7eb;font-variant-numeric:tabular-nums;white-space:nowrap}
-.tzx-c.hl{color:#fff!important;font-weight:800;text-shadow:0 1px 2px rgba(0,0,0,.45);box-shadow:none!important}
+.tzx-c.hl{color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.45);box-shadow:none!important}
+.tzx-c.hp{color:#fff!important;text-shadow:0 1px 2px rgba(0,0,0,.6)}
 .tzx-c.hl.n{background:#4b5563}.tzx-c.hl.m{background:#f5b942}.tzx-c.hl.w{background:#22e3e8}.tzx-c.hl.e{background:#f04ad0}
 .tzx-line{position:absolute;top:10px;bottom:4px;width:1px;margin-left:-.5px;background:#ff4d5e;box-shadow:0 0 5px #ff4d5e;pointer-events:none;z-index:2}.tzx-line b{position:absolute;top:-13px;left:50%;transform:translateX(-50%);font-size:.62rem;color:#ff7b87;white-space:nowrap}
 .tzx-line.sel{background:#f9fafb;box-shadow:0 0 4px rgba(255,255,255,.55)}.tzx-line.sel b{color:#f3f4f6}
@@ -474,7 +475,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-11 09:48</div>
+  <div style="margin-bottom:4px">版：2026-11-11 10:01</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -3396,6 +3397,7 @@ function tzAbbr(tz, ms){
   const m = tzOffMin(tz, ms), h = Math.trunc(Math.abs(m)/60), mm = Math.abs(m) % 60;
   return `UTC${m < 0 ? "−" : "+"}${h}${mm ? ":" + String(mm).padStart(2, "0") : ""}`;
 }
+const TZX_BG = { n:"#161a22", m:"#3a2a0c", w:"#073a3f", e:"#3a0c33" }, TZX_FILL = { n:"#4b5563", m:"#f5b942", w:"#22e3e8", e:"#f04ad0" };
 const TZX_WD = ["日","月","火","水","木","金","土"];
 function tzxOpen(){ ovOpen("tzx", () => { $("#tzxSheet").hidden = true; clearInterval(TZX.tick); }); TZX.follow = true; TZX.T = Date.now(); $("#tzxSheet").hidden = false;
   tzxRender(); clearInterval(TZX.tick); TZX.tick = setInterval(() => { if(TZX.follow){ TZX.T = Date.now(); tzxRender(); } }, 20000); }
@@ -3421,8 +3423,11 @@ function tzxRender(){
     // 1時間ごとのます
     for(let hs = Math.floor((L - half*36e5)/36e5)*36e5; hs < L + half*36e5; hs += 36e5){
       const a = x(hs), hr = new Date(hs).getUTCHours(), k = hr < 6 ? "n" : hr < 9 ? "m" : hr < 18 ? "w" : hr < 22 ? "e" : "n";
-      const on = TZX.sel && hs - off*60000 < TZX.sel.b && hs + 36e5 - off*60000 > TZX.sel.a;   // 選んだ時間帯（実時刻）に重なるます
-      h += `<div class="tzx-c ${k}${hr === 0 ? " z" : ""}${on ? " hl" : ""}" data-t="${hs - off*60000}" style="left:${a}px;width:${P2}px;font-size:${fs}px">${hr}</div>`;
+      // 選んだ時間帯（実時刻）に重なる部分を塗る。30分だけ重なるますは、その半分だけ塗る
+      const ct = hs - off*60000, fa = TZX.sel ? Math.max(0, (TZX.sel.a - ct)/36e5) : 0, fb = TZX.sel ? Math.min(1, (TZX.sel.b - ct)/36e5) : 0, ov = TZX.sel && fb > fa;
+      const full = ov && fa <= .001 && fb >= .999, part = ov && !full;
+      const pst = part ? `;background:linear-gradient(90deg,${TZX_BG[k]} ${fa*100}%,${TZX_FILL[k]} ${fa*100}%,${TZX_FILL[k]} ${fb*100}%,${TZX_BG[k]} ${fb*100}%)` : "";
+      h += `<div class="tzx-c ${k}${hr === 0 ? " z" : ""}${full ? " hl" : ""}${part ? " hp" : ""}" data-t="${ct}" style="left:${a}px;width:${P2}px;font-size:${fs}px${pst}">${hr}</div>`;
     }
     // ずらしているときは、本当の今の位置に赤い線を残す（帯と一緒に動く）
     if(!TZX.follow){ const nx = x(Date.now() + off*60000); if(nx > -2 && nx < W + 2) h += `<div class="tzx-nowm" style="left:${nx}px"></div>`; }
