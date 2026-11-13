@@ -171,7 +171,7 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 .wc:hover{background:var(--chip)}
 #wcSheet{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 16px 16px;text-shadow:none}
 #wcSheet[hidden]{display:none}
-.wcol{display:flex;flex-direction:column;gap:4px;min-width:0}
+.wcol{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
 .wc-acts{display:flex;gap:6px;padding-left:6px}.wc-acts button{font:inherit;font-size:.72rem;font-weight:700;border:1px solid rgba(127,140,160,.45);background:rgba(255,255,255,.12);color:inherit;border-radius:8px;padding:3px 9px;cursor:pointer;white-space:nowrap}
 #wcAdd{font-size:.9rem;line-height:1;padding:2px 9px}
 .wcs-del{margin-top:8px;font:inherit;font-size:.8rem;font-weight:700;color:#b91c1c;background:#fff;border:1px solid #fca5a5;border-radius:10px;padding:7px}
@@ -226,7 +226,7 @@ body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opa
 .wcs-list .sub{color:#64748b;font-size:.8rem}
 .wcs-list .tm{font-variant-numeric:tabular-nums;color:#334155;white-space:nowrap}
 .wc-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:0 4px;min-width:0}.wc-row .wc{flex:none;min-width:0;padding-left:2px;padding-right:0}.wc-row .wc-time{font-size:.86rem}.wc-h{cursor:default}
-.wc-go{margin-bottom:4px;font:inherit;font-size:.58rem;font-weight:700;line-height:1.3;border:1px solid rgba(127,140,160,.45);background:rgba(255,255,255,.12);color:inherit;border-radius:7px;padding:1px 4px;cursor:pointer;white-space:nowrap}.wc-go:disabled{opacity:.5}
+.wc-go{margin-bottom:4px;margin-left:auto;font:inherit;font-size:.58rem;font-weight:700;line-height:1.3;border:1px solid rgba(127,140,160,.45);background:rgba(255,255,255,.12);color:inherit;border-radius:7px;padding:1px 4px;cursor:pointer;white-space:nowrap}.wc-go:disabled{opacity:.5}
 .wc-back{background:#3b6fd8;border-color:#3b6fd8;color:#fff}
 .wc-city{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:3px;white-space:nowrap}
 .wc-city svg{width:10px;height:12px;flex:none}
@@ -478,7 +478,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-13 13:15</div>
+  <div style="margin-bottom:4px">版：2026-11-13 13:37</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
