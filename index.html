@@ -475,7 +475,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-12 08:34</div>
+  <div style="margin-bottom:4px">版：2026-11-13 11:27</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2798,17 +2798,26 @@ const PLANE = (() => {
     }
     // 札は近い機体から置き、重なるときは遠いほうを省く
     labs.sort((a, b) => a.dist - b.dist);
+    const PB = [];   // 置いた飛行機の札
     for(const it of labs){
       const { o, p } = it;
       // 札：航空会社コード＋行き先（分かれば）、2行目に高度
       const icao = /^[A-Z]{3}\d/.test(o.cs) ? o.cs.slice(0, 3) : "", al = AL[icao], rt = routes[o.cs];
       const code = al && al[0] ? al[0] : "", col = al ? al[1] : "#4b5563";
       const l1 = rt ? `${rt[0]}→${rt[rt.length-1]}` : (o.cs || o.reg || ""), l2 = `高度 ${Math.round(o.alt/100)*100 >= 1000 ? (Math.round(o.alt/100)*100).toLocaleString() : Math.round(o.alt/10)*10}m`;
-      const lx = p.x + 12, ly = p.y + 5;
-      x.font = '700 10px "Zen Maru Gothic",sans-serif'; const w1 = x.measureText(l1).width, bw = code ? 20 : 0, tw = bw + (code ? 4 : 0) + w1;
-      const right = lx + tw > Wc - 4, bx = Math.max(4, Math.min(Wc - 4 - tw, right ? p.x - 12 - tw : lx));   // 画面の端で切れないように
-      const box = { x:bx, y:ly - 10, w:tw, h:24 };
-      if(LB && LB.some(q => box.x < q.x + q.w + 2 && q.x < box.x + box.w + 2 && box.y < q.y + q.h + 2 && q.y < box.y + box.h + 2)) continue;   // 文字が重なるときは札を省く
+      x.font = '700 10px "Zen Maru Gothic",sans-serif'; const w1 = x.measureText(l1).width, bw = code ? 20 : 0, tw = Math.max(bw + (code ? 4 : 0) + w1, 52);
+      // 置き場所の候補：右・左・下・上。星座名などと重ならない所を探し、どこも重なるなら星座名などの上に重ねて出す。
+      // ほかの飛行機の札とだけは重ねない（重なるときは遠いほうを省く）
+      const hitB = (b, q) => b.x < q.x + q.w + 2 && q.x < b.x + b.w + 2 && b.y < q.y + q.h + 2 && q.y < b.y + b.h + 2;
+      const cands = [[p.x + 12, p.y + 5], [p.x - 12 - tw, p.y + 5], [p.x - tw/2, p.y + 24], [p.x - tw/2, p.y - 22]]
+        .map(([bx0, ly0]) => { const bx1 = Math.max(4, Math.min(Wc - 4 - tw, bx0)); return { bx:bx1, ly:ly0, box:{ x:bx1, y:ly0 - 10, w:tw, h:24 } }; });
+      let pick = cands.find(c => !(LB || []).some(q => hitB(c.box, q)));
+      let over = false;
+      if(!pick){ pick = cands.find(c => !PB.some(q => hitB(c.box, q))); over = true; }
+      if(!pick) continue;
+      const { bx, ly, box } = pick; PB.push(box);
+      // 星座名などの上に重ねるときは、読みやすいように暗い下地を敷く
+      if(over){ x.fillStyle = "rgba(8,12,24,.78)"; x.beginPath(); x.roundRect ? x.roundRect(box.x - 3, box.y - 4, box.w + 6, box.h + 5, 4) : x.rect(box.x - 3, box.y - 4, box.w + 6, box.h + 5); x.fill(); }
       if(LB) LB.push(box);
       { const hh = HIT.find(q => q.o === o); if(hh) hh.lb = box; }
       if(code){ x.fillStyle = col; x.beginPath(); x.roundRect ? x.roundRect(bx, ly - 9, 20, 12, 3) : x.rect(bx, ly - 9, 20, 12); x.fill(); x.strokeStyle = "rgba(255,255,255,.7)"; x.lineWidth = .6; x.stroke();
@@ -3122,9 +3131,12 @@ function namePlaces(lat, lon){
     // 下から上へ：手前から奥へ距離が増える
     let rNear = -1, rAt = -1;
     for(let r=H-1; r>=0; r--){ const i = r*W + c; if(Number.isNaN(pn.elevA[i])) continue; const dd = pn.distA[i]; if(dd < d*.95) rNear = r; else { rAt = r; break; } }
-    let alt;
-    if(q.mt && q.h > 0){
-      alt = Math.atan2(q.h - d*d/(2*Re)*.87 - T.eye, d)*R2D;
+    let alt, hh = q.h;
+    if(q.mt && hh > 0){
+      // 登録された標高を地形のデータと比べる：大きく高すぎるときは、フィートで書かれたものとみなして直すか、地形の高さを使う
+      let dem = -1; for(let r=H-1; r>=0; r--){ const i = r*W + c; if(Number.isNaN(pn.elevA[i])) continue; const dd = pn.distA[i]; if(dd > d*1.15) break; if(dd >= d*.85) dem = Math.max(dem, pn.elevA[i]); }
+      if(dem >= 0 && hh - dem > 400){ const ft = hh/3.2808; hh = Math.abs(ft - dem) < 250 ? Math.round(ft) : Math.round(dem); }
+      alt = Math.atan2(hh - d*d/(2*Re)*.87 - T.eye, d)*R2D;
       if(rNear >= 0 && top - rNear*res > alt + .05){
         // 山頂が手前の稜線に隠れていても、隠しているのがその山自身の斜面（山頂から4割以内の距離）なら、見えている稜線の上に名前を出す
         let rOwn = -1, rFar = -1;   // rFar：山の手前4割より近い地面の一番上
@@ -3134,7 +3146,7 @@ function namePlaces(lat, lon){
       }
     }
     else{ if(rAt < 0 || pn.distA[rAt*W + c] > d*1.1 + 400) continue; alt = top - (rAt + .5)*res; }
-    out.push({ ...q, az, d, alt });
+    out.push({ ...q, h:hh, az, d, alt });
   }
   return out;
 }
