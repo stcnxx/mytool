@@ -225,6 +225,9 @@ body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opa
 .wcs-list li:hover{background:#f1f5f9}
 .wcs-list .sub{color:#64748b;font-size:.8rem}
 .wcs-list .tm{font-variant-numeric:tabular-nums;color:#334155;white-space:nowrap}
+.wc-row{position:relative;min-width:0}.wc-row .wc{display:block;width:100%}.wc-h{cursor:default}.wc-row .wc-city{padding-right:76px;overflow:hidden}.wc-row .wc-h .wc-city{padding-right:92px}
+.wc-go{position:absolute;top:1px;right:0;font:inherit;font-size:.6rem;font-weight:700;line-height:1.3;border:1px solid rgba(127,140,160,.45);background:rgba(255,255,255,.12);color:inherit;border-radius:7px;padding:1px 6px;cursor:pointer;white-space:nowrap}.wc-go:disabled{opacity:.5}
+.wc-back{background:#3b6fd8;border-color:#3b6fd8;color:#fff}
 .wc-city{font-size:.72rem;color:var(--muted);display:flex;align-items:center;gap:3px;white-space:nowrap}
 .wc-city svg{width:10px;height:12px;flex:none}
 .wc-time{font-size:.9rem;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -475,7 +478,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-13 11:27</div>
+  <div style="margin-bottom:4px">版：2026-11-13 13:00</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -886,6 +889,9 @@ function renderPlace(placeDemo){
   if(placeDemo || S.demoLoc) html += DEMO_TAG;
   if(S.locMsg) html += `<div class="err" style="font-size:.8rem">${esc(S.locMsg)} <button id="retryLoc" style="padding:2px 8px">再取得</button></div>`;
   $("#place").innerHTML = html;
+  // 現在地（GPS）を表示しているときは、その地名と時間帯を覚えておく（選んだ場所に移ったとき、世界時計の1番目に出す）
+  if(!S.chosen && !placeDemo && !S.demoLoc && (S.city || S.prefName || S.town)){ const hp = { name:S.town && !S.abroad ? `${S.city}${S.town ? " " + S.town : ""}` : (S.city || S.prefName || S.country), tz:Intl.DateTimeFormat().resolvedOptions().timeZone };
+    const old = load("homePlace"); if(!old || old.name !== hp.name || old.tz !== hp.tz){ store("homePlace", hp); renderWorldClocks(); } }
   const b = $("#retryLoc"); if(b) b.onclick = () => { S.locMsg = ""; locate(); };
 }
 
@@ -3363,7 +3369,7 @@ function tickClock(){
 /* ---------- 世界時計（2つ。タップで都市を変更） ---------- */
 const WC_CITIES = [["ニューヨーク","America/New_York"],["ロンドン","Europe/London"],["パリ","Europe/Paris"],["ロサンゼルス","America/Los_Angeles"],["ホノルル","Pacific/Honolulu"],["シドニー","Australia/Sydney"],["ソウル","Asia/Seoul"],["上海","Asia/Shanghai"],["シンガポール","Asia/Singapore"],["バンコク","Asia/Bangkok"],["ドバイ","Asia/Dubai"],["ベルリン","Europe/Berlin"],["サンパウロ","America/Sao_Paulo"],["UTC","UTC"]];
 let WC = [["ニューヨーク","America/New_York"],["ロンドン","Europe/London"]];
-try{ const v = JSON.parse(localStorage.getItem("wclocks")); if(Array.isArray(v) && v.every(x => Array.isArray(x) && x.length === 2)) WC = v; }catch(_){}
+try{ const v = JSON.parse(localStorage.getItem("wclocks")); if(Array.isArray(v) && v.every(x => Array.isArray(x) && x.length >= 2 && typeof x[0] === "string" && typeof x[1] === "string")) WC = v; }catch(_){}
 const WC_MAX = 6;
 function wcSave(){ try{ localStorage.setItem("wclocks", JSON.stringify(WC)); }catch(_){} }
 const PIN_S = '<svg viewBox="0 0 24 30" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 2C6.6 2 2.5 6.1 2.5 11.3 2.5 18.4 11 26.6 11.4 27c.3.3.9.3 1.2 0 .4-.4 8.9-8.6 8.9-15.7C21.5 6.1 17.4 2 12 2z"/><circle cx="12" cy="11" r="3.4"/></svg>';
@@ -3374,13 +3380,19 @@ function wcParts(tz, d){
 }
 function renderWorldClocks(){
   const d = new Date(), ad = $("#wcAdd"); if(ad) ad.hidden = WC.length >= WC_MAX;
-  $("#wclocks").innerHTML = WC.map(([name, tz], i) => `<button class="wc" data-i="${i}" title="タップで都市を変更"><div class="wc-city">${PIN_S}${esc(name)}</div><div class="wc-time">${wcParts(tz, d)}</div></button>`).join("");
+  // 選んだ場所を表示中は、1番目に現在地（GPSの場所）と「現在地に戻る」。移動元の時計は、その間は出さない
+  let h = "";
+  if(S.chosen){ const hp = load("homePlace") || {}, htz = hp.tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    h += `<div class="wc-row"><div class="wc wc-h"><div class="wc-city">${PIN_S}現在地${hp.name ? "（" + esc(hp.name) + "）" : ""}</div><div class="wc-time">${wcParts(htz, d)}</div></div><button type="button" class="wc-go wc-back">現在地に戻る</button></div>`; }
+  h += WC.map(([name, tz], i) => (S.chosen && S.chosen.fromWc === name + "|" + tz) ? "" :
+    `<div class="wc-row"><button class="wc" data-i="${i}" title="タップで都市を変更"><div class="wc-city">${PIN_S}${esc(name)}</div><div class="wc-time">${wcParts(tz, d)}</div></button><button type="button" class="wc-go" data-go="${i}">ここに移動</button></div>`).join("");
+  $("#wclocks").innerHTML = h;
 }
 // 都市の検索（よく使う都市は手元で即時に、それ以外は Open-Meteo の地名検索で）
 let WC_EDIT = 0, WC_T = 0;
 function wcOpen(i){ ovOpen("wc", () => { $("#wcSheet").hidden = true; }); WC_EDIT = i; $("#wcsTitle").textContent = i >= WC.length ? "時計を追加" : `${i+1}つ目の時計の都市`; $("#wcsDel").hidden = i >= WC.length; $("#wcSheet").hidden = false; $("#wcsInput").value = ""; wcSearch(""); setTimeout(() => $("#wcsInput").focus(), 50); }
 function wcClose(){ ovClose("wc"); }
-function wcItem(name, sub, tz){ return `<li data-name="${esc(name)}" data-tz="${esc(tz)}"><span>${esc(name)} <span class="sub">${esc(sub)}</span></span><span class="tm">${wcParts(tz, new Date()).split(" ")[1]}</span></li>`; }
+function wcItem(name, sub, tz, lat, lon){ return `<li data-name="${esc(name)}" data-tz="${esc(tz)}"${lat != null ? ` data-lat="${lat}" data-lon="${lon}"` : ""}><span>${esc(name)} <span class="sub">${esc(sub)}</span></span><span class="tm">${wcParts(tz, new Date()).split(" ")[1]}</span></li>`; }
 async function wcSearch(q){
   q = q.trim(); const list = $("#wcsList");
   const local = WC_CITIES.filter(([n, tz]) => !q || n.includes(q) || tz.toLowerCase().includes(q.toLowerCase()));
@@ -3391,18 +3403,35 @@ async function wcSearch(q){
       const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=ja&format=json`, { keep:true });
       if($("#wcsInput").value.trim() !== q) return;
       const seen = new Set(local.map(x => x[0]));
-      const more = (j.results || []).filter(r => r.timezone && !seen.has(r.name)).map(r => wcItem(r.name, [r.admin1, r.country].filter(Boolean).join("・"), r.timezone));
+      const more = (j.results || []).filter(r => r.timezone && !seen.has(r.name)).map(r => wcItem(r.name, [r.admin1, r.country].filter(Boolean).join("・"), r.timezone, +r.latitude.toFixed(4), +r.longitude.toFixed(4)));
       list.innerHTML = local.map(([n, tz]) => wcItem(n, tz.replace(/_/g, " "), tz)).join("") + more.join("") || '<li class="sub">見つかりませんでした</li>';
     }catch(e){ if(!local.length) list.innerHTML = '<li class="sub">検索できませんでした（通信を確認してください）</li>'; }
   }, 350);
 }
+// 世界時計の都市へ移動：座標がなければ地名検索で調べる（時間帯が合う候補を優先）
+async function wcGo(i, btn){
+  const e = WC[i]; if(!e) return;
+  let [name, tz, lat, lon] = e;
+  if(btn){ btn.disabled = true; btn.textContent = "移動中…"; }
+  if(lat == null){
+    try{ const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=10&language=ja&format=json`, { keep:true });
+      const rs = j.results || [], r = rs.find(r => r.timezone === tz) || rs[0];
+      if(r){ lat = +r.latitude.toFixed(4); lon = +r.longitude.toFixed(4); WC[i] = [name, tz, lat, lon]; wcSave(); } }catch(_){}
+  }
+  if(lat == null){ if(btn){ btn.textContent = "調べられません"; setTimeout(() => { btn.disabled = false; btn.textContent = "ここに移動"; }, 2500); } return; }
+  useChosen({ name, sub:tz.replace(/_/g, " "), lat, lon, tz, fromWc:name + "|" + tz });
+  renderWorldClocks();
+}
 function wcSetup(){
-  $("#wclocks").addEventListener("click", e => { const b = e.target.closest(".wc"); if(b) wcOpen(+b.dataset.i); });
+  $("#wclocks").addEventListener("click", e => {
+    if(e.target.closest(".wc-back")){ useHere(); renderWorldClocks(); return; }
+    const g = e.target.closest(".wc-go[data-go]"); if(g){ wcGo(+g.dataset.go, g); return; }
+    const b = e.target.closest(".wc[data-i]"); if(b) wcOpen(+b.dataset.i); });
   $("#wcsClose").onclick = wcClose;
   $("#wcSheet").addEventListener("click", e => { if(e.target.id === "wcSheet") wcClose(); });
   $("#wcsInput").addEventListener("input", e => wcSearch(e.target.value));
   $("#wcsList").addEventListener("click", e => { const li = e.target.closest("li[data-tz]"); if(!li) return;
-    WC[Math.min(WC_EDIT, WC.length)] = [li.dataset.name, li.dataset.tz]; wcSave();
+    WC[Math.min(WC_EDIT, WC.length)] = li.dataset.lat ? [li.dataset.name, li.dataset.tz, +li.dataset.lat, +li.dataset.lon] : [li.dataset.name, li.dataset.tz]; wcSave();
     renderWorldClocks(); wcClose(); if(!$("#tzxSheet").hidden) tzxRender(); });
   $("#wcsDel").onclick = () => { if(WC_EDIT < WC.length){ WC.splice(WC_EDIT, 1); wcSave(); renderWorldClocks(); } wcClose(); };
   $("#wcAdd").onclick = () => { if(WC.length < WC_MAX) wcOpen(WC.length); };
@@ -3415,7 +3444,12 @@ try{ const v = +localStorage.getItem("tzxHrs"); if(v >= 8 && v <= 24) TZX.hrs = 
 const tzOffMin = (tz, ms) => { const f = new Intl.DateTimeFormat("en-US", { timeZone:tz, hourCycle:"h23", year:"numeric", month:"numeric", day:"numeric", hour:"numeric", minute:"numeric" }), o = {};
   for(const p of f.formatToParts(new Date(ms))) o[p.type] = p.value;
   return Math.round((Date.UTC(+o.year, +o.month - 1, +o.day, +o.hour % 24, +o.minute) - Math.floor(ms/60000)*60000)/60000); };
-const tzxZones = () => [[S.chosen ? `現在地（${S.chosen.name}）` : "現在地", S.tz || Intl.DateTimeFormat().resolvedOptions().timeZone]].concat(WC);
+const tzxZones = () => {
+  if(!S.chosen) return [["現在地", S.tz || Intl.DateTimeFormat().resolvedOptions().timeZone]].concat(WC.map(w => [w[0], w[1]]));
+  const hp = load("homePlace") || {};
+  return [[`表示中：${S.chosen.name}`, S.tz || Intl.DateTimeFormat().resolvedOptions().timeZone], [hp.name ? `現在地（${hp.name}）` : "現在地", hp.tz || Intl.DateTimeFormat().resolvedOptions().timeZone]]
+    .concat(WC.filter(w => S.chosen.fromWc !== w[0] + "|" + w[1]).map(w => [w[0], w[1]]));
+};
 // タイムゾーンの略称（JST・EST/EDT・GMT/BST など）。略称がない所は UTC+8 の形
 const TZ_AB = { "Asia/Tokyo":"JST", "Asia/Seoul":"KST", "Asia/Shanghai":"CST", "Asia/Taipei":"CST", "Asia/Hong_Kong":"HKT", "Asia/Singapore":"SGT", "Asia/Kuala_Lumpur":"MYT", "Asia/Bangkok":"ICT", "Asia/Ho_Chi_Minh":"ICT", "Asia/Jakarta":"WIB", "Asia/Manila":"PHT", "Asia/Kolkata":"IST", "Asia/Calcutta":"IST", "Asia/Dubai":"GST", "Europe/Moscow":"MSK", "Asia/Karachi":"PKT", "Asia/Kathmandu":"NPT", "Pacific/Auckland":"NZT" };
 function tzAbbr(tz, ms){
