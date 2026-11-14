@@ -243,6 +243,9 @@ body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opa
 .chip b{margin-left:4px}.st-ok b{color:var(--ok)}.st-bad{background:#fee2e2;color:#991b1b}.st-bad b{color:#dc2626}.st-unk b{color:var(--muted)}
 #skyCard{padding:0;overflow:hidden}
 #skyCard h2{padding:14px 16px 0}
+.sv-lift{display:flex;align-items:center;gap:10px;padding:10px 0 0}.sv-lift-k{font-size:.78rem;font-weight:700;flex:none}.sv-lift-r{flex:1;min-width:0}
+.sv-lift input{width:100%;margin:0;accent-color:#3b6fd8}.sv-lift-e{display:flex;justify-content:space-between;font-size:.66rem;color:var(--muted);margin-top:-1px}
+#svLiftV{flex:none;min-width:4.6em;text-align:right;font-size:.85rem;font-variant-numeric:tabular-nums}
 #skyInfo{padding:8px 16px 0;font-size:.8rem;color:var(--muted);white-space:pre-line;line-height:1.55}
 #skyv{position:relative;height:440px;background:#000;overflow:hidden;touch-action:pan-y;-webkit-user-select:none;user-select:none}
 #skyv:fullscreen{height:100%;border-radius:0}
@@ -473,12 +476,13 @@ footer{background:none!important}
         <button type="button" id="svFull" aria-pressed="false"><b>全画面</b></button>
       </div>
     </div>
+    <div class="sv-lift"><span class="sv-lift-k">高さ</span><div class="sv-lift-r"><input type="range" id="svLift" min="0" max="3000" step="50" aria-label="視点の高さ（地面から）"><div class="sv-lift-e"><span>+0m</span><span>+3000m</span></div></div><b id="svLiftV">+1000m</b></div>
     <div id="skyInfo"></div>
   </section>
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-13 13:37</div>
+  <div style="margin-bottom:4px">版：2026-11-14 14:59</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2748,7 +2752,7 @@ const PLANE = (() => {
     const R = 6371e3, f0 = sk.lat*D2R, l0 = sk.lon*D2R, f = lat*D2R, l = lon*D2R;
     const ecef = (ff, ll, h) => [(R+h)*Math.cos(ff)*Math.cos(ll), (R+h)*Math.cos(ff)*Math.sin(ll), (R+h)*Math.sin(ff)];
     // 視点は上空（標高1000m）
-    const o = ecef(f0, l0, TERR.eye || EYE_ALT), p = ecef(f, l, alt), d = [p[0]-o[0], p[1]-o[1], p[2]-o[2]];
+    const o = ecef(f0, l0, TERR.eye || (TERR.elev || 0) + LIFT), p = ecef(f, l, alt), d = [p[0]-o[0], p[1]-o[1], p[2]-o[2]];
     const e = -Math.sin(l0)*d[0] + Math.cos(l0)*d[1];
     const n = -Math.sin(f0)*Math.cos(l0)*d[0] - Math.sin(f0)*Math.sin(l0)*d[1] + Math.cos(f0)*d[2];
     const u = Math.cos(f0)*Math.cos(l0)*d[0] + Math.cos(f0)*Math.sin(l0)*d[1] + Math.sin(f0)*d[2];
@@ -2952,9 +2956,11 @@ function demTile(z, X, Y, src){
 }
 /* 星空ビューの視点：標高1000mに浮かんで見下ろす（その場所の地面が900mより高いときは地面の100m上） */
 const EYE_ALT = 1000;
-// 見下ろした地面の絵（方角×角度）。横は1/3°ごと、縦は+60°〜-61°を0.25°ごと（視点より高い山も地平線の上に描けるように）
-const PAN = { W:1080, H:484, top:60, res:.25, R:100000 };
-async function computeTerrain(lat, lon){
+// 視点の高さ：その場所の地面から +0〜+3000m（星空ビューの下のつまみで変える）
+let LIFT = 1000; try{ const v = localStorage.getItem("skyLift"); if(v != null && +v >= 0 && +v <= 3000) LIFT = +v; }catch(_){}
+// 見下ろした地面の絵（方角×角度）。横は1/3°ごと、縦は+80°〜-61°を0.25°ごと（すぐ近くの高い山の頂上まで描けるように）
+const PAN = { W:1080, H:564, top:80, res:.25, R:100000 };
+async function computeTerrain(lat, lon, lift){
   const Re = 6371000, jp = inJapanBox(lat, lon);
   const grid = async (z, R) => {
     const n = 2**z, tx = (lon+180)/360*n, ty = (1 - Math.log(Math.tan(lat*D2R) + 1/Math.cos(lat*D2R))/Math.PI)/2*n;
@@ -2975,12 +2981,15 @@ async function computeTerrain(lat, lon){
       return src === "gsi" ? (Number.isNaN(v) ? SEA : v) : (v <= 0 ? SEA : v); };
     return { got, mpp, at };
   };
-  // 近く（12km以内）は細かいデータ、遠く（100kmまで）は粗いデータ
-  const [near, far] = await Promise.all([grid(12, 12500), grid(9, PAN.R)]);   // 近く25枚＋遠く25枚
+  // 近く（12km以内）は細かいデータ、遠く（100kmまで）は粗いデータ。同じ場所なら読んだタイルを使い回す（高さを変えたときにすぐ計算し直せるように）
+  const gk = lat.toFixed(3) + "," + lon.toFixed(3);
+  if(!TERR.grids || TERR.grids.k !== gk) TERR.grids = { k:gk, p:Promise.all([grid(12, 12500), grid(9, PAN.R)]) };
+  let near, far; try{ [near, far] = await TERR.grids.p; }catch(e){ TERR.grids = null; throw e; }
+  if(!near.got && !far.got) TERR.grids = null;
   if(!near.got && !far.got) throw new Error("標高タイルが1枚も読めません");
   const elevAt = (ex, ny, d) => { let v = d < 11500 && near.got ? near.at(ex, ny) : null; if(v == null) v = far.at(ex, ny); return v; };
   const c0 = near.got ? near.at(0, 0) : far.at(0, 0), h0 = c0 == null || c0 === -9999 ? 0 : Math.max(0, c0);
-  const eye = Math.max(EYE_ALT, h0 + 100);
+  const eye = h0 + Math.max(2, lift);   // 地面から lift m の高さ（+0mのときは目の高さ2m）
   const { W, H, top, res, R } = PAN, N = W*H;
   const elevA = new Float32Array(N).fill(NaN), distA = new Float32Array(N), gxA = new Float32Array(N), gyA = new Float32Array(N), coastA = new Uint8Array(N);
   const prof = new Float32Array(360).fill(-90), dip = -Math.sqrt(2*eye/Re)*R2D;
@@ -3018,21 +3027,23 @@ const TDB = { db:null };
 function tdb(){ if(TDB.db) return TDB.db; TDB.db = new Promise((res, rej) => { try{ const r = indexedDB.open("myspot-terrain", 1); r.onupgradeneeded = () => r.result.createObjectStore("t"); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }catch(e){ rej(e); } }); return TDB.db; }
 async function tdbGet(k){ try{ const db = await tdb(); return await new Promise(res => { const q = db.transaction("t").objectStore("t").get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); }catch(_){ return null; } }
 async function tdbPut(k, v){ try{ const db = await tdb(); const st = db.transaction("t", "readwrite").objectStore("t");
-  st.put({ ...v, t:Date.now(), ver:4 }, k);
+  st.put({ ...v, t:Date.now(), ver:5 }, k);
   const ks = await new Promise(res => { const q = st.getAllKeys(); q.onsuccess = () => res(q.result); q.onerror = () => res([]); });
-  if(ks.length > 4){ const all = await Promise.all(ks.map(async kk => [kk, (await tdbGet(kk) || {}).t || 0])); all.sort((a, b) => a[1] - b[1]); const tx = db.transaction("t", "readwrite").objectStore("t"); all.slice(0, ks.length - 4).forEach(([kk]) => tx.delete(kk)); }
+  if(ks.length > 8){ const all = await Promise.all(ks.map(async kk => [kk, (await tdbGet(kk) || {}).t || 0])); all.sort((a, b) => a[1] - b[1]); const tx = db.transaction("t", "readwrite").objectStore("t"); all.slice(0, ks.length - 8).forEach(([kk]) => tx.delete(kk)); }
 }catch(_){} }
-async function terrainCached(lat, lon, key){
+async function terrainCached(lat, lon, key, lift){
   const c = await tdbGet(key);
-  if(c && c.ver === 4 && Date.now() - c.t < 60*864e5 && c.pan && c.pan.elevA && c.pan.elevA.length === PAN.W*PAN.H) return c;
-  const r = await computeTerrain(lat, lon); tdbPut(key, r); return r;
+  if(c && c.ver === 5 && Date.now() - c.t < 60*864e5 && c.pan && c.pan.elevA && c.pan.elevA.length === PAN.W*PAN.H) return c;
+  const r = await computeTerrain(lat, lon, lift); tdbPut(key, r); return r;
 }
 function loadTerrain(lat, lon){
-  const key = lat.toFixed(3) + "," + lon.toFixed(3);
+  const lift = LIFT, pk = lat.toFixed(3) + "," + lon.toFixed(3), key = pk + "," + lift;
   loadNames(lat, lon);   // 失敗していたら10分ごとに取り直す
   if(TERR.key === key && TERR.ready) return TERR.ready;
-  TERR.key = key; TERR.prof = null; TERR.elev = null; TERR.pan = null; TERR.ck = ""; TERR.eye = null; TERR.st = "読み込み中";
-  TERR.ready = terrainCached(lat, lon, key).then(r => { if(TERR.key === key){ TERR.prof = r.prof; TERR.elev = r.elev; TERR.eye = r.eye; TERR.pan = r.pan; TERR.ck = ""; TERR.st = ""; } return r; },
+  const same = TERR.key && TERR.key.startsWith(pk + ",");   // 高さだけ変えたときは、計算が終わるまで今の地面を出しておく
+  TERR.key = key; TERR.st = "計算中";
+  if(!same){ TERR.prof = null; TERR.elev = null; TERR.pan = null; TERR.ck = ""; TERR.eye = null; TERR.st = "読み込み中"; }
+  TERR.ready = terrainCached(lat, lon, key, lift).then(r => { if(TERR.key === key){ TERR.prof = r.prof; TERR.elev = r.elev; TERR.eye = r.eye; TERR.pan = r.pan; TERR.ck = ""; TERR.st = ""; } return r; },
     e => { if(TERR.key === key){ TERR.st = "取得できませんでした（" + (e && e.message || e) + "）"; TERR.ready = null; TERR.key = ""; } throw e; });
   return TERR.ready;
 }
@@ -3068,7 +3079,7 @@ function terrColor(sa, sun, hor){
 }
 // 天体の説明欄に出す地形・地名の状況
 function terrStatus(){
-  const t = TERR.pan ? `上空${Math.round(TERR.eye)}mから` : TERR.st ? TERR.st : "読み込み中";
+  const t = TERR.pan ? `地面から+${LIFT}m（標高${Math.round(TERR.eye)}m）から${TERR.st === "計算中" ? "・計算中" : ""}` : TERR.st ? TERR.st : "読み込み中";
   const c = v => v == null ? "×" : v;
   const n = NAMES.list ? `市区町村${c(NAMES.nTown)}・山${c(NAMES.nMt)}（見える${NAMES.vis || 0}）` + (NAMES.st ? "・" + NAMES.st : "") : (NAMES.st || "読み込み中");
   return `地形：${t}・地名：${n}`;
@@ -3221,6 +3232,12 @@ function setupUI(){
   setTog(pb, SKYV.plane); if(SKYV.plane) PLANE.toggle(true);
   ov.querySelector('#svLines').onclick = e => { SKYV.lines = !SKYV.lines; setTog(e.currentTarget, SKYV.lines); };
   // 地形：地名と山の名前のオン・オフ（地形そのものはいつも描く）
+  // 視点の高さ：動かすとすぐ数字を変え、指を止めて少し待ってから地形を計算し直す
+  { const lr = $("#svLift"), lv = $("#svLiftV"); let lt = 0;
+    const show = () => { lv.textContent = `+${LIFT}m`; };
+    lr.value = LIFT; show();
+    lr.addEventListener("input", () => { LIFT = +lr.value; show(); try{ localStorage.setItem("skyLift", LIFT); }catch(_){}
+      clearTimeout(lt); lt = setTimeout(() => { if(S.lat != null) Sky.terrain(S.lat, S.lon).catch(() => {}); infoAt = 0; updateInfo(); }, 350); }); }
   const tb = ov.querySelector('#svTerr');
   tb.onclick = () => { SKYV.terr = !SKYV.terr; setTog(tb, SKYV.terr); try{ localStorage.setItem('skyTerr', SKYV.terr ? '1' : '0'); }catch(_){} if(SKYV.terr && S.lat != null) loadNames(S.lat, S.lon); infoAt = 0; updateInfo(); };
   try{ SKYV.terr = localStorage.getItem('skyTerr') !== '0'; }catch(_){ SKYV.terr = true; }
