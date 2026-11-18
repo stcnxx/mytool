@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>GPSドライブ ― ゴールを目指せ</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#0d1117;color:#fff;font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;user-select:none;-webkit-user-select:none;touch-action:none}
+#game{position:fixed;inset:0}
+#game canvas{display:block;width:100%;height:100%}
+.hidden{display:none!important}
+.overlay{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));background:radial-gradient(ellipse at top,#1f3a5a 0%,#0d1117 70%);z-index:20;overflow:auto}
+.overlay.dim{background:rgba(8,12,18,.72);backdrop-filter:blur(3px)}
+.card{width:min(440px,100%);background:rgba(20,28,38,.92);border:1px solid #2c3b4d;border-radius:18px;padding:22px 20px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.card h1{margin:0 0 4px;font-size:26px;letter-spacing:.02em}
+.card h1 span{color:#ffd84a}
+.card p{margin:6px 0;color:#b8c4d2;font-size:14px;line-height:1.6}
+.card h2{margin:0 0 10px;font-size:22px}
+.btn{display:block;width:100%;margin-top:10px;padding:14px 12px;border:0;border-radius:12px;font-size:17px;font-weight:700;color:#0d1117;background:#ffd84a;cursor:pointer}
+.btn:active{transform:scale(.98)}
+.btn.sub{background:#2a3a4e;color:#e6edf5}
+.btn.ghost{background:transparent;border:1px solid #3a4b60;color:#c8d3df}
+.row{display:flex;gap:8px;align-items:center;margin-top:10px}
+.row label{font-size:14px;color:#b8c4d2;white-space:nowrap}
+select,input{flex:1;min-width:0;padding:11px 10px;border-radius:10px;border:1px solid #3a4b60;background:#121a24;color:#fff;font-size:15px}
+details{margin-top:10px;border-top:1px solid #2c3b4d;padding-top:8px}
+summary{cursor:pointer;color:#9fc3ff;font-size:14px;padding:4px 0}
+.small{font-size:12px;color:#8193a8}
+#loadMsg{font-size:16px;margin:6px 0 2px}
+#loadSub{font-size:13px;color:#8fa3b8;min-height:1.2em}
+.spinner{width:34px;height:34px;border:4px solid #2c3b4d;border-top-color:#ffd84a;border-radius:50%;animation:sp 0.9s linear infinite;margin:4px 0 10px}
+@keyframes sp{to{transform:rotate(360deg)}}
+.err{color:#ff8a80}
+/* HUD */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10}
+#nav{position:absolute;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:12px;background:rgba(10,16,24,.82);border:1px solid #2f4a66;border-radius:16px;padding:8px 16px 8px 10px;min-width:230px;max-width:calc(100% - 200px)}
+#navIcon{width:58px;height:58px;flex:none;display:flex;align-items:center;justify-content:center;font-size:40px;background:#1c6fd1;border-radius:12px}
+#navArrow{width:46px;height:46px;transition:transform .25s}
+#navDist{font-size:28px;font-weight:800;line-height:1.05}
+#navText{font-size:15px;color:#cfe3ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#nav.warn #navIcon{background:#d14b1c}
+#nav.goal #navIcon{background:#1f9d55}
+#stats{position:absolute;top:max(10px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left));background:rgba(10,16,24,.75);border-radius:12px;padding:8px 10px;font-size:13px;line-height:1.5;min-width:108px}
+#stats b{font-size:18px}
+#spd{font-size:30px;font-weight:800;line-height:1}
+#mmWrap{position:absolute;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));pointer-events:auto}
+#mm{width:140px;height:140px;border-radius:50%;border:2px solid #2f4a66;background:#1d2b22;display:block}
+#roadName{position:absolute;bottom:calc(150px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);font-size:14px;background:rgba(10,16,24,.6);padding:3px 12px;border-radius:20px;color:#dde7f2;white-space:nowrap}
+#roadName:empty{display:none}
+#topBtns{position:absolute;top:calc(max(10px,env(safe-area-inset-top)) + 150px);right:max(10px,env(safe-area-inset-right));display:flex;flex-direction:column;gap:8px;pointer-events:auto}
+.hbtn{pointer-events:auto;border:0;border-radius:12px;background:rgba(10,16,24,.8);color:#fff;font-size:14px;padding:9px 12px;border:1px solid #2f4a66}
+.hbtn.on{background:#1c6fd1}
+#respawn.alert{background:#d14b1c;animation:bl 1s infinite}
+@keyframes bl{50%{opacity:.6}}
+#attr{position:absolute;bottom:max(4px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,.75);text-shadow:0 0 3px #000;white-space:nowrap}
+#hint{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);font-size:18px;background:rgba(10,16,24,.7);padding:10px 18px;border-radius:12px;text-align:center}
+/* touch controls */
+#ctrl{position:fixed;left:0;right:0;bottom:0;padding:0 max(14px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));display:flex;justify-content:space-between;align-items:flex-end;z-index:11;pointer-events:none}
+.pad{display:flex;gap:12px;pointer-events:auto}
+.cb{width:84px;height:84px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(20,30,44,.55);color:#fff;font-size:30px;font-weight:800;touch-action:none}
+.cb.on{background:rgba(255,216,74,.85);color:#0d1117}
+#bA{width:96px;height:120px;border-radius:22px;font-size:17px;background:rgba(31,157,85,.6)}
+#bB{width:80px;height:84px;border-radius:20px;font-size:15px;background:rgba(209,75,28,.55)}
+#bA.on{background:rgba(60,220,120,.95)}#bB.on{background:rgba(255,110,60,.95)}
+@media (min-width:900px) and (hover:hover){#ctrl{opacity:.55}}
+@media (max-height:500px){#mm{width:110px;height:110px}#topBtns{top:calc(max(10px,env(safe-area-inset-top)) + 118px)}#nav{min-width:200px}#navDist{font-size:22px}#navIcon{width:48px;height:48px}.cb{width:72px;height:72px}#bA{height:96px}#roadName{bottom:calc(115px + env(safe-area-inset-bottom))}}
+@media (max-width:520px){#nav{top:calc(max(10px,env(safe-area-inset-top)) + 150px);max-width:calc(100% - 20px)}#topBtns{top:calc(max(10px,env(safe-area-inset-top)) + 228px)}}
+.resultBig{font-size:40px;font-weight:800;color:#ffd84a;margin:6px 0}
+table.res{width:100%;font-size:15px;color:#cdd8e4;border-collapse:collapse}
+table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:700}
+</style>
+</head>
+<body>
+<div id="game"></div>
+
+<div id="hud" class="hidden">
+  <div id="stats">
+    <div><span id="spd">0</span> km/h</div>
+    <div>⏱ <b id="time">0:00.0</b></div>
+    <div>🏁 残り <b id="remain">-</b></div>
+  </div>
+  <div id="nav"><div id="navIcon"><svg id="navArrow" viewBox="0 0 48 48"><path d="M24 4 L40 24 H30 V44 H18 V24 H8 Z" fill="#fff"/></svg><span id="navEmoji" class="hidden"></span></div>
+    <div style="min-width:0"><div id="navDist">-</div><div id="navText">ルート計算中</div></div></div>
+  <div id="mmWrap"><canvas id="mm"></canvas></div>
+  <div id="topBtns">
+    <button class="hbtn" id="menuBtn">≡ メニュー</button>
+    <button class="hbtn" id="voiceBtn">🔈 音声</button>
+    <button class="hbtn" id="respawn">道路に戻る</button>
+  </div>
+  <div id="roadName"></div>
+  <div id="hint">アクセルで出発！<br><span class="small">PC：↑↓←→ / WASD・スペースでブレーキ</span></div>
+  <div id="attr"></div>
+</div>
+
+<div id="ctrl" class="hidden">
+  <div class="pad"><button class="cb" id="bL">◀</button><button class="cb" id="bR">▶</button></div>
+  <div class="pad"><button class="cb" id="bB">ブレーキ</button><button class="cb" id="bA">アクセル</button></div>
+</div>
+
+<!-- Title -->
+<div id="title" class="overlay">
+  <div class="card">
+    <h1>GPS<span>ドライブ</span></h1>
+    <p>現在地から半径5kmの実際の道路を3Dで再現。スタートと同時にゴールが決まります。曲がる方向は画面上部の案内に従ってください。</p>
+    <div class="row"><label>ゴール距離</label>
+      <select id="distSel"><option value="near">近い（1〜2km）</option><option value="mid" selected>ふつう（2〜3.5km）</option><option value="far">遠い（3.5km〜）</option></select></div>
+    <button class="btn" id="gpsBtn">📍 現在地でスタート</button>
+    <details>
+      <summary>場所を指定してスタート</summary>
+      <div class="row"><select id="preset">
+        <option value="">— 地点を選ぶ —</option>
+        <option value="35.6812,139.7671">東京駅</option>
+        <option value="35.6595,139.7005">渋谷駅</option>
+        <option value="35.1709,136.8815">名古屋駅</option>
+        <option value="34.9858,135.7588">京都駅</option>
+        <option value="34.7025,135.4959">大阪駅</option>
+        <option value="43.0687,141.3508">札幌駅</option>
+        <option value="33.5902,130.4207">博多駅</option>
+      </select></div>
+      <div class="row"><input id="coordIn" placeholder="緯度,経度（例 35.68,139.76）" inputmode="decimal"></div>
+      <button class="btn sub" id="placeBtn">この場所でスタート</button>
+    </details>
+    <button class="btn ghost" id="demoBtn">🎮 デモマップで遊ぶ（通信なし）</button>
+    <p class="small" style="margin-top:12px">位置情報と OpenStreetMap の道路データ（Overpass API）を使います。都市部は読み込みに数十秒かかることがあります。</p>
+  </div>
+</div>
+
+<!-- Loading -->
+<div id="loading" class="overlay hidden">
+  <div class="card">
+    <div class="spinner" id="spin"></div>
+    <div id="loadMsg">準備中…</div>
+    <div id="loadSub"></div>
+    <button class="btn sub" id="loadDemo">デモマップで遊ぶ</button>
+    <button class="btn ghost" id="loadCancel">キャンセルして戻る</button>
+  </div>
+</div>
+
+<!-- Pause -->
+<div id="pause" class="overlay dim hidden">
+  <div class="card">
+    <h2>一時停止</h2>
+    <button class="btn" id="resumeBtn">再開</button>
+    <button class="btn sub" id="pNewGoal">新しいゴールで走る</button>
+    <button class="btn ghost" id="pTitle">タイトルへ</button>
+  </div>
+</div>
+
+<!-- Result -->
+<div id="result" class="overlay dim hidden">
+  <div class="card">
+    <h2>🏁 ゴール！</h2>
+    <div class="resultBig" id="rTime">0:00.0</div>
+    <table class="res">
+      <tr><td>走行距離</td><td id="rOdo">-</td></tr>
+      <tr><td>最短ルート</td><td id="rBest">-</td></tr>
+      <tr><td>平均速度</td><td id="rAvg">-</td></tr>
+    </table>
+    <button class="btn" id="rNext">ここから次のゴールへ</button>
+    <button class="btn ghost" id="rTitle">タイトルへ</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const ROAD_W = {motorway:14,trunk:12,primary:10,secondary:9,tertiary:8,unclassified:6,residential:6,living_street:5,
+  motorway_link:7,trunk_link:7,primary_link:7,secondary_link:6,tertiary_link:6};
+const RADIUS = 5000;
+const OVERPASS = ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
+const CELL = 40;
+const DIST_RANGE = {near:[1000,2000],mid:[2000,3500],far:[3500,7000]};
+
+let renderer, scene, camera, carGroup, wheels=[], goalGroup, routeMesh=null, routeTex, roadTex;
+let worldObjs = [];
+let world = null, race = null, paused = false;
+let car = {x:0,z:0,h:0,v:0,steer:0,edge:-1,ns:null,offT:0};
+const input = {up:false,down:false,left:false,right:false};
+let loadToken = 0, loadAbort = null;
+let voiceOn = false;
+let mmZoomFar = false;
+
+/* ---------- 3D setup ---------- */
+function initThree(){
+  if(!window.THREE){ $('title').querySelector('.card').insertAdjacentHTML('beforeend','<p class="err">3Dライブラリを読み込めませんでした。通信環境を確認してください。</p>'); return false; }
+  try{ renderer = new THREE.WebGLRenderer({antialias:true}); }catch(e){
+    $('title').querySelector('.card').insertAdjacentHTML('beforeend','<p class="err">この端末では WebGL が使えません。</p>'); return false; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  $('game').appendChild(renderer.domElement);
+  scene = new THREE.Scene();
+  const sky = 0xa8d4f0;
+  scene.background = new THREE.Color(sky);
+  scene.fog = new THREE.Fog(sky, 180, 1100);
+  camera = new THREE.PerspectiveCamera(62, 1, 0.5, 2500);
+  camera.position.set(0,30,40); camera.lookAt(0,0,0);
+  scene.add(new THREE.HemisphereLight(0xdfefff, 0x4a5a3a, 0.85));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.7); sun.position.set(300,500,200); scene.add(sun);
+  // ground
+  const gTex = makeGroundTex(); gTex.repeat.set(750,750);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(30000,30000), new THREE.MeshBasicMaterial({map:gTex}));
+  ground.rotation.x = -Math.PI/2; ground.position.y = -0.2; scene.add(ground);
+  roadTex = makeRoadTex(); routeTex = makeRouteTex();
+  carGroup = makeCar(); scene.add(carGroup); carGroup.visible=false;
+  goalGroup = makeGoal(); scene.add(goalGroup); goalGroup.visible=false;
+  onResize(); window.addEventListener('resize', onResize);
+  return true;
+}
+function onResize(){
+  if(!renderer) return;
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setSize(w,h,false); camera.aspect = w/h; camera.updateProjectionMatrix();
+  const mm = $('mm'), d = Math.min(window.devicePixelRatio||1,2), r = mm.getBoundingClientRect();
+  mm.width = Math.max(100,r.width*d); mm.height = Math.max(100,r.height*d);
+}
+function canvasTex(w,h,draw){
+  const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h);
+  const t=new THREE.CanvasTexture(c); t.anisotropy = renderer.capabilities.getMaxAnisotropy(); return t;
+}
+function makeGroundTex(){
+  const t = canvasTex(128,128,(g,w,h)=>{
+    g.fillStyle='#6e9a58'; g.fillRect(0,0,w,h);
+    for(let i=0;i<900;i++){ const s=Math.random(); g.fillStyle=s<.5?'rgba(40,80,30,.25)':'rgba(170,200,120,.2)'; g.fillRect(Math.random()*w,Math.random()*h,2,2); }
+    g.strokeStyle='rgba(50,80,40,.25)'; g.lineWidth=2; g.strokeRect(0,0,w,h);
+  });
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; return t;
+}
+function makeRoadTex(){
+  const t = canvasTex(128,256,(g,w,h)=>{
+    g.fillStyle='#45484e'; g.fillRect(0,0,w,h);
+    for(let i=0;i<1500;i++){ g.fillStyle=Math.random()<.5?'rgba(0,0,0,.18)':'rgba(255,255,255,.07)'; g.fillRect(Math.random()*w,Math.random()*h,2,2); }
+    g.fillStyle='rgba(240,240,240,.9)'; g.fillRect(5,0,4,h); g.fillRect(w-9,0,4,h);
+    g.fillStyle='rgba(250,250,250,.9)'; g.fillRect(61,0,6,h/2);
+  });
+  t.wrapS=THREE.ClampToEdgeWrapping; t.wrapT=THREE.RepeatWrapping; return t;
+}
+function makeRouteTex(){
+  const t = canvasTex(64,64,(g,w,h)=>{
+    g.fillStyle='rgba(30,200,255,.55)'; g.fillRect(0,0,w,h);
+    g.strokeStyle='rgba(255,255,255,.95)'; g.lineWidth=9; g.lineCap='round'; g.lineJoin='round';
+    g.beginPath(); g.moveTo(14,44); g.lineTo(32,24); g.lineTo(50,44); g.stroke();
+  });
+  t.wrapS=THREE.ClampToEdgeWrapping; t.wrapT=THREE.RepeatWrapping; return t;
+}
+function makeCar(){
+  const g = new THREE.Group();
+  const red = new THREE.MeshLambertMaterial({color:0xe23b3b});
+  const dark = new THREE.MeshLambertMaterial({color:0x22303c});
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2,0.7,4.3), red); body.position.y=0.7; g.add(body);
+  const nose = new THREE.Mesh(new THREE.BoxGeometry(1.9,0.3,1.1), red); nose.position.set(0,1.1,-1.5); g.add(nose);
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7,0.62,2.0), dark); cabin.position.set(0,1.35,0.35); g.add(cabin);
+  const spoiler = new THREE.Mesh(new THREE.BoxGeometry(2,0.1,0.5), dark); spoiler.position.set(0,1.45,2.0); g.add(spoiler);
+  const wg = new THREE.CylinderGeometry(0.4,0.4,0.32,14); wg.rotateZ(Math.PI/2);
+  const wm = new THREE.MeshLambertMaterial({color:0x111111});
+  for(const [x,z] of [[-1,-1.4],[1,-1.4],[-1,1.4],[1,1.4]]){ const w=new THREE.Mesh(wg,wm); w.position.set(x,0.4,z); g.add(w); wheels.push(w); }
+  const hl = new THREE.MeshBasicMaterial({color:0xfff6c8});
+  for(const x of [-0.65,0.65]){ const l=new THREE.Mesh(new THREE.BoxGeometry(0.45,0.18,0.05),hl); l.position.set(x,0.85,-2.16); g.add(l); }
+  const tl = new THREE.MeshBasicMaterial({color:0xff2020});
+  for(const x of [-0.7,0.7]){ const l=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.16,0.05),tl); l.position.set(x,0.85,2.16); g.add(l); }
+  return g;
+}
+function makeGoal(){
+  const g = new THREE.Group();
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(5,5,500,20,1,true),
+    new THREE.MeshBasicMaterial({color:0xffd84a,transparent:true,opacity:.38,side:THREE.DoubleSide,depthWrite:false,fog:false}));
+  beam.position.y=250; g.add(beam); g.userData.beam=beam;
+  const ring = new THREE.Mesh(new THREE.RingGeometry(9,12,40), new THREE.MeshBasicMaterial({color:0xffd84a,side:THREE.DoubleSide,fog:false}));
+  ring.rotation.x=-Math.PI/2; ring.position.y=0.15; g.add(ring);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(.25,.25,10,8), new THREE.MeshLambertMaterial({color:0xeeeeee}));
+  pole.position.set(10,5,0); g.add(pole);
+  const flag = new THREE.Mesh(new THREE.PlaneGeometry(5,3), new THREE.MeshBasicMaterial({map:canvasTex(64,40,(c)=>{
+    for(let i=0;i<8;i++)for(let j=0;j<5;j++){c.fillStyle=(i+j)%2?'#111':'#fff';c.fillRect(i*8,j*8,8,8);} }),side:THREE.DoubleSide}));
+  flag.position.set(12.5,8.5,0); g.add(flag);
+  return g;
+}
+
+/* ---------- Data loading ---------- */
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+function show(id){ for(const k of ['title','loading','pause','result']) $(k).classList.toggle('hidden', k!==id); }
+function setStatus(msg, sub='', isErr=false){
+  $('loadMsg').textContent = msg; $('loadMsg').classList.toggle('err', isErr);
+  $('loadSub').textContent = sub; $('spin').classList.toggle('hidden', isErr);
+  $('loadCancel').textContent = isErr ? 'タイトルへ戻る' : 'キャンセルして戻る';
+}
+function cancelLoading(){ loadToken++; if(loadAbort){ try{loadAbort.abort();}catch(e){} loadAbort=null; } }
+
+function getPosition(){
+  return new Promise((res,rej)=>{
+    if(!navigator.geolocation) return rej(new Error('この端末/ブラウザでは位置情報が使えません'));
+    navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lon:p.coords.longitude}),
+      e=>rej(new Error(e.code===1?'位置情報の利用が許可されませんでした':'現在地を取得できませんでした')),
+      {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+  });
+}
+async function startGPS(){
+  cancelLoading(); const token = loadToken;
+  show('loading'); setStatus('現在地を取得中…','位置情報の許可を求められたら「許可」を選んでください');
+  try{
+    const p = await getPosition();
+    if(token!==loadToken) return;
+    await loadArea(p.lat,p.lon,token);
+  }catch(e){ if(token===loadToken) setStatus(e.message||'エラーが発生しました','「場所を指定」やデモマップでも遊べます',true); }
+}
+async function startPlace(){
+  let s = $('coordIn').value.trim() || $('preset').value;
+  const m = s.match(/(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)/);
+  if(!m){ $('coordIn').focus(); $('coordIn').placeholder='地点を選ぶか 緯度,経度 を入力'; return; }
+  cancelLoading(); const token = loadToken;
+  show('loading');
+  try{ await loadArea(parseFloat(m[1]),parseFloat(m[2]),token); }
+  catch(e){ if(token===loadToken) setStatus(e.message||'エラーが発生しました','',true); }
+}
+async function startDemo(){
+  cancelLoading(); const token = loadToken;
+  show('loading'); setStatus('デモマップを生成中…');
+  await sleep(20); if(token!==loadToken) return;
+  try{ await buildWorld(makeDemoRaw(), token, false); }
+  catch(e){ if(token===loadToken) setStatus('生成に失敗しました',String(e.message||e),true); }
+}
+async function fetchOverpass(url, q, token){
+  loadAbort = new AbortController();
+  const res = await fetch(url,{method:'POST',body:'data='+encodeURIComponent(q),
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:loadAbort.signal});
+  if(!res.ok) throw new Error('サーバー応答 '+res.status);
+  let text;
+  if(res.body && res.body.getReader){
+    const reader = res.body.getReader(), chunks=[]; let n=0;
+    for(;;){ const {done,value} = await reader.read(); if(done) break; chunks.push(value); n+=value.length;
+      if(token===loadToken) $('loadSub').textContent = '受信 '+(n/1048576).toFixed(1)+' MB'; }
+    const buf = new Uint8Array(n); let o=0; for(const c of chunks){ buf.set(c,o); o+=c.length; }
+    text = new TextDecoder().decode(buf);
+  } else text = await res.text();
+  const data = JSON.parse(text);
+  if((!data.elements || !data.elements.length) && data.remark) throw new Error('サーバーが混雑しています');
+  return data;
+}
+async function loadArea(lat, lon, token){
+  setStatus('道路データを取得中…（半径5km）','サーバーに問い合わせ中');
+  const q = `[out:json][timeout:90];way(around:${RADIUS},${lat},${lon})["highway"~"^(${Object.keys(ROAD_W).join('|')})$"];out body;>;out skel qt;`;
+  let data=null, lastErr=null;
+  for(let i=0;i<OVERPASS.length && !data;i++){
+    if(token!==loadToken) return;
+    try{ data = await fetchOverpass(OVERPASS[i], q, token); }
+    catch(e){ if(e.name==='AbortError' || token!==loadToken) return; lastErr=e;
+      if(i<OVERPASS.length-1) setStatus('別のサーバーで再試行中…', String(e.message||'')); }
+  }
+  if(token!==loadToken) return;
+  if(!data) throw new Error('道路データを取得できませんでした（'+((lastErr&&lastErr.message)||'通信エラー')+'）');
+  setStatus('道路網を構築中…', data.elements.length.toLocaleString()+' 要素'); await sleep(20);
+  if(token!==loadToken) return;
+  const raw = osmToRaw(data, lat, lon);
+  if(raw.ways.length < 5) throw new Error('この周辺に走れる道路が見つかりませんでした');
+  await buildWorld(raw, token, true);
+}
+function osmToRaw(data, lat0, lon0){
+  const kx = Math.cos(lat0*Math.PI/180)*111320, kz = 110574;
+  const nodes = new Map(), ways = [];
+  for(const el of data.elements){
+    if(el.type==='node') nodes.set(el.id,{x:(el.lon-lon0)*kx, z:-(el.lat-lat0)*kz});
+    else if(el.type==='way' && el.nodes && el.tags) ways.push({refs:el.nodes, hw:el.tags.highway, name:el.tags.name||el.tags.ref||''});
+  }
+  return {nodes, ways};
+}
+function makeDemoRaw(){
+  const nodes = new Map(), ways = []; let id = 1;
+  const S = 4600, xs=[], zs=[];
+  for(let x=-S/2; x<=S/2; x+=110+Math.random()*130) xs.push(x);
+  for(let z=-S/2; z<=S/2; z+=110+Math.random()*130) zs.push(z);
+  const G = xs.map(x=>zs.map(z=>{ const k=id++; nodes.set(k,{x:x+(Math.random()-.5)*24, z:z+(Math.random()-.5)*24}); return k; }));
+  const names = ['桜通り','青葉通り','港大通り','中央通り','銀杏並木','駅前通り','緑ヶ丘通り','けやき通り','本町通り','新川通り'];
+  const addLine = (getId, n, hw, name) => {
+    let cur = [getId(0)];
+    for(let i=1;i<n;i++){
+      const a = nodes.get(getId(i-1)), b = nodes.get(getId(i));
+      if(hw==='residential' && Math.random()<0.13){ if(cur.length>1) ways.push({refs:cur,hw,name}); cur=[getId(i)]; continue; }
+      const mid = id++, len = Math.hypot(b.x-a.x,b.z-a.z), off=(Math.random()-.5)*(hw==='residential'?18:6);
+      nodes.set(mid,{x:(a.x+b.x)/2 + (-(b.z-a.z)/len)*off, z:(a.z+b.z)/2 + ((b.x-a.x)/len)*off});
+      cur.push(mid, getId(i));
+    }
+    if(cur.length>1) ways.push({refs:cur,hw,name});
+  };
+  zs.forEach((_,j)=>{ const hw = j%6===3?'primary':(j%3===0?'tertiary':'residential'); addLine(i=>G[i][j], xs.length, hw, hw==='residential'?'':names[j%names.length]); });
+  xs.forEach((_,i)=>{ const hw = i%6===3?'primary':(i%3===0?'tertiary':'residential'); addLine(j=>G[i][j], zs.length, hw, hw==='residential'?'':names[(i+5)%names.length]); });
+  return {nodes, ways};
+}
+
+/* ---------- Graph ---------- */
+function buildGraph(raw){
+  const cnt = new Map();
+  for(const w of raw.ways){ const r=w.refs; for(let i=0;i<r.length;i++){ const k=r[i]; cnt.set(k,(cnt.get(k)||0)+((i===0||i===r.length-1)?2:1)); } }
+  const gIndex = new Map(), nodes=[], edges=[];
+  const gnode = k => { let i=gIndex.get(k); if(i===undefined){ const p=raw.nodes.get(k); i=nodes.length; nodes.push({x:p.x,z:p.z,adj:[]}); gIndex.set(k,i);} return i; };
+  for(const w of raw.ways){
+    const r = w.refs.filter(k=>raw.nodes.has(k));
+    if(r.length<2) continue;
+    let start = 0;
+    for(let i=1;i<r.length;i++){
+      if(i===r.length-1 || cnt.get(r[i])>1){
+        const pts=[]; let len=0;
+        for(let j=start;j<=i;j++){
+          const p = raw.nodes.get(r[j]);
+          if(pts.length){ const d=Math.hypot(p.x-pts[pts.length-2], p.z-pts[pts.length-1]); if(d<0.05 && j<i) continue; len+=d; }
+          pts.push(p.x,p.z);
+        }
+        if(pts.length>=4 && len>0.5){
+          const a=gnode(r[start]), b=gnode(r[i]);
+          if(a!==b || len>8){ const e=edges.length; edges.push({a,b,pts,len,w:ROAD_W[w.hw]||6,hw:w.hw,name:w.name});
+            nodes[a].adj.push(e); if(a!==b) nodes[b].adj.push(e); }
+        }
+        start = i;
+      }
+    }
+  }
+  return {nodes, edges};
+}
+function keepLargest(g){
+  const N=g.nodes.length, comp=new Int32Array(N).fill(-1); let best=-1,bestSize=0,c=0;
+  for(let s=0;s<N;s++){ if(comp[s]>=0) continue; let size=0; const st=[s]; comp[s]=c;
+    while(st.length){ const u=st.pop(); size++; for(const e of g.nodes[u].adj){ const E=g.edges[e]; const v=E.a===u?E.b:E.a; if(comp[v]<0){comp[v]=c;st.push(v);} } }
+    if(size>bestSize){bestSize=size;best=c;} c++; }
+  const map=new Int32Array(N).fill(-1), nodes=[], edges=[];
+  for(let i=0;i<N;i++) if(comp[i]===best){ map[i]=nodes.length; nodes.push({x:g.nodes[i].x,z:g.nodes[i].z,adj:[]}); }
+  for(const E of g.edges){ if(comp[E.a]!==best) continue; const e=edges.length; const ne=Object.assign({},E,{a:map[E.a],b:map[E.b]}); edges.push(ne);
+    nodes[ne.a].adj.push(e); if(ne.a!==ne.b) nodes[ne.b].adj.push(e); }
+  return {nodes, edges};
+}
+const gkey = (i,j) => (i+3000)*8192 + (j+3000);
+function buildSegments(g){
+  let n=0; for(const e of g.edges) n += e.pts.length/2-1;
+  g.ax=new Float32Array(n); g.az=new Float32Array(n); g.bx=new Float32Array(n); g.bz=new Float32Array(n);
+  g.se=new Int32Array(n); g.cum=new Float32Array(n); g.grid=new Map();
+  let s=0, minX=Infinity,minZ=Infinity,maxX=-Infinity,maxZ=-Infinity, total=0;
+  g.edges.forEach((E,ei)=>{
+    E.segStart = s; let acc=0; const p=E.pts;
+    for(let i=0;i<p.length/2-1;i++,s++){
+      const ax=p[2*i],az=p[2*i+1],bx=p[2*i+2],bz=p[2*i+3];
+      g.ax[s]=ax; g.az[s]=az; g.bx[s]=bx; g.bz[s]=bz; g.se[s]=ei; g.cum[s]=acc; acc+=Math.hypot(bx-ax,bz-az);
+      const i0=Math.floor(Math.min(ax,bx)/CELL), i1=Math.floor(Math.max(ax,bx)/CELL), j0=Math.floor(Math.min(az,bz)/CELL), j1=Math.floor(Math.max(az,bz)/CELL);
+      for(let ii=i0;ii<=i1;ii++) for(let jj=j0;jj<=j1;jj++){ const k=gkey(ii,jj); let l=g.grid.get(k); if(!l){l=[];g.grid.set(k,l);} l.push(s); }
+      minX=Math.min(minX,ax,bx); maxX=Math.max(maxX,ax,bx); minZ=Math.min(minZ,az,bz); maxZ=Math.max(maxZ,az,bz);
+    }
+    total += E.len;
+  });
+  g.bounds={minX,minZ,maxX,maxZ}; g.totalLen=total;
+}
+function nearestSeg(x,z,prefEdge,ring=1){
+  const W=world, ix=Math.floor(x/CELL), iz=Math.floor(z/CELL);
+  let best=null,bd=Infinity,bp=null,bpd=Infinity;
+  for(let i=ix-ring;i<=ix+ring;i++) for(let j=iz-ring;j<=iz+ring;j++){
+    const list=W.grid.get(gkey(i,j)); if(!list) continue;
+    for(let q=0;q<list.length;q++){ const s=list[q];
+      const ax=W.ax[s],az=W.az[s],dx=W.bx[s]-ax,dz=W.bz[s]-az,L2=dx*dx+dz*dz;
+      let t=L2>0?((x-ax)*dx+(z-az)*dz)/L2:0; t=t<0?0:t>1?1:t;
+      const px=ax+dx*t,pz=az+dz*t,d=Math.hypot(x-px,z-pz);
+      if(d<bd){bd=d;best={s,t,d,px,pz};}
+      if(W.se[s]===prefEdge && d<bpd){bpd=d;bp={s,t,d,px,pz};}
+    }
+  }
+  if(bp && bpd<bd+4) best=bp;
+  if(best) best.e=W.se[best.s];
+  return best;
+}
+function roadClearance(x,z){
+  const W=world, ix=Math.floor(x/CELL), iz=Math.floor(z/CELL); let m=Infinity;
+  for(let i=ix-1;i<=ix+1;i++) for(let j=iz-1;j<=iz+1;j++){
+    const list=W.grid.get(gkey(i,j)); if(!list) continue;
+    for(const s of list){ const ax=W.ax[s],az=W.az[s],dx=W.bx[s]-ax,dz=W.bz[s]-az,L2=dx*dx+dz*dz;
+      let t=L2>0?((x-ax)*dx+(z-az)*dz)/L2:0; t=t<0?0:t>1?1:t;
+      const d=Math.hypot(x-ax-dx*t,z-az-dz*t)-W.edges[W.se[s]].w/2; if(d<m)m=d; }
+  }
+  return m;
+}
+class Heap{
+  constructor(){this.ids=[];this.ks=[];this.pk=0;}
+  get size(){return this.ids.length;}
+  push(id,k){const a=this.ids,b=this.ks;let i=a.length;a.push(id);b.push(k);while(i>0){const p=(i-1)>>1;if(b[p]<=k)break;a[i]=a[p];b[i]=b[p];i=p;}a[i]=id;b[i]=k;}
+  pop(){const a=this.ids,b=this.ks,id=a[0];this.pk=b[0];const lid=a.pop(),lk=b.pop(),n=a.length;
+    if(n>0){let i=0;for(;;){const l=2*i+1;if(l>=n)break;const r=l+1;const m=(r<n&&b[r]<b[l])?r:l;if(b[m]>=lk)break;a[i]=a[m];b[i]=b[m];i=m;}a[i]=lid;b[i]=lk;}
+    return id;}
+}
+function dijkstra(g,src){
+  const N=g.nodes.length, dist=new Float64Array(N).fill(Infinity), via=new Int32Array(N).fill(-1), h=new Heap();
+  dist[src]=0; h.push(src,0);
+  while(h.size){ const u=h.pop(), du=h.pk; if(du>dist[u]) continue;
+    for(const e of g.nodes[u].adj){ const E=g.edges[e], v=E.a===u?E.b:E.a, nd=du+E.len; if(nd<dist[v]){dist[v]=nd;via[v]=e;h.push(v,nd);} } }
+  return {dist,via};
+}
+// point at distance d from the given end node along edge
+function pointAt(E, fromA, d){
+  const p=E.pts, n=p.length/2; let acc=0;
+  for(let k=0;k<n-1;k++){
+    const i = fromA?k:n-1-k, j = fromA?k+1:n-2-k;
+    const x0=p[2*i],z0=p[2*i+1],x1=p[2*j],z1=p[2*j+1], L=Math.hypot(x1-x0,z1-z0);
+    if(acc+L>=d){ const t=L>0?(d-acc)/L:0; return {x:x0+(x1-x0)*t, z:z0+(z1-z0)*t}; }
+    acc+=L;
+  }
+  return fromA?{x:p[2*n-2],z:p[2*n-1]}:{x:p[0],z:p[1]};
+}
+function norm(x,z){ const l=Math.hypot(x,z)||1; return {x:x/l,z:z/l}; }
+function leaveDir(E, node){ const fromA=E.a===node; const nd=world.nodes[node]; const q=pointAt(E,fromA,Math.min(15,E.len)); return norm(q.x-nd.x,q.z-nd.z); }
+function arriveDir(E, node){ const fromA=E.a===node && !(E.a===E.b); const nd=world.nodes[node]; const q=pointAt(E,fromA,Math.min(15,E.len)); return norm(nd.x-q.x,nd.z-q.z); }
+const sAngle = (a,b) => Math.atan2(a.x*b.z-a.z*b.x, a.x*b.x+a.z*b.z); // + = right
+
+/* ---------- World meshes ---------- */
+function writeStrip(p, hw, y, vs, P, U, I, v0, k0){
+  const n=p.length/2; let dist=0;
+  for(let i=0;i<n;i++){
+    const x=p[2*i], z=p[2*i+1];
+    if(i>0) dist+=Math.hypot(x-p[2*i-2], z-p[2*i-1]);
+    let n1=null,n2=null;
+    if(i>0){ const d=norm(x-p[2*i-2], z-p[2*i-1]); n1={x:-d.z,z:d.x}; }
+    if(i<n-1){ const d=norm(p[2*i+2]-x, p[2*i+3]-z); n2={x:-d.z,z:d.x}; }
+    let nx,nz;
+    if(n1&&n2){ nx=n1.x+n2.x; nz=n1.z+n2.z; const l=Math.hypot(nx,nz);
+      if(l<1e-3){nx=n1.x;nz=n1.z;} else { nx/=l; nz/=l; const s=1/Math.max(nx*n1.x+nz*n1.z,0.4); nx*=s; nz*=s; } }
+    else { const m=n1||n2; nx=m.x; nz=m.z; }
+    const o=(v0+2*i)*3; P[o]=x+nx*hw; P[o+1]=y; P[o+2]=z+nz*hw; P[o+3]=x-nx*hw; P[o+4]=y; P[o+5]=z-nz*hw;
+    const u=(v0+2*i)*2; U[u]=0; U[u+1]=dist/vs; U[u+2]=1; U[u+3]=dist/vs;
+  }
+  for(let i=0;i<n-1;i++){ const a=v0+2*i; I[k0++]=a; I[k0++]=a+2; I[k0++]=a+1; I[k0++]=a+1; I[k0++]=a+2; I[k0++]=a+3; }
+  return k0;
+}
+function geom(P,U,I){
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(P,3)); g.setAttribute('uv',new THREE.BufferAttribute(U,2));
+  g.setIndex(new THREE.BufferAttribute(I,1)); g.computeBoundingSphere(); return g;
+}
+function buildRoads(g){
+  let vc=0, ic=0; for(const e of g.edges){ const n=e.pts.length/2; vc+=n*2; ic+=(n-1)*6; }
+  const P=new Float32Array(vc*3), U=new Float32Array(vc*2), I=new Uint32Array(ic); let v=0,k=0;
+  for(const e of g.edges){ k=writeStrip(e.pts, e.w/2, 0, 16, P,U,I,v,k); v+=e.pts.length; }
+  const mat = new THREE.MeshBasicMaterial({map:roadTex, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-2});
+  const roads = new THREE.Mesh(geom(P,U,I), mat);
+  // junction discs
+  const SEG=12, nn=g.nodes.length, DP=new Float32Array(nn*(SEG+1)*3), DU=new Float32Array(nn*(SEG+1)*2), DI=new Uint32Array(nn*SEG*3);
+  let dv=0, dk=0;
+  for(const nd of g.nodes){
+    let r=0; for(const e of nd.adj) r=Math.max(r,g.edges[e].w/2); if(!r) continue;
+    const c=dv; DP[c*3]=nd.x; DP[c*3+1]=0; DP[c*3+2]=nd.z; DU[c*2]=0.3; DU[c*2+1]=0.75; dv++;
+    for(let i=0;i<SEG;i++){ const a=i/SEG*Math.PI*2; DP[dv*3]=nd.x+Math.cos(a)*r; DP[dv*3+1]=0; DP[dv*3+2]=nd.z+Math.sin(a)*r; DU[dv*2]=0.3; DU[dv*2+1]=0.75; dv++; }
+    for(let i=0;i<SEG;i++){ DI[dk++]=c; DI[dk++]=c+1+((i+1)%SEG); DI[dk++]=c+1+i; }
+  }
+  const dmat = new THREE.MeshBasicMaterial({map:roadTex, polygonOffset:true, polygonOffsetFactor:-2, polygonOffsetUnits:-4});
+  const discs = new THREE.Mesh(geom(DP.subarray(0,dv*3),DU.subarray(0,dv*2),DI.subarray(0,dk)), dmat);
+  discs.renderOrder=1;
+  return [roads, discs];
+}
+function buildScenery(g){
+  const out=[], segN=g.ax.length; if(!segN) return out;
+  const maxB=Math.min(5000, Math.floor(g.totalLen/22)), maxT=Math.min(3000, Math.floor(g.totalLen/40));
+  const bg=new THREE.BoxGeometry(1,1,1); bg.translate(0,0.5,0);
+  const bm=new THREE.InstancedMesh(bg, new THREE.MeshLambertMaterial({color:0xffffff}), maxB);
+  const tg=new THREE.ConeGeometry(1,1,7); tg.translate(0,0.5,0);
+  const tm=new THREE.InstancedMesh(tg, new THREE.MeshLambertMaterial({color:0x3f7f3a}), maxT);
+  const occ=new Set(), O=8, dummy=new THREE.Object3D(), col=new THREE.Color();
+  const pal=['#cfc8bc','#b9bec6','#ddd6c8','#9ea7b1','#e6e1d6','#ab9f92','#c4b5a0','#8f9aa6'];
+  const free=(cx,cz,r)=>{ for(let i=Math.floor((cx-r)/O);i<=Math.floor((cx+r)/O);i++) for(let j=Math.floor((cz-r)/O);j<=Math.floor((cz+r)/O);j++) if(occ.has(i*100003+j)) return false; return true; };
+  const mark=(cx,cz,r)=>{ for(let i=Math.floor((cx-r)/O);i<=Math.floor((cx+r)/O);i++) for(let j=Math.floor((cz-r)/O);j<=Math.floor((cz+r)/O);j++) occ.add(i*100003+j); };
+  const spot=(minOff, size)=>{
+    const s=(Math.random()*segN)|0, E=g.edges[g.se[s]], dx=g.bx[s]-g.ax[s], dz=g.bz[s]-g.az[s], L=Math.hypot(dx,dz);
+    if(L<6) return null; const t=Math.random(), ux=dx/L, uz=dz/L, side=Math.random()<.5?1:-1, off=E.w/2+minOff+size/2;
+    return {x:g.ax[s]+dx*t-uz*off*side, z:g.az[s]+dz*t+ux*off*side, ux, uz};
+  };
+  let n=0, tries=0;
+  while(n<maxB && tries++<maxB*5){
+    const w=8+Math.random()*16, d=8+Math.random()*14, sp=spot(3+Math.random()*4, d); if(!sp) continue;
+    const r=Math.hypot(w,d)/2; if(!free(sp.x,sp.z,r*0.8) || roadClearance(sp.x,sp.z) < r*0.75+1.5) continue;
+    mark(sp.x,sp.z,r*0.8);
+    const cen=Math.hypot(sp.x,sp.z), tall = cen<1500 ? 1 : 0.55;
+    const h=5+Math.random()*Math.random()*55*tall;
+    dummy.position.set(sp.x,0,sp.z); dummy.rotation.set(0,Math.atan2(-sp.uz,sp.ux),0); dummy.scale.set(w,h,d); dummy.updateMatrix();
+    bm.setMatrixAt(n,dummy.matrix); col.set(pal[(Math.random()*pal.length)|0]); bm.setColorAt(n,col); n++;
+  }
+  bm.count=n; bm.instanceMatrix.needsUpdate=true; if(bm.instanceColor) bm.instanceColor.needsUpdate=true; out.push(bm);
+  let m=0; tries=0;
+  while(m<maxT && tries++<maxT*4){
+    const sp=spot(1.5, 3); if(!sp) continue;
+    if(!free(sp.x,sp.z,1.5) || roadClearance(sp.x,sp.z)<1.5) continue; mark(sp.x,sp.z,1.5);
+    const h=5+Math.random()*5; dummy.position.set(sp.x,0,sp.z); dummy.rotation.set(0,0,0); dummy.scale.set(1.8+Math.random(),h,1.8+Math.random()); dummy.updateMatrix();
+    tm.setMatrixAt(m,dummy.matrix); m++;
+  }
+  tm.count=m; tm.instanceMatrix.needsUpdate=true; out.push(tm);
+  return out;
+}
+function buildMinimap(g){
+  const b=g.bounds, size=2048, sc=size/Math.max(b.maxX-b.minX, b.maxZ-b.minZ, 1);
+  const c=document.createElement('canvas'); c.width=size; c.height=size; const x=c.getContext('2d');
+  x.fillStyle='#1d2b22'; x.fillRect(0,0,size,size); x.lineCap='round'; x.lineJoin='round';
+  const order=[...g.edges].sort((a,b)=>a.w-b.w);
+  for(const e of order){
+    x.strokeStyle = e.w>=10?'#e8c66a':(e.w>=8?'#c9d1da':'#8a96a3'); x.lineWidth=Math.max(1.2, e.w*sc*1.3);
+    x.beginPath(); const p=e.pts; x.moveTo((p[0]-b.minX)*sc,(p[1]-b.minZ)*sc);
+    for(let i=2;i<p.length;i+=2) x.lineTo((p[i]-b.minX)*sc,(p[i+1]-b.minZ)*sc); x.stroke();
+  }
+  g.mm={canvas:c, sc, minX:b.minX, minZ:b.minZ};
+}
+function clearWorld(){
+  for(const o of worldObjs){ scene.remove(o); if(o.geometry) o.geometry.dispose(); if(o.material) o.material.dispose(); }
+  worldObjs=[];
+  if(routeMesh){ scene.remove(routeMesh); routeMesh.geometry.dispose(); routeMesh=null; }
+  world=null; race=null;
+}
+async function buildWorld(raw, token, isReal){
+  setStatus('道路網を構築中…'); await sleep(20); if(token!==loadToken) return;
+  let g = buildGraph(raw);
+  if(g.edges.length<3) throw new Error('道路が少なすぎます');
+  g = keepLargest(g);
+  buildSegments(g);
+  setStatus('3Dマップを生成中…', g.edges.length.toLocaleString()+' 区間 / 総延長 '+(g.totalLen/1000).toFixed(0)+' km'); await sleep(20);
+  if(token!==loadToken) return;
+  clearWorld();
+  world = g;
+  for(const m of buildRoads(g)){ scene.add(m); worldObjs.push(m); }
+  for(const m of buildScenery(g)){ scene.add(m); worldObjs.push(m); }
+  buildMinimap(g);
+  $('attr').textContent = isReal ? '地図データ © OpenStreetMap contributors' : 'デモマップ（架空の街）';
+  newRace(false);
+}
+
+/* ---------- Race ---------- */
+function nearestNode(x,z){ let bi=0,bd=Infinity; world.nodes.forEach((n,i)=>{ const d=(n.x-x)**2+(n.z-z)**2; if(d<bd){bd=d;bi=i;} }); return bi; }
+function newRace(fromCurrent){
+  const W=world;
+  const start = fromCurrent ? nearestNode(car.x,car.z) : nearestNode(0,0);
+  const ds = dijkstra(W,start);
+  const [mn,mx] = DIST_RANGE[$('distSel').value]||DIST_RANGE.mid;
+  let cand=[], maxd=0;
+  for(let i=0;i<ds.dist.length;i++){ const d=ds.dist[i]; if(d<Infinity){ if(d>maxd)maxd=d; if(d>=mn&&d<=mx) cand.push(i); } }
+  if(!cand.length) for(let i=0;i<ds.dist.length;i++) if(ds.dist[i]<Infinity && ds.dist[i]>=maxd*0.7) cand.push(i);
+  const goal = cand[(Math.random()*cand.length)|0];
+  const dg = dijkstra(W,goal);
+  race = {start,goal,dist:dg.dist,next:dg.via,best:dg.dist[start],time:0,started:false,finished:false,odo:0,said:new Set(),nav:null,route:[],navT:0};
+  // spawn
+  const sn=W.nodes[start];
+  let dir={x:0,z:-1};
+  if(dg.via[start]>=0) dir = leaveDir(W.edges[dg.via[start]], start);
+  if(fromCurrent){ /* keep position */ } else { car.x=sn.x+dir.x*2; car.z=sn.z+dir.z*2; }
+  if(!fromCurrent){ car.h=Math.atan2(dir.x,-dir.z); car.v=0; }
+  car.steer=0; car.edge=-1; car.offT=0;
+  const gn=W.nodes[goal]; goalGroup.position.set(gn.x,0,gn.z); goalGroup.visible=true;
+  carGroup.visible=true;
+  paused=false;
+  placeCamera(true);
+  car.ns = nearestSeg(car.x,car.z,-1);
+  updateNav();
+  show(null); $('hud').classList.remove('hidden'); $('ctrl').classList.remove('hidden');
+  $('hint').classList.remove('hidden');
+}
+function respawn(){
+  if(!world) return;
+  let ns=null; for(let r=1;r<40 && !ns;r+=2) ns=nearestSeg(car.x,car.z,-1,r);
+  if(!ns) return;
+  const W=world, E=W.edges[ns.e], s=ns.s;
+  const d=norm(W.bx[s]-W.ax[s], W.bz[s]-W.az[s]);
+  const along=W.cum[s]+ns.t*Math.hypot(W.bx[s]-W.ax[s],W.bz[s]-W.az[s]);
+  const toB = (E.len-along)+race.dist[E.b], toA = along+race.dist[E.a];
+  const f = toB<=toA ? d : {x:-d.x,z:-d.z};
+  car.x=ns.px; car.z=ns.pz; car.h=Math.atan2(f.x,-f.z); car.v=0; car.steer=0; car.edge=ns.e; car.offT=0;
+  placeCamera(true); updateNav();
+}
+
+/* ---------- Navigation ---------- */
+function fmtDist(d){ if(!isFinite(d)) return '-'; if(d<1000) return (d<100?Math.max(0,Math.round(d/5)*5):Math.round(d/10)*10)+' m'; return (d/1000).toFixed(1)+' km'; }
+function updateNav(){
+  const W=world, R=race, ns=car.ns;
+  const route=[];
+  if(!ns || ns.d > W.edges[ns.e].w/2 + 25){
+    const g=W.nodes[R.goal];
+    R.nav={type:'off', ang:sAngle({x:Math.sin(car.h),z:-Math.cos(car.h)}, norm(g.x-car.x,g.z-car.z)), d:Math.hypot(g.x-car.x,g.z-car.z), remaining:Math.hypot(g.x-car.x,g.z-car.z), name:''};
+    R.route=route; return;
+  }
+  const e=ns.e, E=W.edges[e], s=ns.s, li=s-E.segStart, p=E.pts, n=p.length/2;
+  const sd=norm(W.bx[s]-W.ax[s], W.bz[s]-W.az[s]);
+  const f={x:Math.sin(car.h), z:-Math.cos(car.h)};
+  const along=W.cum[s]+ns.t*Math.hypot(W.bx[s]-W.ax[s],W.bz[s]-W.az[s]);
+  const towardB = (f.x*sd.x+f.z*sd.z)>=0;
+  const N=towardB?E.b:E.a, O=towardB?E.a:E.b;
+  const dN=towardB?E.len-along:along, dO=E.len-dN;
+  const viaN=dN+R.dist[N], viaO=dO+R.dist[O];
+  const remaining=Math.min(viaN,viaO);
+  // route ribbon from projection
+  if(viaO+25<viaN && E.a!==E.b){
+    route.push(ns.px,ns.pz); if(!towardB) for(let i=li+1;i<n;i++) route.push(p[2*i],p[2*i+1]); else for(let i=li;i>=0;i--) route.push(p[2*i],p[2*i+1]);
+    extendRoute(route, O, 1200);
+    R.nav={type:'uturn', d:0, remaining, name:E.name}; R.route=route; return;
+  }
+  route.push(ns.px,ns.pz);
+  if(towardB) for(let i=li+1;i<n;i++) route.push(p[2*i],p[2*i+1]); else for(let i=li;i>=0;i--) route.push(p[2*i],p[2*i+1]);
+  let cur=N, acc=dN, inE=e, pd, nav=null, steps=0, routeLen=dN;
+  if(!towardB){ const nd=W.nodes[N], q=pointAt(E,true,Math.min(15,E.len)); pd=norm(nd.x-q.x,nd.z-q.z); }
+  else { const nd=W.nodes[N], q=pointAt(E,false,Math.min(15,E.len)); pd=norm(nd.x-q.x,nd.z-q.z); }
+  while(steps++<400){
+    if(cur===R.goal){ if(!nav) nav={type:'goal', d:acc, name:''}; break; }
+    const ne=R.next[cur]; if(ne<0){ if(!nav) nav={type:'goal',d:acc,name:''}; break; }
+    const E2=W.edges[ne], od=leaveDir(E2,cur), ang=sAngle(pd,od), deg=W.nodes[cur].adj.length;
+    if(!nav && deg>=3){
+      if(Math.abs(ang)>0.49) nav={type:'turn', ang, d:acc, name:E2.name};
+      else { // fork check
+        for(const oe of W.nodes[cur].adj){ if(oe===ne||oe===inE) continue; const a2=sAngle(pd,leaveDir(W.edges[oe],cur));
+          if(Math.abs(a2)<1.2 && Math.abs(a2-ang)<0.6){ nav={type:'keep', ang:ang>a2?0.4:-0.4, d:acc, name:E2.name}; break; } }
+      }
+    }
+    if(routeLen<1500){ const fwd=E2.a===cur, q=E2.pts, m=q.length/2; if(fwd) for(let i=1;i<m;i++) route.push(q[2*i],q[2*i+1]); else for(let i=m-2;i>=0;i--) route.push(q[2*i],q[2*i+1]); routeLen+=E2.len; }
+    const nx = E2.a===cur?E2.b:E2.a;
+    pd=arriveDir(E2,nx); acc+=E2.len; inE=ne; cur=nx;
+    if(nav && routeLen>=1500) break;
+    if(!nav && acc>3000){ nav={type:'straight', d:acc, name:''}; break; }
+  }
+  if(!nav) nav={type:'straight', d:acc, name:''};
+  nav.remaining=remaining; nav.road=E.name; nav.key=nav.type+':'+cur+':'+Math.round(nav.d+ (performance.now()/1000|0)*0);
+  R.nav=nav; R.route=route;
+}
+function extendRoute(route, from, maxLen){
+  const W=world, R=race; let cur=from, len=0, guard=0;
+  while(len<maxLen && cur!==R.goal && guard++<300){ const ne=R.next[cur]; if(ne<0) break; const E=W.edges[ne], fwd=E.a===cur, q=E.pts, m=q.length/2;
+    if(fwd) for(let i=1;i<m;i++) route.push(q[2*i],q[2*i+1]); else for(let i=m-2;i>=0;i--) route.push(q[2*i],q[2*i+1]);
+    len+=E.len; cur=fwd?E.b:E.a; }
+}
+function rebuildRouteMesh(){
+  if(routeMesh){ scene.remove(routeMesh); routeMesh.geometry.dispose(); routeMesh=null; }
+  const r=race.route; if(!r || r.length<4) return;
+  // drop duplicate points
+  const p=[r[0],r[1]]; for(let i=2;i<r.length;i+=2){ if(Math.hypot(r[i]-p[p.length-2], r[i+1]-p[p.length-1])>0.3) p.push(r[i],r[i+1]); }
+  if(p.length<4) return;
+  const n=p.length/2, P=new Float32Array(n*6), U=new Float32Array(n*4), I=new Uint32Array((n-1)*6);
+  writeStrip(p,1.7,0.05,5,P,U,I,0,0);
+  const mat = routeMesh ? routeMesh.material : (rebuildRouteMesh.mat || (rebuildRouteMesh.mat = new THREE.MeshBasicMaterial({map:routeTex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-8})));
+  routeMesh = new THREE.Mesh(geom(P,U,I), mat); routeMesh.renderOrder=2; scene.add(routeMesh);
+}
+function turnLabel(nav){
+  const a=Math.abs(nav.ang), lr = nav.ang>0?'右':'左';
+  if(nav.type==='keep') return lr+'側の道へ';
+  if(a<0.96) return '斜め'+lr+'へ';
+  if(a<2.3) return lr+'折';
+  return '大きく'+lr+'へ';
+}
+function speak(t){ if(!voiceOn || !window.speechSynthesis) return; try{ const u=new SpeechSynthesisUtterance(t); u.lang='ja-JP'; u.rate=1.1; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} }
+function updateNavHUD(){
+  const nav=race.nav; if(!nav) return;
+  const el=$('nav'), arrow=$('navArrow'), emo=$('navEmoji');
+  el.classList.toggle('warn', nav.type==='uturn'||nav.type==='off'); el.classList.toggle('goal', nav.type==='goal');
+  let rot=0, text='', dist=fmtDist(nav.d), em='';
+  switch(nav.type){
+    case 'turn': case 'keep': rot=Math.max(-160,Math.min(160,nav.ang*180/Math.PI)); if(nav.type==='keep') rot=nav.ang>0?30:-30;
+      text=turnLabel(nav)+(nav.name?'｜'+nav.name:''); break;
+    case 'straight': text='道なりに直進'; break;
+    case 'goal': em='🏁'; text='ゴール'; break;
+    case 'uturn': em='↩️'; text='Uターンしてください'; dist='逆方向'; break;
+    case 'off': rot=Math.max(-170,Math.min(170,nav.ang*180/Math.PI)); text='道路に戻ってください'; dist='ゴール '+fmtDist(nav.d); break;
+  }
+  arrow.style.transform='rotate('+rot+'deg)';
+  arrow.classList.toggle('hidden', !!em); emo.classList.toggle('hidden', !em); emo.textContent=em;
+  $('navDist').textContent=dist; $('navText').textContent=text;
+  $('remain').textContent=fmtDist(nav.remaining);
+  $('roadName').textContent = nav.road||'';
+  // voice
+  if(race.started){
+    if(nav.type==='turn'||nav.type==='keep'||nav.type==='goal'){
+      for(const th of [300,80]){
+        const key=(nav.type)+'|'+th+'|'+Math.round(nav.ang*10)+'|'+Math.round((race.odo+nav.d)/40);
+        if(nav.d<=th && nav.d>th*0.4 && !race.said.has(key)){ race.said.add(key); speak((th===300?'およそ'+Math.round(nav.d/50)*50+'メートル先、':'まもなく、')+(nav.type==='goal'?'ゴールです':turnLabel(nav)+'です')); break; } }
+    } else if(nav.type==='uturn'){ const key='u'+Math.floor(race.time/8); if(!race.said.has(key)){ race.said.add(key); speak('ルートを外れました。Uターンしてください'); } }
+  }
+}
+
+/* ---------- Physics & loop ---------- */
+function placeCamera(snap){
+  const f={x:Math.sin(car.h), z:-Math.cos(car.h)}, back=11+Math.max(0,car.v)*0.07, up=4.6+Math.max(0,car.v)*0.02;
+  const tx=car.x-f.x*back, tz=car.z-f.z*back;
+  if(snap) camera.position.set(tx,up,tz);
+  else { const k=1-Math.exp(-dtGlobal*5); camera.position.x+=(tx-camera.position.x)*k; camera.position.z+=(tz-camera.position.z)*k; camera.position.y+=(up-camera.position.y)*k; }
+  camera.lookAt(car.x+f.x*8, 1.4, car.z+f.z*8);
+}
+let dtGlobal=0.016;
+function step(dt){
+  const W=world, R=race;
+  const ns=nearestSeg(car.x,car.z,car.edge); car.ns=ns;
+  let onRoad=false; if(ns){ car.edge=ns.e; onRoad = ns.d < W.edges[ns.e].w/2+1.2; } else car.edge=-1;
+  const thr=input.up?1:0, brk=input.down?1:0, st=(input.right?1:0)-(input.left?1:0);
+  if(!R.started && !R.finished && (thr||brk)){ R.started=true; $('hint').classList.add('hidden'); }
+  const maxV = onRoad?42:13;
+  let v=car.v;
+  if(thr){ if(v<0) v+=24*dt; else if(v<maxV) v+=(11*(1-v/maxV)+1.5)*dt; }
+  if(brk){ if(v>0.3) v-=24*dt; else v=Math.max(v-7*dt,-9); }
+  if(!thr&&!brk){ const dr=(onRoad?1.6:5)+0.0009*v*v; v = v>0?Math.max(0,v-dr*dt):Math.min(0,v+dr*dt); }
+  if(v>maxV) v=Math.max(maxV, v-16*dt);
+  car.v=v;
+  car.steer += (st-car.steer)*Math.min(1,dt*7);
+  const sa = car.steer*0.6/(1+Math.abs(v)/16);
+  car.h += v*Math.tan(sa)/2.7*dt;
+  car.x += Math.sin(car.h)*v*dt; car.z += -Math.cos(car.h)*v*dt;
+  // bounds
+  const b=W.bounds, m=150;
+  car.x=Math.max(b.minX-m,Math.min(b.maxX+m,car.x)); car.z=Math.max(b.minZ-m,Math.min(b.maxZ+m,car.z));
+  if(R.started && !R.finished){ R.time+=dt; R.odo+=Math.abs(v)*dt; }
+  car.offT = onRoad?0:car.offT+dt;
+  $('respawn').classList.toggle('alert', car.offT>3);
+  // goal
+  const g=W.nodes[R.goal];
+  if(!R.finished && Math.hypot(car.x-g.x,car.z-g.z)<20){ finish(); }
+  // visuals
+  carGroup.position.set(car.x,0,car.z); carGroup.rotation.set(0,-car.h,0);
+  carGroup.rotation.z = -car.steer*Math.min(1,Math.abs(v)/30)*0.06;
+  for(const w of wheels) w.rotation.x -= v*dt/0.4;
+  wheels[0].rotation.y = wheels[1].rotation.y = -car.steer*0.45;
+  const fov=60+Math.min(45,Math.max(0,v))*0.35; if(Math.abs(camera.fov-fov)>0.1){ camera.fov=fov; camera.updateProjectionMatrix(); }
+  placeCamera(false);
+  $('spd').textContent=Math.round(Math.abs(v)*3.6);
+  $('time').textContent=fmtTime(R.time);
+}
+function fmtTime(t){ const m=Math.floor(t/60), s=t-m*60; return m+':'+(s<10?'0':'')+s.toFixed(1); }
+function finish(){
+  const R=race; R.finished=true; car.v=0;
+  for(const k in input) input[k]=false; document.querySelectorAll('.cb.on').forEach(b=>b.classList.remove('on'));
+  $('rTime').textContent=fmtTime(R.time); $('rOdo').textContent=fmtDist(R.odo); $('rBest').textContent=fmtDist(R.best);
+  $('rAvg').textContent=R.time>0?Math.round(R.odo/R.time*3.6)+' km/h':'-';
+  speak('ゴールしました。タイムは'+Math.floor(R.time/60)+'分'+Math.round(R.time%60)+'秒です');
+  show('result');
+}
+function drawMinimap(){
+  const c=$('mm'), x=c.getContext('2d'), W=c.width, H=c.height, mm=world.mm, R=race;
+  const radiusM = mmZoomFar?1500:450, ppm=(W/2)/radiusM;
+  x.save(); x.clearRect(0,0,W,H); x.beginPath(); x.arc(W/2,H/2,W/2,0,Math.PI*2); x.clip();
+  x.fillStyle='#16221a'; x.fillRect(0,0,W,H);
+  x.translate(W/2,H/2); x.rotate(-car.h);
+  x.save(); x.scale(ppm/mm.sc, ppm/mm.sc); x.drawImage(mm.canvas, -(car.x-mm.minX)*mm.sc, -(car.z-mm.minZ)*mm.sc); x.restore();
+  x.scale(ppm,ppm); x.translate(-car.x,-car.z);
+  const r=R.route; if(r && r.length>=4){ x.strokeStyle='#29d3ff'; x.lineWidth=5/ppm; x.lineCap='round'; x.lineJoin='round'; x.beginPath(); x.moveTo(r[0],r[1]); for(let i=2;i<r.length;i+=2) x.lineTo(r[i],r[i+1]); x.stroke(); }
+  x.restore();
+  // goal marker (clamped)
+  const g=world.nodes[R.goal]; let gx=g.x-car.x, gz=g.z-car.z; const ch=Math.cos(-car.h), sh=Math.sin(-car.h);
+  let sx=(gx*ch-gz*sh)*ppm, sy=(gx*sh+gz*ch)*ppm; const L=Math.hypot(sx,sy), lim=W/2-9; if(L>lim){ sx*=lim/L; sy*=lim/L; }
+  x.fillStyle='#ffd84a'; x.strokeStyle='#000'; x.lineWidth=2; x.beginPath(); x.arc(W/2+sx,H/2+sy,7,0,Math.PI*2); x.fill(); x.stroke();
+  // car
+  x.fillStyle='#ff4040'; x.strokeStyle='#fff'; x.lineWidth=2; x.beginPath(); x.moveTo(W/2,H/2-10); x.lineTo(W/2+7,H/2+8); x.lineTo(W/2,H/2+4); x.lineTo(W/2-7,H/2+8); x.closePath(); x.fill(); x.stroke();
+}
+let last=performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt=Math.min(0.05,(now-last)/1000); last=now; dtGlobal=dt;
+  if(world && race){
+    if(!paused && !race.finished){
+      step(dt);
+      race.navT-=dt; if(race.navT<=0){ race.navT=0.15; updateNav(); updateNavHUD(); rebuildRouteMesh(); }
+    }
+    drawMinimap();
+    routeTex.offset.y -= dt*1.5;
+    const bm=goalGroup.userData.beam; bm.material.opacity=0.3+0.12*Math.sin(now/300);
+  }
+  renderer.render(scene,camera);
+}
+
+/* ---------- Input ---------- */
+function bindHold(el,key){
+  const on=e=>{ e.preventDefault(); input[key]=true; el.classList.add('on'); try{el.setPointerCapture(e.pointerId);}catch(_){} };
+  const off=()=>{ input[key]=false; el.classList.remove('on'); };
+  el.addEventListener('pointerdown',on); el.addEventListener('pointerup',off); el.addEventListener('pointercancel',off);
+  el.addEventListener('lostpointercapture',off); el.addEventListener('contextmenu',e=>e.preventDefault());
+}
+bindHold($('bL'),'left'); bindHold($('bR'),'right'); bindHold($('bA'),'up'); bindHold($('bB'),'down');
+const KEYS={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',Space:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right'};
+window.addEventListener('keydown',e=>{ const k=KEYS[e.code]; if(k && !e.target.closest('input,select')){ input[k]=true; e.preventDefault(); }
+  if(e.code==='Escape' && race && !race.finished) togglePause(); if(e.code==='KeyR') respawn(); });
+window.addEventListener('keyup',e=>{ const k=KEYS[e.code]; if(k) input[k]=false; });
+window.addEventListener('blur',()=>{ for(const k in input) input[k]=false; });
+function togglePause(){ if(!race) return; paused=!paused; for(const k in input) input[k]=false; show(paused?'pause':null); }
+function toTitle(){ cancelLoading(); paused=false; $('hud').classList.add('hidden'); $('ctrl').classList.add('hidden'); show('title'); }
+
+$('gpsBtn').onclick=startGPS;
+$('placeBtn').onclick=startPlace;
+$('preset').onchange=()=>{ if($('preset').value) $('coordIn').value=''; };
+$('demoBtn').onclick=startDemo;
+$('loadDemo').onclick=startDemo;
+$('loadCancel').onclick=toTitle;
+$('menuBtn').onclick=togglePause;
+$('resumeBtn').onclick=togglePause;
+$('pNewGoal').onclick=()=>{ paused=false; newRace(true); };
+$('pTitle').onclick=toTitle;
+$('rNext').onclick=()=>newRace(true);
+$('rTitle').onclick=toTitle;
+$('respawn').onclick=respawn;
+$('mmWrap').onclick=()=>{ mmZoomFar=!mmZoomFar; };
+$('voiceBtn').onclick=()=>{ voiceOn=!voiceOn; $('voiceBtn').classList.toggle('on',voiceOn); $('voiceBtn').textContent=voiceOn?'🔊 音声':'🔈 音声';
+  if(voiceOn && window.speechSynthesis){ try{ const u=new SpeechSynthesisUtterance('音声案内をオンにしました'); u.lang='ja-JP'; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} } };
+
+if(initThree()) requestAnimationFrame(loop);
+</script>
+</body>
+</html>
