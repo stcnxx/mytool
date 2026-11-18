@@ -319,11 +319,11 @@ button.chip{font-weight:400;min-height:0;color:var(--ink)}button.chip.fav{backgr
     <p class="note">上空に浮かぶ小さな島での生活</p>
     <div class="savebox" id="saveBox" hidden><canvas id="saveCv" width="72" height="72"></canvas><div><b id="saveName"></b><span id="saveInfo"></span></div></div>
     <div class="tbtns"><button class="primary" id="bCont">続きからはじめる</button><button id="bNew">はじめから</button></div>
-    <p class="appver" style="margin:12px 0 0;text-align:center;font-size:11px;color:var(--muted,#c9c3e0)">改訂版 668（2026/11/18）</p>
+    <p class="appver" style="margin:12px 0 0;text-align:center;font-size:11px;color:var(--muted,#c9c3e0)">改訂版 669（2026/11/19）</p>
   </div>
 </div>
 
-<div class="overlay center" id="help" hidden><div class="card" role="dialog" aria-labelledby="helpT"><h2 id="helpT">ヘルプ（操作のしかた）</h2><p id="helpVer" style="margin:-6px 0 4px;font-size:11px;color:var(--muted,#c9c3e0)">浮遊島ぐらし 改訂版 668（2026/11/18）</p>
+<div class="overlay center" id="help" hidden><div class="card" role="dialog" aria-labelledby="helpT"><h2 id="helpT">ヘルプ（操作のしかた）</h2><p id="helpVer" style="margin:-6px 0 4px;font-size:11px;color:var(--muted,#c9c3e0)">浮遊島ぐらし 改訂版 669（2026/11/19）</p>
 <h3>キャラクター</h3><dl><dt>ダブルタップ・長押し</dt><dd>「メニュー」を開く</dd></dl><h3>画面のボタン</h3><dl><dt>一時停止</dt><dd>キャラの動きを止めます（家具の移動やラジカセの操作はできます）</dd><dt>図鑑</dt><dd>アイテムをタップすると拡大表示</dd></dl>
 <h3>家具・場所</h3><dl><dt>タップ</dt><dd>名前を表示</dd><dt>ダブルタップ</dt><dd>そこへ向かって使う（ソファ→座る、ベッド→寝る、本棚→読書 など）</dd><dt>ラジカセ</dt><dd>長押し（動かさずに離す）でメニューの「BGM」タブが開き、スマホの中の曲をえらんで流せます（曲の追加・入れかえ・削除、リピートやランダム再生も）</dd><dt>テレビ・ラジオ</dt><dd>ダブルタップで視聴か、ゲームを始める</dd><dt>酒の棚・バー</dt><dd>ダブルタップでお酒を飲む（席があれば座って）</dd><dt>床・庭</dt><dd>ダブルタップでその場所へ歩いていく（一時停止中は動きません）</dd><dt>本棚</dt><dd>ダブルタップで本を手に取って読む</dd></dl>
 <h3>模様替え</h3><dl><dt>長押し→動かす</dt><dd>家具を移動（置けない場所は赤く表示され、元に戻ります）</dd><dt>壁掛け</dt><dd>奥の壁・横の壁のどちらにも掛け替えられます。壁ぎわの床なら立てかけ、部屋の真ん中ならイーゼルに立てて置けます。床から壁へ動かすと壁掛けに戻ります（棚・ランプ・吊り鉢は壁専用）</dd><dt>長押し→そのまま離す</dt><dd>「しまう」か「リサイクルに出す」を選べます。しまったものは「住居」タブに入り、気まぐれでまた出してきます（タップで出してもらうことも）。生活必需品と同居人の家具は対象外です</dd><dt>庭のもの</dt><dd>庭でも同じように移動・しまう・リサイクルができます</dd><dt>画面のはし</dt><dd>家具を動かしながら画面のはしに寄せると、画面がスクロールします</dd></dl>
@@ -29827,7 +29827,7 @@ async function NET_leave(){if(NET.leaving)return;NET.leaving=true;const own=NET.
   // stop the sound only: the playlist and the saved songs are kept
   try{musPause();if(MUS.audio){MUS.audio.removeAttribute('src');try{MUS.audio.load();}catch(_){}}MUS.playing=false;}catch(e){}
   if(own){try{save();}catch(e){ok=false;}try{NET_musSave(true);}catch(e){ok=false;}
-    try{await Promise.race([NET_pushIsle(),new Promise(r=>setTimeout(r,3000))]);}catch(e){ok=false;}await new Promise(r=>setTimeout(r,400));}
+    try{const t0=Date.now();while(NET.pushing&&Date.now()-t0<15000)await new Promise(r=>setTimeout(r,200));await Promise.race([NET_pushIsle(),new Promise(r=>setTimeout(r,15000))]);}catch(e){ok=false;}await new Promise(r=>setTimeout(r,400));}
   else{try{save();}catch(e){}}
   NET_toast(ok?'💾 セーブしました\nまた遊びにきてね！':'セーブできなかった部分があります（この端末の保存は済んでいます）',2400);
   await new Promise(r=>setTimeout(r,1100));
@@ -29863,8 +29863,8 @@ async function NET_put(bid,bytes,type,prog){const P=1000000,n=Math.max(1,Math.ce
 async function NET_has(bid){if(NET.upl.has(bid))return true;try{const r=await fetch(`${NET_srv()}/has?i=${NET.id}&b=${bid}`);const j=await r.json();if(j.has)NET.upl.add(bid);return!!j.has;}catch(e){return false;}}
 function NET_strip(src){const o=JSON.parse(JSON.stringify(src));for(const k of VIS_DROP)delete o[k];for(const k of Object.keys(o))if(/^(dex|rtRec_|movRec|cosRec|mOutfit|mDress|mCos|mPj)/.test(k))delete o[k];
   try{if(o.bf){delete o.bf.musF;}}catch(e){}o.oc=NET_ocFor(src,src.outfit);if(Array.isArray(src.photos))o.photos=JSON.parse(JSON.stringify(src.photos));delete o.mate;delete o._visit;return o;}
-async function NET_blobify(o){const jobs=[];const walk=(v,set)=>{if(typeof v==='string'){if(v.startsWith('data:')&&v.length>3000)jobs.push({v,set});return;}if(Array.isArray(v))v.forEach((x,i)=>walk(x,y=>{v[i]=y;}));else if(v&&typeof v==='object')for(const k in v)walk(v[k],y=>{v[k]=y;});};walk(o,null);
-  for(const j of jobs){const h=await NET_hash(j.v);if(!(await NET_has(h))){await NET_put(h,new TextEncoder().encode(j.v),'text/plain');NET.upl.add(h);}NET.blobs[h]=j.v;j.set('nb:'+h);}
+async function NET_blobify(o,prog){const jobs=[];const walk=(v,set)=>{if(typeof v==='string'){if(v.startsWith('data:')&&v.length>3000)jobs.push({v,set});return;}if(Array.isArray(v))v.forEach((x,i)=>walk(x,y=>{v[i]=y;}));else if(v&&typeof v==='object')for(const k in v)walk(v[k],y=>{v[k]=y;});};walk(o,null);
+  let jn=0;for(const j of jobs){const h=await NET_hash(j.v);if(!(await NET_has(h))){await NET_put(h,new TextEncoder().encode(j.v),'text/plain');NET.upl.add(h);}NET.blobs[h]=j.v;j.set('nb:'+h);jn++;if(prog)try{prog(jn,jobs.length);}catch(e){}}
   return JSON.stringify(o);}
 async function NET_resolve(str){const o=JSON.parse(str);const jobs=[];const walk=(v,set)=>{if(typeof v==='string'){if(v.startsWith('nb:'))jobs.push({h:v.slice(3),set});return;}if(Array.isArray(v))v.forEach((x,i)=>walk(x,y=>{v[i]=y;}));else if(v&&typeof v==='object')for(const k in v)walk(v[k],y=>{v[k]=y;});};walk(o,null);
   await Promise.all(jobs.map(async j=>{if(!NET.blobs[j.h]){try{const r=await fetch(`${NET_srv()}/blob?i=${NET.id}&b=${j.h}`);if(r.ok)NET.blobs[j.h]=await r.text();}catch(e){}}j.set(NET.blobs[j.h]||null);}));return o;}
@@ -29880,7 +29880,7 @@ function NET_fresh(s){s.needs={hunger:95,energy:95,hygiene:95,bladder:95,fun:95}
 async function NET_begin(m){NET.role=m.role;let s;
   if(m.role==='owner'){
     if(NET.force&&NET.pend){s=JSON.parse(JSON.stringify(NET.pend));NET.force=0;}
-    else if(!m.isle){if(!NET.pend){NET_startScreen('島のデータがまだありません。「島をつくる」からやり直してください。');NET.fatal=true;return;}s=JSON.parse(JSON.stringify(NET.pend));}
+    else if(!m.isle){if(!NET.pend){NET_startScreen('「'+NET_islName(NET.id)+'」には、まだ中身がありません（つくっている途中で止まったようです）。下の「つくり直す」で中身を入れるか、いちばん下の「サーバーの設定」→「この端末から自分の島の鍵を消す」で消してください。');NET.fatal=true;return;}s=JSON.parse(JSON.stringify(NET.pend));}
     else s=await NET_resolve(m.isle);
     const nm=NETS();s.music=nm.music&&nm.music.ids&&nm.music.ids.length?{...nm.music}:null;s.bgmDefOff=nm.bgmDefOff||0;try{if(nm.musicBy)s.musicBy=JSON.parse(JSON.stringify(nm.musicBy));if(nm.musDev)s.musDev=nm.musDev;if(nm.musF){s.bf=s.bf||{owned:[],layout:{}};s.bf.musF=JSON.parse(JSON.stringify(nm.musF));}}catch(e){}
     s.sched=Array.isArray(s.sched)&&s.sched.length?s.sched:[{bed:23,wake:7},{bed:0,wake:5}];
@@ -30197,13 +30197,13 @@ function NET_startScreen(msg,busy){try{NET.ws&&NET.ws.close();}catch(e){}NET.ws=
   let h='';
   const isles=NET_isles(o);
   if(own)h+=`<div class="nd-own"><label for="nsSel">自分の島（この端末で入れる島：${isles.length}）</label><div class="row" style="gap:6px"><select id="nsSel" style="flex:1">${isles.map(x=>`<option value="${x.id}"${x.id===own.id?' selected':''}>${NET_esc(x.name||'わたしの島')}</option>`).join('')}</select><button type="button" class="sm" id="nsRen" style="flex:0 0 auto;padding:0 12px">名前を変える</button></div>
-<button type="button" class="nd-main" id="nsMine" style="margin-top:8px">「${NET_esc(NET_islName(own.id))}」に入る</button><div class="row" style="margin-top:8px"><button type="button" class="sm" id="nsInv">招待用URLをコピー</button><button type="button" class="sm" id="nsOwn">オーナー用URLをコピー</button></div><p class="sub" style="margin:6px 0 0">招待用URLとオーナー用URLは島ごとに別々です。招待用URLを友だちに送ると、その島に遊びに来られます。オーナー用URLは、ほかの端末で自分の島に入るためのもの（人には教えないでください）。</p></div>`+
+<button type="button" class="nd-main" id="nsMine" style="margin-top:8px">「${NET_esc(NET_islName(own.id))}」に入る</button><p class="ns-msg" id="nsTopMsg" style="margin:8px 0 0">${NET_esc(msg||'')}</p><div class="row" style="margin-top:8px"><button type="button" class="sm" id="nsInv">招待用URLをコピー</button><button type="button" class="sm" id="nsOwn">オーナー用URLをコピー</button></div><p class="sub" style="margin:6px 0 0">招待用URLとオーナー用URLは島ごとに別々です。招待用URLを友だちに送ると、その島に遊びに来られます。オーナー用URLは、ほかの端末で自分の島に入るためのもの（人には教えないでください）。</p></div>`+
   `<div class="nd-sec"><b style="font-size:14px">「${NET_esc(NET_islName(own.id))}」をつくり直す</b><p class="sub" style="margin:4px 0 6px">この島の中身を上書きします。招待用URLはそのままです。</p><button type="button" class="sm" id="nsReN" style="width:100%">まったく新しい島でつくり直す</button><button type="button" class="sm" id="nsRe" style="width:100%;margin-top:6px">この端末のスタンドアロン版の島でつくり直す</button><button type="button" class="sm" id="nsReF" style="width:100%;margin-top:6px">保存ファイル（.json）からつくり直す</button><input type="file" id="nsReI" accept=".json,application/json,text/plain" hidden><p class="ns-msg" id="nsReM"></p></div>`+
   `<div class="nd-sec"><b style="font-size:14px">島をふやす</b><p class="sub" style="margin:4px 0 6px">いまの島はそのまま残して、別の島をつくります。新しい島には、別の招待用URLができます。</p><label for="nsAddName">新しい島の名前</label><input id="nsAddName" maxlength="20" placeholder="例：海辺の島" value="島${isles.length+1}"><button type="button" class="sm" id="nsAddCopy" style="width:100%;margin-top:8px">「${NET_esc(NET_islName(own.id))}」をコピーしてつくる</button><button type="button" class="sm" id="nsAddNew" style="width:100%;margin-top:6px">まったく新しい島をつくる</button><button type="button" class="sm" id="nsAddSA" style="width:100%;margin-top:6px">スタンドアロン版の島をコピーしてつくる</button><p class="ns-msg" id="nsAddM"></p></div>`;
   else if(o.lastGuest)h+=`<p class="sub" style="margin:0 2px 4px">ゲストとして遊びに行く端末です。下の「遊びに行く」で、また島に行けます。</p>`;
   else h+=`<button type="button" class="nd-main" id="nsNew1"${sv?'':' hidden'}>スタンドアロン版の島をコピーしてつくる</button>${sv?'<p class="sub" style="margin:6px 2px 0">この端末のスタンドアロン版の島（家具・庭・写真・BGM）をコピーします。ネット版のデータはスタンドアロン版とは別に保存されるので、コピーしたあとはどちらを変えても、もう一方には影響しません。もとの島はそのまま残ります。</p>':''}<button type="button" class="nd-main" id="nsNew2" style="${sv?'background:#fff;color:#2f5e9e;border:1px solid #c8d2e2':''}">新しい島をつくる</button>`;
   h+=`<div class="nd-sec"><b style="font-size:14px">ほかの島に遊びに行く</b><label for="nsIsle">招待用URL</label><input id="nsIsle" placeholder="https://…#isle=…">${nameRow}<button type="button" class="nd-main" id="nsGo">遊びに行く</button></div>`;
-  h+=`<p class="ns-msg" id="nsMsg">${NET_esc(msg||'')}</p><div class="nd-sec"><button type="button" class="lnk" id="nsSet">サーバーの設定（ふだんは触らなくて大丈夫です）</button><div id="nsSetBox" hidden>
+  h+=`<p class="ns-msg" id="nsMsg">${own?'':NET_esc(msg||'')}</p><div class="nd-sec"><button type="button" class="lnk" id="nsSet">サーバーの設定（ふだんは触らなくて大丈夫です）</button><div id="nsSetBox" hidden>
 <p class="ex">ネット版は、島のようすやおしゃべりを、インターネット上の「サーバー」を通して相手とやりとりしています。このサーバーは、あなたが Cloudflare に置いた「fuyu-online」です。ここは、そのサーバーについての設定です。</p>
 <div class="exbox"><b>サーバーのアドレス</b><p class="ex">ネット版がつなぐサーバーの場所です。最初から正しいアドレスが入っているので、ふつうは変えません。Cloudflare でサーバーの名前を変えたときや、別のサーバーを立てたときだけ書きかえます。</p>
 <input id="nsSrv" value="${NET_esc(NET_srv())}" aria-label="サーバーのアドレス"></div>
@@ -30213,7 +30213,7 @@ ${own?`<div class="exbox"><b>この端末から自分の島の鍵を消す</b><p
 <ul class="ex"><li>島そのものはサーバーに残ります。家具も写真もそのままで、ゲストも招待用URLで今までどおり遊びに来られます。</li><li>「オーナー用URL」を開けば、また入れるようになります。</li><li>オーナー用URLを控えないまま消すと、二度とオーナーとして入れません。</li></ul>
 <p class="ex">使うのは、人にゆずる端末や家族と共用の端末から、自分の島に入れないようにしたいときです。</p>
 <button type="button" class="sm" id="nsForget" style="width:100%;color:#a33;border-color:#e2b8b8">この端末から自分の島の鍵を消す…</button></div>`:''}</div></div>`;
-  card(h);NET_bindName(ov);const M2=t=>{const e=ov.querySelector('#nsMsg');e.className='ns-msg';e.textContent=t;},OK=t=>{const e=ov.querySelector('#nsMsg');e.className='ns-msg ok';e.textContent=t;};
+  card(h);NET_bindName(ov);const MB=()=>ov.querySelector('#nsTopMsg')||ov.querySelector('#nsMsg'),M2=t=>{const e=MB();e.className='ns-msg';e.textContent=t;},OK=t=>{const e=MB();e.className='ns-msg ok';e.textContent=t;};
   const copy=async t=>{try{await navigator.clipboard.writeText(t);OK('コピーしました');}catch(e){prompt('このURLをコピーしてください',t);}};
   if(own){ov.querySelector('#nsMine').onclick=()=>NET_goOwner(own);ov.querySelector('#nsInv').onclick=()=>copy(NET_inviteURL(own.id));ov.querySelector('#nsOwn').onclick=()=>copy(NET_ownerURL(own));
     const RM=t=>{const e=ov.querySelector('#nsReM');e.className='ns-msg';e.textContent=t;};
@@ -30228,7 +30228,7 @@ ${own?`<div class="exbox"><b>この端末から自分の島の鍵を消す</b><p
     ov.querySelector('#nsSel').onchange=e=>{const id=e.target.value,x=NET_isles().find(i=>i.id===id);if(x){NETS_set(q=>{q.own={id:x.id,key:x.key};});NET_startScreen('');}};
     ov.querySelector('#nsRen').onclick=()=>{const cur=NET_islName(own.id),n=prompt('島の名前（この端末での呼び名です）',cur);if(n==null)return;const v=n.trim().slice(0,20);if(!v)return;NETS_set(q=>{q.isles=NET_isles(q).map(i=>i.id===own.id?{...i,name:v}:i);});NET_startScreen('名前を変えました');};
     const rn=ov.querySelector('#nsReN');rn.onclick=()=>{if(!rn.dataset.arm){rn.dataset.arm=1;rn.textContent='もう一度押すと、キャラクターづくりから始めます';RM('「'+NET_islName(own.id)+'」の家具・庭・写真をすべて消して、まっさらな島にします（招待用URLはそのまま）。');return;}NET.mode='recreate';NET.recOwn=own;ov.hidden=true;try{openSetup();}catch(e){RM('できませんでした');}};
-    const AM=(t,ok)=>{const e=ov.querySelector('#nsAddM');e.className='ns-msg'+(ok?' ok':'');e.textContent=t;};
+    const AM=(t,ok)=>{const e=ov.querySelector('#nsAddM'),tm=ov.querySelector('#nsTopMsg');if(tm)tm.textContent='';e.className='ns-msg'+(ok?' ok':'');e.textContent=t;};
     const nm=()=>{const v=(ov.querySelector('#nsAddName').value||'').trim().slice(0,20);return v||('島'+(NET_isles().length+1));};
     ov.querySelector('#nsAddNew').onclick=()=>{NET.newName=nm();NET.mode='create';ov.hidden=true;try{openSetup();}catch(e){AM('つくれませんでした');}};
     ov.querySelector('#nsAddSA').onclick=async()=>{if(!sv){AM('この端末のこのページからは、スタンドアロン版のデータが見つかりませんでした');return;}AM('スタンドアロン版の島をコピーしています…',1);NET.newName=nm();await NET_importSA(sv);NET_create(NET_strip(sv),AM);};
@@ -30259,8 +30259,24 @@ function NET_hideStart(){const ov=document.getElementById('netStart');if(ov)ov.h
 function NET_goGuest(id){const ov=document.getElementById('netStart'),n=ov&&ov.querySelector('#nsName');const p=NET_myProf();if(n)p.name=n.value.trim().slice(0,10);if(!p.name){const e=ov.querySelector('#nsMsg');if(e){e.className='ns-msg';e.textContent='名前を入れてください';}return;}
   NETS_set(o=>{o.prof=p;if(!o.own)o.lastGuest=id;});if(location.hash!=='#isle='+id)history.replaceState(null,'','#isle='+id);NET.id=id;NET.key=null;NET.role='guest';NET.retry=0;NET.fatal=false;NET_hideStart();NET_status('島に向かっています…');NET_open();}
 function NET_goOwner(own){NET.id=own.id;NET.key=own.key;NET.role='owner';NET.retry=0;NET.fatal=false;NET_hideStart();NET_status('島に向かっています…');NET_open();}
+// v669: a new island (a copy above all) is filled on the server first — pictures, then the island itself — and only then
+// put in this device's list and entered. Before, it was entered at once and filled in the background, so leaving early
+// left an empty island on the server that could never be entered.
+async function NET_seed(id,key,isle,say){const id0=NET.id,k0=NET.key;let str;
+  NET.id=id;NET.key=key;try{str=await NET_blobify(JSON.parse(JSON.stringify(isle)),(i,n)=>say('写真などを送っています… '+i+' / '+n));}finally{NET.id=id0;NET.key=k0;}
+  if(str.length>=1900000)throw new Error('big');say('島のデータを送っています…');
+  await new Promise((ok,ng)=>{let done=false,ws;const fin=e=>{if(done)return;done=true;clearTimeout(t);try{ws.close(1000,'bye');}catch(_){}e?ng(e):ok();};
+    const t=setTimeout(()=>fin(new Error('timeout')),30000);
+    try{ws=new WebSocket(NET_srv().replace(/^http/,'ws')+'/ws?i='+encodeURIComponent(id)+'&role=owner&k='+encodeURIComponent(key));}catch(e){fin(e);return;}
+    ws.onmessage=ev=>{let m;try{m=JSON.parse(ev.data);}catch(e){return;}
+      if(m.t==='err'){fin(new Error(m.code||'err'));return;}
+      // the server answers in order: the pong comes after the island is stored
+      if(m.t==='hello'){ws.send(JSON.stringify({t:'isle',isle:str}));ws.send(JSON.stringify({t:'ping'}));return;}
+      if(m.t==='pong')fin();};
+    ws.onerror=()=>fin(new Error('ws'));ws.onclose=()=>fin(new Error('closed'));});}
 async function NET_create(isle,msgf){const say2=msgf||(t=>NET_status(t));say2('島をつくっています…');
   try{const r=await fetch(NET_srv()+'/create',{method:'POST'});if(!r.ok)throw new Error(r.status);const j=await r.json();if(!j.id||!j.key)throw new Error('bad');
+    if(isle){try{await NET_seed(j.id,j.key,isle,say2);}catch(e){NET_status('');NET.newName='';NET_startScreen(e&&e.message==='big'?'島のデータが大きすぎて、つくれませんでした。':'島のデータを送りきれませんでした。電波のよいところで、もう一度ためしてください。（もとの島はそのままです）');return;}}
     NET_addIsle(j.id,j.key,NET.newName||'');NET.newName='';NET.pend=isle;NET_goOwner({id:j.id,key:j.key});}
   catch(e){NET_status('');NET_startScreen('島をつくれませんでした。サーバーの設定をたしかめてください。');}}
 // the setup screen is reused to make a new island, or just my character
