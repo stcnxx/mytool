@@ -136,6 +136,13 @@ a.tr-ln.warn{border-color:#f59e0b;background:color-mix(in srgb,#f59e0b 12%,var(-
 .tr-txt{font-size:.74rem;color:#b45309;margin-top:5px;line-height:1.5}
 .tr-add{justify-content:center;color:var(--muted)!important;font-weight:500!important;border-style:dashed!important}
 .tr-note{font-size:.68rem;color:var(--muted);margin-top:10px;line-height:1.5}
+.nx-st{font-size:.8rem;font-weight:700;margin:4px 0 5px}.nx-st span{font-weight:500;font-size:.72rem;color:var(--muted);margin-left:4px}
+.nx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:6px;margin-bottom:8px}
+.nx-dir{padding:6px 8px;border-radius:8px;background:var(--card);border:1px solid var(--line);min-width:0}
+.nx-ln{display:flex;align-items:center;gap:5px;font-size:.78rem;font-weight:700;min-width:0;margin-bottom:3px}.nx-to{margin-left:auto;flex:none;font-size:.7rem;font-weight:500;color:var(--muted)}
+.nx-dp{display:grid;grid-template-columns:auto 1fr auto;column-gap:7px;align-items:baseline;font-size:.78rem;line-height:1.55}
+.nx-tm{font-variant-numeric:tabular-nums;font-weight:600}.nx-ds{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nx-in{font-weight:700;font-variant-numeric:tabular-nums}
+.nx-lv{grid-column:2/4;font-size:.7rem;color:var(--muted);line-height:1.4;margin-top:-1px}.nx-lv b{color:#b45309}.nx-last{color:#dc2626;font-size:.68rem}
 .line-delay .co{color:var(--muted);font-size:.8rem}
 button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 #mapSheet{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column}
@@ -448,6 +455,7 @@ footer{background:none!important}
   <section class="card wide">
     <h2><span id="trainH">鉄道運行情報</span> <small id="trainTime"></small></h2>
     <div id="trains"><span class="muted">運行情報を確認しています…</span></div>
+    <div id="trNext"></div>
     <div class="tr-sec" id="trainAdd"><a class="tr-ln tr-add" href="#" data-tradd="1" style="max-width:260px">＋ 常に表示する路線を選ぶ</a></div>
   </section>
 
@@ -482,7 +490,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-14 14:59</div>
+  <div style="margin-bottom:4px">版：2026-11-19 08:05</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -542,7 +550,7 @@ async function fetchText(url, ms = 9000, keep = false){
 const MY_PROXY = "https://myspot-proxy.tomot8086.workers.dev/?url=";
 const wk = u => MY_PROXY + encodeURIComponent(u);
 // 専用中継が受け付けるサイト（Worker 側の ALLOW_HOSTS と同じ）
-const WK_HOSTS = ["news.web.nhk","news.yahoo.co.jp","api.adsb.lol","api.airplanes.live","opensky-network.org","tetsudo.rti-giken.jp","www.jma.go.jp","celestrak.org","api.adsbdb.com"];
+const WK_HOSTS = ["news.web.nhk","news.yahoo.co.jp","api.adsb.lol","api.airplanes.live","opensky-network.org","tetsudo.rti-giken.jp","www.jma.go.jp","celestrak.org","api.adsbdb.com","api-public.odpt.org"];
 const wkOK = u => { try{ return WK_HOSTS.includes(new URL(u).hostname); }catch(_){ return false; } };
 async function getJSON(url, { proxy = false, keep = false } = {}){
   if(FORCE_DEMO) throw new Error("デモモード");
@@ -2009,6 +2017,189 @@ async function loadToei(){
   }
   return m;
 }
+/* ---------- 公共交通オープンデータ（ODPT）：運行情報・近くの駅の次の電車・列車の位置 ---------- */
+// 鍵が要るほう（api.odpt.org）は専用中継が鍵を付けて取りに行く（鍵はページに置かない）
+// 公開のほう（api-public.odpt.org：都営など）は鍵不要。両方に問い合わせて、取れた分をまとめる
+const ODPT_EP = ["https://api.odpt.org/api/v4/", "https://api-public.odpt.org/api/v4/"];
+let ODPT_KEY_OK = null;   // 鍵の経路が使えるか（null＝まだ分からない）
+async function odptOne(i, path, keep){
+  if(i === 0){
+    if(ODPT_KEY_OK === false) return [];
+    try{ const j = JSON.parse(await fetchText(wk(ODPT_EP[0] + path), 12000, keep)); ODPT_KEY_OK = true; return Array.isArray(j) ? j : []; }
+    catch(e){ if(/HTTP 40[13]/.test(e.message) && !ODPT_KEY_OK) ODPT_KEY_OK = false; throw e; }
+  }
+  const j = await getJSON(ODPT_EP[1] + path, { proxy:true, keep }); return Array.isArray(j) ? j : [];
+}
+async function odptGet(path, keep = false){
+  if(FORCE_DEMO) throw new Error("デモモード");
+  const r = await Promise.allSettled([odptOne(0, path, keep), odptOne(1, path, keep)]);
+  if(r.every(x => x.status === "rejected")) throw r[0].reason;
+  const out = [], seen = new Set();
+  for(const x of r) if(x.status === "fulfilled") for(const o of x.value){ const k = o["@id"] || o["owl:sameAs"]; if(k){ if(seen.has(k)) continue; seen.add(k); } out.push(o); }
+  return out;
+}
+// 「A,B,C」のまとめ指定は個数に上限があるので、8件ずつに分けて同時に取る
+async function odptMany(type, pred, ids, keep = false){
+  const u = [...new Set(ids.filter(Boolean))], parts = [];
+  for(let i = 0; i < u.length; i += 8) parts.push(odptGet(`${type}?${pred}=${u.slice(i, i + 8).join(",")}`, keep));
+  return (await Promise.all(parts)).flat();
+}
+const jaOf = v => v && typeof v === "object" ? (v.ja || v.en || "") : String(v || "");
+const odptT = o => jaOf(o["odpt:railwayTitle"] || o["odpt:stationTitle"] || o["odpt:trainTypeTitle"] || o["odpt:railDirectionTitle"] || o["odpt:operatorTitle"]) || jaOf(o["dc:title"]);
+// 名前の控え（路線・駅・種別・方面・会社）。14日使い回す
+const ODPT_T = (() => { const c = load("odptT"); const ok = x => x && typeof x === "object" && !Array.isArray(x); return ok(c) && c.v === 1 && Date.now() - c.at < 14*864e5 && ok(c.m) && ok(c.rw) ? c : { v:1, at:Date.now(), m:{}, rw:{} }; })();
+const odptSave = () => store("odptT", ODPT_T);
+const odptName = id => id ? (ODPT_T.m[id] || String(id).split(/[.:]/).pop()) : "";
+async function odptTitles(ids, type, keep = false){
+  const need = [...new Set(ids.filter(id => id && ODPT_T.m[id] == null))]; if(!need.length) return;
+  const r = await odptMany(type, "owl:sameAs", need, keep);
+  for(const o of r){ const t = odptT(o); if(o["owl:sameAs"] && t) ODPT_T.m[o["owl:sameAs"]] = t; }
+  odptSave();
+}
+async function odptRailways(ids, keep = false){
+  const need = [...new Set(ids.filter(id => id && !ODPT_T.rw[id]))];
+  if(need.length){
+    const r = await odptMany("odpt:Railway", "owl:sameAs", need, keep);
+    for(const o of r){ const id = o["owl:sameAs"]; if(!id) continue;
+      ODPT_T.rw[id] = { t:odptT(o), col:o["odpt:color"] || "", code:o["odpt:lineCode"] || "", op:o["odpt:operator"] || "" }; ODPT_T.m[id] = ODPT_T.rw[id].t;
+      for(const s of o["odpt:stationOrder"] || []){ const t = jaOf(s["odpt:stationTitle"]); if(s["odpt:station"] && t) ODPT_T.m[s["odpt:station"]] = t; } }
+    odptSave();
+  }
+  return ids.map(id => ODPT_T.rw[id]);
+}
+// 運行情報：路線ごと（odpt:railway）と、会社全体（路線の指定なし）
+async function loadOdptInfo(){
+  const list = await odptGet("odpt:TrainInformation");
+  await Promise.allSettled([odptRailways(list.map(x => x["odpt:railway"])), odptTitles(list.map(x => x["odpt:operator"]), "odpt:Operator")]);
+  const byRw = {}, byOp = {};
+  for(const x of list){
+    const status = jaOf(x["odpt:trainInformationStatus"]), text = jaOf(x["odpt:trainInformationText"]);
+    const normal = (!status || /平常/.test(status)) && (!text || /平常|通常(どおり|通り)|(情報|お知らせ)はありません/.test(text));
+    const v = { status:status || (normal ? "平常運転" : "運行情報あり"), text, normal, resume:x["odpt:resumeEstimate"] || "", op:x["odpt:operator"] || "", rw:x["odpt:railway"] || "" };
+    if(v.rw) byRw[v.rw] = v; else if(v.op) byOp[v.op] = v;
+  }
+  return list.length ? { byRw, byOp } : null;
+}
+// 一覧の路線 → ODPT の運行情報（会社と路線名で照合）
+const CO2OP = [[/東京メトロ|東京地下鉄/,"TokyoMetro"],[/都営|東京都交通局/,"Toei"],[/ゆりかもめ/,"Yurikamome"],[/東京臨海|りんかい/,"TWR"],[/東京モノレール/,"TokyoMonorail"],[/JR東日本/,"JR-East"],[/東急/,"Tokyu"],[/小田急/,"Odakyu"],[/京王/,"Keio"],[/西武/,"Seibu"],[/東武/,"Tobu"],[/京急|京浜急行/,"Keikyu"],[/京成/,"Keisei"],[/相鉄|相模鉄道/,"Sotetsu"],[/つくば|首都圏新都市/,"MIR"],[/横浜市/,"YokohamaMunicipal"],[/多摩都市|多摩モノレール/,"TamaMonorail"],[/横浜高速|みなとみらい/,"MinatoMirai"],[/埼玉高速/,"SaitamaRailway"],[/東葉/,"ToyoRapidRailway"],[/北総/,"Hokuso"]];
+function odptOf(o){
+  const I = LAST_TRAINS && LAST_TRAINS.odpt; if(!I) return null;
+  if(o._odpt !== undefined && o._odptI === I) return o._odpt;
+  const key = `${o.co || ""} ${o.n || ""} ${o.near || ""}`, op = (CO2OP.find(([re]) => re.test(key)) || [])[1];
+  let hit = null;
+  if(op){
+    const nn = jrNorm(o.n);
+    for(const [rw, v] of Object.entries(I.byRw)){ if(!rw.startsWith(`odpt.Railway:${op}.`)) continue; const t = (ODPT_T.rw[rw] || {}).t || ""; if(t && (jrNorm(t) === nn || (o.re && o.re.test(t)))){ hit = v; break; } }
+    if(!hit) hit = I.byOp["odpt.Operator:" + op] || null;
+  }
+  o._odpt = hit; o._odptI = I; return hit;
+}
+const odptText = v => v.text + (v.resume ? `（運転再開の見込み ${String(v.resume).slice(11, 16)}）` : "");
+
+/* 近くの駅の次の電車（駅時刻表＋列車の位置） */
+let NEXT = null, NEXT_GEN = 0;
+// 3時までは前日の時刻表（終電の扱い）。日曜・祝日は休日ダイヤ
+function odptCal(){
+  const d = new Date(Date.now() + 6*3600e3), ld = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()), wd = d.getUTCDay();
+  const hol = wd === 0 || !!Cal.holidayOf(ld);
+  return { key:`${ld.getFullYear()}-${ld.getMonth()}-${ld.getDate()}`, pref:hol ? ["Holiday","SaturdayHoliday","SundayHoliday","Sunday"] : wd === 6 ? ["Saturday","SaturdayHoliday"] : ["Weekday"] };
+}
+const nowSvcMin = () => { const d = new Date(Date.now() + 9*3600e3), h = d.getUTCHours(); return (h < 3 ? h + 24 : h)*60 + d.getUTCMinutes() + d.getUTCSeconds()/60; };
+const ttMin = s => { const [h, m] = String(s || "").split(":").map(Number); return isNaN(h) ? NaN : (h < 3 ? h + 24 : h)*60 + m; };
+async function loadNext(force = false){
+  const gen = ++NEXT_GEN, lat = S.lat, lon = S.lon;
+  if(FORCE_DEMO || lat == null || !inJapan()){ NEXT = null; renderNext(); return; }
+  const k = `${lat.toFixed(3)},${lon.toFixed(3)}`, cal = odptCal();
+  if(!force && NEXT && !NEXT.pending && NEXT.k === k && NEXT.cal === cal.key && Date.now() - NEXT.at < 6*3600e3){ renderNext(); loadLive(); return; }
+  NEXT = { k, pending:true }; renderNext();
+  try{
+    let st = await odptGet(`places/odpt:Station?lat=${lat}&lon=${lon}&radius=1500`);
+    if(!st.length) st = await odptGet(`places/odpt:Station?lat=${lat}&lon=${lon}&radius=4000`);
+    if(gen !== NEXT_GEN) return;
+    // 駅名ごとにまとめ、近い順に（1.5km以内なら2駅まで）
+    const by = new Map();
+    for(const s of st){ const la = +s["geo:lat"], lo = +s["geo:long"], id = s["owl:sameAs"]; if(!id || isNaN(la)) continue;
+      const t = odptT(s); if(t) ODPT_T.m[id] = t;
+      const nm = t || odptName(id), d = distKm(lat, lon, la, lo), g = by.get(nm) || { name:nm, dist:d, ids:[] };
+      g.dist = Math.min(g.dist, d); g.ids.push({ id, rw:s["odpt:railway"] || "", d }); by.set(nm, g); }
+    // 一番近い駅は4路線まで。その駅の路線が2つ以下なら、1.5km以内のもう1駅も出す（長くなりすぎないように）
+    const all = [...by.values()].sort((a, b) => a.dist - b.dist);
+    for(const g of all) g.ids = g.ids.sort((a, b) => a.d - b.d).slice(0, 4);
+    const groups = all.filter((g, i) => i === 0 || (i === 1 && g.dist <= 1.5 && new Set(all[0].ids.map(x => x.rw)).size <= 2));
+    if(!groups.length){ NEXT = { k, cal:cal.key, at:Date.now(), st:[] }; renderNext(); return; }
+    const sids = groups.flatMap(g => g.ids.map(x => x.id));
+    const [tts] = await Promise.all([odptMany("odpt:StationTimetable", "odpt:station", sids), odptRailways(groups.flatMap(g => g.ids.map(x => x.rw))).catch(() => {})]);
+    if(gen !== NEXT_GEN) return;
+    // 駅・方面ごとに、今日の暦に合う時刻表を1つ選ぶ
+    const rank = t => { const c = String(t["odpt:calendar"] || "").split(":").pop(), i = cal.pref.indexOf(c); return i < 0 ? 99 : i; }, pick = new Map();
+    for(const t of tts){ const r = rank(t); if(r === 99) continue; const kk = t["odpt:station"] + "|" + (t["odpt:railDirection"] || ""), o = pick.get(kk); if(!o || r < rank(o)) pick.set(kk, t); }
+    const need = { dir:[], type:[], st:[] };
+    const rowsOf = sid => [...pick.values()].filter(t => t["odpt:station"] === sid).map(t => {
+      const tt = (t["odpt:stationTimetableObject"] || []).map(e => ({ m:ttMin(e["odpt:departureTime"]), dep:e["odpt:departureTime"], type:e["odpt:trainType"] || "", dest:(e["odpt:destinationStation"] || [])[0] || "", train:e["odpt:train"] || "", num:e["odpt:trainNumber"] || "", last:!!e["odpt:isLast"] })).filter(e => !isNaN(e.m)).sort((a, b) => a.m - b.m);
+      need.dir.push(t["odpt:railDirection"]); tt.forEach(e => { need.type.push(e.type); need.st.push(e.dest); });
+      return { rw:t["odpt:railway"] || "", dir:t["odpt:railDirection"] || "", tt };
+    }).filter(r => r.tt.length);
+    const out = groups.map(g => ({ name:g.name, dist:g.dist, rows:g.ids.flatMap(x => rowsOf(x.id)) })).filter(g => g.rows.length);
+    await Promise.allSettled([odptTitles(need.dir, "odpt:RailDirection"), odptTitles(need.type, "odpt:TrainType"), odptTitles(need.st, "odpt:Station")]);
+    if(gen !== NEXT_GEN) return;
+    NEXT = { k, cal:cal.key, at:Date.now(), st:out, live:{} };
+    renderNext(); loadLive();
+  }catch(e){
+    if(gen !== NEXT_GEN) return;
+    NEXT = { k, err:e.message, at:Date.now() }; renderNext();
+  }
+}
+// 列車の位置と遅れ（1分ごと）
+let LIVE_P = null;
+async function loadLive(){
+  if(!NEXT || !NEXT.st || !NEXT.st.length || LIVE_P) return;
+  const N = NEXT, rws = N.st.flatMap(g => g.rows.map(r => r.rw));
+  N.liveAt = Date.now();
+  LIVE_P = odptMany("odpt:Train", "odpt:railway", rws, true).then(async list => {
+    const m = {};
+    for(const x of list){ const v = { delay:+x["odpt:delay"] || 0, from:x["odpt:fromStation"] || "", to:x["odpt:toStation"] || "" };
+      if(x["owl:sameAs"]) m[x["owl:sameAs"]] = v; if(x["odpt:trainNumber"]) m[(x["odpt:railway"] || "") + "#" + x["odpt:trainNumber"]] = v; }
+    await odptTitles(Object.values(m).flatMap(v => [v.from, v.to]), "odpt:Station", true).catch(() => {});
+    if(NEXT === N){ N.live = m; N.liveOK = list.length > 0; renderNext(); }
+  }).catch(() => {}).finally(() => { LIVE_P = null; });
+}
+function renderNext(){
+  const box = $("#trNext"); if(!box) return;
+  try{
+    const N = NEXT;
+    if(!N || (!N.pending && !(N.st && N.st.length))){
+      box.innerHTML = N && N.err && inCapital() ? `<div class="tr-note" style="margin:0 0 8px">近くの駅の時刻表を取得できませんでした。</div>` : ""; return; }
+    if(N.pending){ box.innerHTML = inCapital() ? `<div class="tr-sec" style="margin-top:12px"><div class="tr-h">近くの駅の次の電車</div><div class="muted" style="font-size:.85rem">近くの駅を探しています…</div></div>` : ""; return; }
+    if(odptCal().key !== N.cal){ loadNext(true); return; }
+    const now = nowSvcMin();
+    let h = `<div class="tr-sec" style="margin-top:12px"><div class="tr-h">近くの駅の次の電車</div>`;
+    for(const g of N.st){
+      const dm = g.dist < 1 ? `約${Math.max(50, Math.round(g.dist*1000/50)*50)}m` : `約${g.dist.toFixed(1)}km`;
+      h += `<div class="nx-st">${esc(g.name.replace(/駅$/, ""))}駅 <span>${dm}</span></div><div class="nx-grid">`;
+      for(const r of g.rows){
+        const R = ODPT_T.rw[r.rw] || {}, col = R.col || "#9ca3af", code = R.code || "●";
+        const deps = r.tt.filter(e => {
+          const lv = N.live && (N.live[e.train] || N.live[r.rw + "#" + e.num]);
+          return e.m + (lv ? lv.delay/60 : 0) >= now - .5; }).slice(0, 2);
+        h += `<div class="nx-dir"><div class="nx-ln"><span class="tr-bd" style="border-color:${esc(col)}">${esc(code)}</span><span class="tr-nm">${esc(R.t || odptName(r.rw))}</span><span class="nx-to">${esc(odptName(r.dir))}</span></div>`;
+        if(!deps.length) h += `<div class="nx-dp muted">本日の運転は終了しました</div>`;
+        for(const e of deps){
+          const lv = N.live && (N.live[e.train] || N.live[r.rw + "#" + e.num]), dl = lv ? Math.round(lv.delay/60) : 0;
+          const mins = Math.max(0, Math.floor(e.m + dl - now)), dest = odptName(e.dest);
+          let sub = "";
+          if(lv){ const at = lv.to ? `${odptName(lv.from)}→${odptName(lv.to)}` : `${odptName(lv.from)}`; sub = (dl > 0 ? `<b>${dl}分遅れ</b>・` : "") + (lv.from ? `いま${esc(at)}` : ""); }
+          h += `<div class="nx-dp"><span class="nx-tm">${esc(String(e.dep).slice(0, 5))}</span><span class="nx-ds">${esc(odptName(e.type))}${dest ? " " + esc(dest) + "行" : ""}${e.last ? ' <b class="nx-last">終電</b>' : ""}</span><span class="nx-in">${mins === 0 ? "まもなく" : `あと${mins}分`}</span>${sub ? `<span class="nx-lv">${sub}</span>` : ""}</div>`;
+        }
+        h += `</div>`;
+      }
+      h += `</div>`;
+    }
+    h += `<div class="tr-note" style="margin-top:6px">時刻表${N.liveOK ? "と列車の位置" : ""}は<a href="https://www.odpt.org/" target="_blank" rel="noopener">公共交通オープンデータセンター</a>から。事業者から提供されたデータを元にしていますが、必ずしも正確・完全なものとは限りません。表示内容について事業者への問い合わせはしないでください。</div></div>`;
+    box.innerHTML = h;
+  }catch(e){ box.innerHTML = ""; }
+}
+// 残り分数は20秒ごとに更新、列車の位置は1分ごとに取り直す（画面を見ているときだけ）
+setInterval(() => { if(document.visibilityState !== "visible" || !NEXT || NEXT.pending || !NEXT.st || !NEXT.st.length) return; renderNext(); if(Date.now() - (NEXT.liveAt || 0) > 60e3) loadLive(); }, 20e3);
 let LAST_TRAINS = null;
 const TR_ADD_BTN = `<div class="tr-sec"><a class="tr-ln tr-add" href="#" data-tradd="1" style="max-width:260px">＋ 常に表示する路線を選ぶ</a></div>`;
 // 首都圏（1都3県）にいるか
@@ -2019,6 +2210,7 @@ const CAP_OTHERS = [["U","#1f6fb8","ゆりかもめ","ゆりかもめ","ゆり�
 async function loadTrains(){
   // 海外の場所を表示しているときも、「常に表示する路線」があれば欄を出す（自動の対象は国内のみ）
   const jp = inJapan(); showCard("#trains", true); $("#trains").hidden = false;
+  loadNext();   // 近くの駅の次の電車（別に読み込む）
   if(!jp && !trPins().length){ LAST_TRAINS = null; $("#trains").innerHTML = '<div class="muted" style="font-size:.85rem">日本国外の場所を表示中です。「常に表示する路線」を選ぶと、ここに国内の路線の運行情報が出ます。</div>'; $("#trainTime").textContent = ""; markDemo("train", "#trainH", false); return; }
   const cap = inCapital();
   // データが届く前から「常に表示する路線を選ぶ」ボタンは出しておく
@@ -2029,8 +2221,8 @@ async function loadTrains(){
     renderTrains(); return;
   }
   const pinToei = trPins().some(id => id.startsWith("都営|"));
-  const [dl, toei, nj] = await Promise.allSettled([getDelayList(), (cap || pinToei) ? loadToei() : Promise.resolve(null), jp ? nearJR() : Promise.resolve([])]);
-  LAST_TRAINS = { delay:dl.status === "fulfilled" ? dl.value : null, toei:toei.status === "fulfilled" ? toei.value : null, near:nj.status === "fulfilled" ? nj.value : null, at:new Date() };
+  const [dl, toei, nj, od] = await Promise.allSettled([getDelayList(), (cap || pinToei) ? loadToei() : Promise.resolve(null), jp ? nearJR() : Promise.resolve([]), loadOdptInfo()]);
+  LAST_TRAINS = { delay:dl.status === "fulfilled" ? dl.value : null, toei:toei.status === "fulfilled" ? toei.value : null, near:nj.status === "fulfilled" ? nj.value : null, odpt:od.status === "fulfilled" ? od.value : null, at:new Date() };
   renderTrains();
 }
 function trBtn(code, col, name, href, warn, st){
@@ -2065,7 +2257,8 @@ function trMatch(x, o){
 }
 function trStatus(o){
   if(!LAST_TRAINS) return { bad:false, st:"確認中", text:"" };
-  const T = LAST_TRAINS, list = T.delay || [];
+  const T = LAST_TRAINS, list = T.delay || [], od = odptOf(o);
+  if(od) return { bad:!od.normal, st:od.normal ? "平常運転" : od.status, text:od.normal ? "" : odptText(od) };
   if(o.toei && T.toei && T.toei[o.toei]){ const t = T.toei[o.toei]; return { bad:!t.normal, st:t.normal ? "平常運転" : t.status, text:t.normal ? "" : t.text }; }
   const bad = list.some(x => trMatch(x, o));
   return { bad, st:bad ? "遅れあり" : "", text:"" };
@@ -2170,12 +2363,15 @@ function renderTrains(){
   const used = new Set();
   const bad = target.map(o => ({ o, s:trStatus(o) })).filter(v => {
     if(!v.s.bad) return false;
-    if(v.o.toei && (LAST_TRAINS.toei || {})[v.o.toei]) return true;
+    if(odptOf(v.o) || (v.o.toei && (LAST_TRAINS.toei || {})[v.o.toei])) return true;
     const hits = (T.delay || []).filter(x => trMatch(x, v.o)); if(hits.length && hits.every(x => used.has(x))) return false;
     hits.forEach(x => used.add(x)); return true; });
   // 首都圏の外で、近くの路線に当たらない遅れも「この地域の会社」なら出す
   let other = [];
   if(!cap && !abroad && T.delay){ const [, , , coRe] = trainRegion(); other = T.delay.filter(x => coRe.test((x.company || "") + " " + (x.name || "")) && !target.some(o => trMatch(x, o))); }
+  // 公共交通オープンデータの乱れで、一覧の路線に当たらないもの（首都圏のとき）
+  let otherOd = [];
+  if(cap && T.odpt){ const hit = new Set(target.map(o => odptOf(o)).filter(Boolean)); otherOd = [...Object.values(T.odpt.byRw), ...Object.values(T.odpt.byOp)].filter(v => !v.normal && !hit.has(v)); }
   const NAT = trNational(), pinned = pins.map(id => NAT.find(o => o.id === id) || cat.find(o => o.id === id) || (() => { const [co, n] = id.split("|"); return { id, co, n, code:co.startsWith("JR") ? "JR" : "●", col:"#9ca3af", href:"https://www.google.com/search?q=" + encodeURIComponent(`${co} ${n} 運行情報`), near:(co === "JR" ? "JR" : "") + n }; })());
   let html = "";
   if(pinned.length) html += `<div class="tr-sec"><div class="tr-h">常に表示する路線</div><div class="tr-grid two">`
@@ -2187,22 +2383,24 @@ function renderTrains(){
     markDemo("train", "#trainH", !!T.demo); return;
   }
   // 異常がないときは「平常どおり」などの常時表示はしない（見出しごと出さない）
-  const quietOK = !T.pending && (T.delay || T.toei) && !badShow.length && !other.length;
+  const quietOK = !T.pending && (T.delay || T.toei || T.odpt) && !badShow.length && !other.length && !otherOd.length;
   html += quietOK ? `<div class="tr-sec">` : `<div class="tr-sec"><div class="tr-h">遅れや運行の乱れがある路線</div>`;
   if(quietOK){}
   else if(T.pending) html += `<div class="muted" style="font-size:.85rem">運行情報を確認しています…</div>`;
-  else if(!T.delay && !T.toei) html += `<div class="muted" style="font-size:.85rem">運行情報を取得できませんでした。しばらくしてから更新してください。</div>`;
+  else if(!T.delay && !T.toei && !T.odpt) html += `<div class="muted" style="font-size:.85rem">運行情報を取得できませんでした。しばらくしてから更新してください。</div>`;
   else{
     html += `<div class="tr-grid one">` + badShow.map(v => trBtn(v.o.code, v.o.col, `${v.o.co && v.o.co !== "JR" && v.o.co !== v.o.n ? v.o.co + " " : ""}${v.o.n}`, v.o.href, true, v.s.st && v.s.st !== "遅れあり" ? v.s.st : "")).join("")
-      + other.map(x => trBtn(/^JR/.test(x.company || "") ? "JR" : "●", "#9ca3af", `${x.company || ""} ${trainLabel(x)}`.trim(), "https://www.google.com/search?q=" + encodeURIComponent(`${x.company || ""} ${x.name || ""} 運行情報`), true)).join("") + "</div>";
+      + other.map(x => trBtn(/^JR/.test(x.company || "") ? "JR" : "●", "#9ca3af", `${x.company || ""} ${trainLabel(x)}`.trim(), "https://www.google.com/search?q=" + encodeURIComponent(`${x.company || ""} ${x.name || ""} 運行情報`), true)).join("")
+      + otherOd.map(v => { const R = ODPT_T.rw[v.rw] || {}, nm = `${odptName(v.op)} ${v.rw ? R.t || odptName(v.rw) : ""}`.trim(); return trBtn(R.code || "●", R.col || "#9ca3af", nm, "https://www.google.com/search?q=" + encodeURIComponent(nm + " 運行情報"), true, v.status); }).join("") + "</div>";
     for(const v of bad) if(v.s.text) html += `<div class="tr-txt">${esc(v.o.n)}：${esc(v.s.text)}</div>`;
+    for(const v of otherOd) if(v.text) html += `<div class="tr-txt">${esc(v.rw ? (ODPT_T.rw[v.rw] || {}).t || odptName(v.rw) : odptName(v.op))}：${esc(odptText(v))}</div>`;
   }
-  if(!T.pending && !T.delay) html += `<div class="tr-note" style="margin-top:6px">${T.toei ? "都営以外の路線（東京メトロ・JRなど）は" : "いまは遅れの情報を自動で確認できないため、"}ボタンから公式の運行情報で確認してください。</div>`;
+  if(!T.pending && !T.delay) html += `<div class="tr-note" style="margin-top:6px">${T.odpt ? "公共交通オープンデータに無い路線（JRなど）は" : T.toei ? "都営以外の路線（東京メトロ・JRなど）は" : "いまは遅れの情報を自動で確認できないため、"}ボタンから公式の運行情報で確認してください。</div>`;
   html += "</div>";
   const scope = cap ? "東京メトロ全線・都営全線・ゆりかもめ・りんかい線・東京モノレール・JR東日本の首都圏の路線"
     : (T.near && T.near.length ? `表示中の場所の近く（約5km）の駅を通る路線（${T.near.length}路線）と、${area}の鉄道会社の遅れ` : `${area}の鉄道会社`);
   html += `<div class="tr-note">対象：${esc(scope)}。<br>${T.delay ? TR_WARN.replace('class="tr-wi"', 'width="12" height="12" style="vertical-align:-1px"') + " 遅れの情報は" : "遅れの情報の取得元："}<a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>（非公式。反映に数分〜10分ほどかかります）`
-    + (cap ? `、都営は<a href="https://ckan.odpt.org/dataset/r_train_status-toei" target="_blank" rel="noopener">東京都交通局のオープンデータ</a>（CC BY 4.0）` : "") + (cap ? "" : `、近くの駅は<a href="https://express.heartrails.com/" target="_blank" rel="noopener">HeartRails Express</a>`) + `から。ボタンを押すと運行情報を開きます。</div>`;
+    + (T.odpt ? `、${!cap ? "一部の路線" : ODPT_KEY_OK ? "東京メトロ・都営など" : "都営"}は<a href="https://www.odpt.org/" target="_blank" rel="noopener">公共交通オープンデータセンター</a>` : cap ? `、都営は<a href="https://ckan.odpt.org/dataset/r_train_status-toei" target="_blank" rel="noopener">東京都交通局のオープンデータ</a>（CC BY 4.0）` : "") + (cap ? "" : `、近くの駅は<a href="https://express.heartrails.com/" target="_blank" rel="noopener">HeartRails Express</a>`) + `から。ボタンを押すと運行情報を開きます。</div>`;
   $("#trains").innerHTML = html;
   $("#trainTime").textContent = T.pending ? "" : `${pad(T.at.getHours())}:${pad(T.at.getMinutes())} 確認`;
   markDemo("train", "#trainH", !!T.demo);
