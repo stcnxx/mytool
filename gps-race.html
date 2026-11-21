@@ -23,7 +23,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0d1117;color:#fff;fon
 .btn.ghost{background:transparent;border:1px solid #3a4b60;color:#c8d3df}
 .row{display:flex;gap:8px;align-items:center;margin-top:10px}
 .row label{font-size:14px;color:#b8c4d2;white-space:nowrap}
-select,input{flex:1;min-width:0;padding:11px 10px;border-radius:10px;border:1px solid #3a4b60;background:#121a24;color:#fff;font-size:15px}
+select,input:not([type=checkbox]){flex:1;min-width:0;padding:11px 10px;border-radius:10px;border:1px solid #3a4b60;background:#121a24;color:#fff;font-size:15px}
 details{margin-top:10px;border-top:1px solid #2c3b4d;padding-top:8px}
 summary{cursor:pointer;color:#9fc3ff;font-size:14px;padding:4px 0}
 .small{font-size:12px;color:#8193a8}
@@ -46,7 +46,7 @@ summary{cursor:pointer;color:#9fc3ff;font-size:14px;padding:4px 0}
 #spd{font-size:30px;font-weight:800;line-height:1}
 #mmWrap{position:absolute;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));pointer-events:auto}
 #mm{width:140px;height:140px;border-radius:50%;border:2px solid #2f4a66;background:#1d2b22;display:block}
-#roadName{position:absolute;bottom:calc(150px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);font-size:14px;background:rgba(10,16,24,.6);padding:3px 12px;border-radius:20px;color:#dde7f2;white-space:nowrap}
+#roadName{position:absolute;bottom:calc(26px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);font-size:14px;background:rgba(10,16,24,.6);padding:3px 12px;border-radius:20px;color:#dde7f2;white-space:nowrap}
 #roadName:empty{display:none}
 #topBtns{position:absolute;top:calc(max(10px,env(safe-area-inset-top)) + 150px);right:max(10px,env(safe-area-inset-right));display:flex;flex-direction:column;gap:8px;pointer-events:auto}
 .hbtn{pointer-events:auto;border:0;border-radius:12px;background:rgba(10,16,24,.8);color:#fff;font-size:14px;padding:9px 12px;border:1px solid #2f4a66}
@@ -55,16 +55,27 @@ summary{cursor:pointer;color:#9fc3ff;font-size:14px;padding:4px 0}
 @keyframes bl{50%{opacity:.6}}
 #attr{position:absolute;bottom:max(4px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);font-size:10px;color:rgba(255,255,255,.75);text-shadow:0 0 3px #000;white-space:nowrap}
 #hint{position:absolute;top:45%;left:50%;transform:translate(-50%,-50%);font-size:18px;background:rgba(10,16,24,.7);padding:10px 18px;border-radius:12px;text-align:center}
-/* touch controls */
-#ctrl{position:fixed;left:0;right:0;bottom:0;padding:0 max(14px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left));display:flex;justify-content:space-between;align-items:flex-end;z-index:11;pointer-events:none}
-.pad{display:flex;gap:12px;pointer-events:auto}
-.cb{width:84px;height:84px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(20,30,44,.55);color:#fff;font-size:30px;font-weight:800;touch-action:none}
-.cb.on{background:rgba(255,216,74,.85);color:#0d1117}
-#bA{width:96px;height:120px;border-radius:22px;font-size:17px;background:rgba(31,157,85,.6)}
-#bB{width:80px;height:84px;border-radius:20px;font-size:15px;background:rgba(209,75,28,.55)}
-#bA.on{background:rgba(60,220,120,.95)}#bB.on{background:rgba(255,110,60,.95)}
-@media (min-width:900px) and (hover:hover){#ctrl{opacity:.55}}
-@media (max-height:500px){#mm{width:110px;height:110px}#topBtns{top:calc(max(10px,env(safe-area-inset-top)) + 118px)}#nav{min-width:200px}#navDist{font-size:22px}#navIcon{width:48px;height:48px}.cb{width:72px;height:72px}#bA{height:96px}#roadName{bottom:calc(115px + env(safe-area-inset-bottom))}}
+/* swipe controls */
+#touch{position:fixed;inset:0;z-index:5;touch-action:none}
+#joy{position:absolute;width:0;height:0;pointer-events:none}
+#joyBase{position:absolute;left:-46px;top:-46px;width:92px;height:92px;border-radius:50%;border:2px solid rgba(255,255,255,.45);background:rgba(10,16,24,.25)}
+#joyKnob{position:absolute;left:-22px;top:-22px;width:44px;height:44px;border-radius:50%;background:rgba(255,216,74,.9);box-shadow:0 0 12px rgba(255,216,74,.6)}
+#joyKnob.brk{background:rgba(255,100,60,.95);box-shadow:0 0 12px rgba(255,100,60,.6)}
+#joyLbl{position:absolute;left:-80px;top:-84px;width:160px;text-align:center;font-weight:800;font-size:16px;text-shadow:0 0 4px #000}
+#thrBar{position:absolute;left:58px;top:-70px;width:10px;height:140px;border-radius:6px;background:rgba(255,255,255,.18);overflow:hidden}
+#thrFill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(#ff5a3c,#ffd84a 40%,#3cdc78)}
+#bldStat{position:absolute;left:max(10px,env(safe-area-inset-left));bottom:calc(26px + env(safe-area-inset-bottom));font-size:12px;background:rgba(10,16,24,.6);padding:3px 10px;border-radius:12px}
+.chk{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px;color:#b8c4d2}.chk input{width:20px;height:20px}
+#dest{max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ffe48a}
+#intro{position:fixed;inset:0;z-index:15;display:flex;align-items:flex-end;justify-content:center;padding:16px 16px max(16px,env(safe-area-inset-bottom));background:linear-gradient(transparent 30%,rgba(8,12,18,.85));touch-action:none}
+#intro .card{pointer-events:none}
+#introName{font-size:24px;font-weight:800;color:#ffd84a;line-height:1.3;margin:2px 0 4px}
+#introInfo{font-size:15px;color:#cfe3ff}
+#ovMap{width:100%;height:180px;border-radius:12px;margin:10px 0 6px;background:#16221a;display:block}
+.how{display:flex;justify-content:space-around;font-size:12px;color:#b8c4d2;margin-top:6px;text-align:center}
+.how b{display:block;font-size:20px;color:#fff}
+.tapgo{margin-top:10px;text-align:center;font-weight:800;font-size:17px;color:#0d1117;background:#ffd84a;border-radius:12px;padding:12px;animation:bl 1.4s infinite}
+@media (max-height:500px){#ovMap{height:110px}#introName{font-size:20px}#mm{width:110px;height:110px}#topBtns{top:calc(max(10px,env(safe-area-inset-top)) + 118px)}#nav{min-width:200px}#navDist{font-size:22px}#navIcon{width:48px;height:48px}}
 @media (max-width:520px){#nav{top:calc(max(10px,env(safe-area-inset-top)) + 150px);max-width:calc(100% - 20px)}#topBtns{top:calc(max(10px,env(safe-area-inset-top)) + 228px)}}
 .resultBig{font-size:40px;font-weight:800;color:#ffd84a;margin:6px 0}
 table.res{width:100%;font-size:15px;color:#cdd8e4;border-collapse:collapse}
@@ -73,12 +84,14 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
 </head>
 <body>
 <div id="game"></div>
+<div id="touch"></div>
 
 <div id="hud" class="hidden">
   <div id="stats">
     <div><span id="spd">0</span> km/h</div>
     <div>⏱ <b id="time">0:00.0</b></div>
     <div>🏁 残り <b id="remain">-</b></div>
+    <div id="dest"></div>
   </div>
   <div id="nav"><div id="navIcon"><svg id="navArrow" viewBox="0 0 48 48"><path d="M24 4 L40 24 H30 V44 H18 V24 H8 Z" fill="#fff"/></svg><span id="navEmoji" class="hidden"></span></div>
     <div style="min-width:0"><div id="navDist">-</div><div id="navText">ルート計算中</div></div></div>
@@ -86,16 +99,25 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
   <div id="topBtns">
     <button class="hbtn" id="menuBtn">≡ メニュー</button>
     <button class="hbtn" id="voiceBtn">🔈 音声</button>
+    <button class="hbtn on" id="lockBtn">🛡 道路固定</button>
     <button class="hbtn" id="respawn">道路に戻る</button>
   </div>
   <div id="roadName"></div>
-  <div id="hint">アクセルで出発！<br><span class="small">PC：↑↓←→ / WASD・スペースでブレーキ</span></div>
+  <div id="hint">上にスワイプで出発！<br><span class="small">上＝アクセル（距離で速度）・下＝ブレーキ・左右＝ハンドル<br>PC：↑↓←→ / WASD</span></div>
+  <div id="joy" class="hidden"><div id="joyBase"></div><div id="thrBar"><div id="thrFill"></div></div><div id="joyKnob"></div><div id="joyLbl"></div></div>
   <div id="attr"></div>
+  <div id="bldStat" class="hidden"></div>
 </div>
 
-<div id="ctrl" class="hidden">
-  <div class="pad"><button class="cb" id="bL">◀</button><button class="cb" id="bR">▶</button></div>
-  <div class="pad"><button class="cb" id="bB">ブレーキ</button><button class="cb" id="bA">アクセル</button></div>
+<div id="intro" class="hidden">
+  <div class="card">
+    <div class="small">今回の目的地</div>
+    <div id="introName">-</div>
+    <div id="introInfo">-</div>
+    <canvas id="ovMap"></canvas>
+    <div class="how"><div><b>↑</b>アクセル<br>距離で速度</div><div><b>↔</b>ハンドル</div><div><b>↓</b>ブレーキ</div></div>
+    <div class="tapgo">画面をタップしてスタート</div>
+  </div>
 </div>
 
 <!-- Title -->
@@ -105,6 +127,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p>現在地から半径5kmの実際の道路を3Dで再現。スタートと同時にゴールが決まります。曲がる方向は画面上部の案内に従ってください。</p>
     <div class="row"><label>ゴール距離</label>
       <select id="distSel"><option value="near">近い（1〜2km）</option><option value="mid" selected>ふつう（2〜3.5km）</option><option value="far">遠い（3.5km〜）</option></select></div>
+    <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
     <button class="btn" id="gpsBtn">📍 現在地でスタート</button>
     <details>
       <summary>場所を指定してスタート</summary>
@@ -171,6 +194,7 @@ const ROAD_W = {motorway:14,trunk:12,primary:10,secondary:9,tertiary:8,unclassif
 const RADIUS = 5000;
 const OVERPASS = ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
 const CELL = 40;
+const VMAX = 42; // m/s ≒ 151km/h
 const DIST_RANGE = {near:[1000,2000],mid:[2000,3500],far:[3500,7000]};
 
 let renderer, scene, camera, carGroup, wheels=[], goalGroup, routeMesh=null, routeTex, roadTex;
@@ -178,9 +202,13 @@ let worldObjs = [];
 let world = null, race = null, paused = false;
 let car = {x:0,z:0,h:0,v:0,steer:0,edge:-1,ns:null,offT:0};
 const input = {up:false,down:false,left:false,right:false};
+const sw = {id:null,x0:0,y0:0,steer:0,thr:0,brk:0};
 let loadToken = 0, loadAbort = null;
 let voiceOn = false;
 let mmZoomFar = false;
+let roadLock = true;
+const BT=500, BLOAD=650, BDROP=1400;
+const bld = {tiles:new Map(), ids:new Set(), busy:false, timer:0, srv:0, fail:0, on:true, gen:0, mat:null};
 
 /* ---------- 3D setup ---------- */
 function initThree(){
@@ -360,7 +388,7 @@ function osmToRaw(data, lat0, lon0){
     if(el.type==='node') nodes.set(el.id,{x:(el.lon-lon0)*kx, z:-(el.lat-lat0)*kz});
     else if(el.type==='way' && el.nodes && el.tags) ways.push({refs:el.nodes, hw:el.tags.highway, name:el.tags.name||el.tags.ref||''});
   }
-  return {nodes, ways};
+  return {nodes, ways, origin:{lat:lat0,lon:lon0,kx,kz}};
 }
 function makeDemoRaw(){
   const nodes = new Map(), ways = []; let id = 1;
@@ -595,6 +623,7 @@ function buildMinimap(g){
   g.mm={canvas:c, sc, minX:b.minX, minZ:b.minZ};
 }
 function clearWorld(){
+  bldReset();
   for(const o of worldObjs){ scene.remove(o); if(o.geometry) o.geometry.dispose(); if(o.material) o.material.dispose(); }
   worldObjs=[];
   if(routeMesh){ scene.remove(routeMesh); routeMesh.geometry.dispose(); routeMesh=null; }
@@ -609,9 +638,10 @@ async function buildWorld(raw, token, isReal){
   setStatus('3Dマップを生成中…', g.edges.length.toLocaleString()+' 区間 / 総延長 '+(g.totalLen/1000).toFixed(0)+' km'); await sleep(20);
   if(token!==loadToken) return;
   clearWorld();
-  world = g;
+  world = g; g.origin = raw.origin||null;
   for(const m of buildRoads(g)){ scene.add(m); worldObjs.push(m); }
-  for(const m of buildScenery(g)){ scene.add(m); worldObjs.push(m); }
+  bld.on = isReal && $('bldChk').checked;
+  if(!bld.on) for(const m of buildScenery(g)){ scene.add(m); worldObjs.push(m); }
   buildMinimap(g);
   $('attr').textContent = isReal ? '地図データ © OpenStreetMap contributors' : 'デモマップ（架空の街）';
   newRace(false);
@@ -629,7 +659,7 @@ function newRace(fromCurrent){
   if(!cand.length) for(let i=0;i<ds.dist.length;i++) if(ds.dist[i]<Infinity && ds.dist[i]>=maxd*0.7) cand.push(i);
   const goal = cand[(Math.random()*cand.length)|0];
   const dg = dijkstra(W,goal);
-  race = {start,goal,dist:dg.dist,next:dg.via,best:dg.dist[start],time:0,started:false,finished:false,odo:0,said:new Set(),nav:null,route:[],navT:0};
+  race = {start,goal,dist:dg.dist,next:dg.via,best:dg.dist[start],time:0,started:false,finished:false,odo:0,said:new Set(),nav:null,route:[],navT:0,intro:true,introT:0,id:Math.random()};
   // spawn
   const sn=W.nodes[start];
   let dir={x:0,z:-1};
@@ -643,8 +673,9 @@ function newRace(fromCurrent){
   placeCamera(true);
   car.ns = nearestSeg(car.x,car.z,-1);
   updateNav();
-  show(null); $('hud').classList.remove('hidden'); $('ctrl').classList.remove('hidden');
-  $('hint').classList.remove('hidden');
+  show(null); $('hud').classList.remove('hidden');
+  $('hint').classList.add('hidden'); releaseControls();
+  startIntro();
 }
 function respawn(){
   if(!world) return;
@@ -657,6 +688,85 @@ function respawn(){
   const f = toB<=toA ? d : {x:-d.x,z:-d.z};
   car.x=ns.px; car.z=ns.pz; car.h=Math.atan2(f.x,-f.z); car.v=0; car.steer=0; car.edge=ns.e; car.offT=0;
   placeCamera(true); updateNav();
+}
+
+/* ---------- Destination intro ---------- */
+const DIRS=['北','北東','東','南東','南','南西','西','北西'];
+function goalRoadName(){
+  const W=world, g=race.goal, names=[];
+  for(const e of W.nodes[g].adj){ const n=W.edges[e].name; if(n && !names.includes(n)) names.push(n); }
+  if(names.length>=2) return names[0]+'と'+names[1]+'の交差点';
+  if(names.length===1) return names[0]+' 沿い';
+  const gn=W.nodes[g];
+  for(let r=1;r<=8;r++){ const ns=nearestSeg(gn.x,gn.z,-1,r); if(ns && W.edges[ns.e].name && ns.d<350) return W.edges[ns.e].name+' 付近'; if(ns && r>=3) break; }
+  return 'ゴール地点';
+}
+function fullRoute(){
+  const W=world, R=race, pts=[car.x,car.z]; let cur=R.start, guard=0;
+  pts.push(W.nodes[cur].x, W.nodes[cur].z);
+  while(cur!==R.goal && guard++<5000){ const ne=R.next[cur]; if(ne<0) break; const E=W.edges[ne], fwd=E.a===cur, q=E.pts, m=q.length/2;
+    if(fwd) for(let i=1;i<m;i++) pts.push(q[2*i],q[2*i+1]); else for(let i=m-2;i>=0;i--) pts.push(q[2*i],q[2*i+1]); cur=fwd?E.b:E.a; }
+  return pts;
+}
+function setDestName(name){ race.goalName=name; $('introName').textContent=name; $('dest').textContent='📍 '+name; }
+function startIntro(){
+  const W=world, R=race, g=W.nodes[R.goal];
+  const dx=g.x-car.x, dz=g.z-car.z, straight=Math.hypot(dx,dz);
+  let brg=Math.atan2(dx,-dz)*180/Math.PI; if(brg<0) brg+=360;
+  setDestName(goalRoadName());
+  $('introInfo').textContent = DIRS[Math.round(brg/45)%8]+'へ 直線 '+fmtDist(straight)+'　ルート '+fmtDist(R.best);
+  R.full = fullRoute();
+  $('intro').classList.remove('hidden');
+  requestAnimationFrame(drawOverview);
+  rebuildRouteMesh();
+  fetchGoalPOI(R);
+}
+function endIntro(){
+  if(!race || !race.intro) return;
+  race.intro=false; $('intro').classList.add('hidden');
+  if(!race.started) $('hint').classList.remove('hidden');
+  placeCamera(true);
+}
+function drawOverview(){
+  if(!race || !race.full) return;
+  const c=$('ovMap'), d=Math.min(window.devicePixelRatio||1,2), rect=c.getBoundingClientRect();
+  c.width=Math.max(200,rect.width*d); c.height=Math.max(100,rect.height*d);
+  const x=c.getContext('2d'), Wd=c.width, H=c.height, p=race.full, mm=world.mm;
+  let a=Infinity,b=Infinity,A=-Infinity,B=-Infinity; for(let i=0;i<p.length;i+=2){ a=Math.min(a,p[i]); A=Math.max(A,p[i]); b=Math.min(b,p[i+1]); B=Math.max(B,p[i+1]); }
+  const sc=Math.min(Wd/((A-a)*1.25+200), H/((B-b)*1.25+200)), cx=(a+A)/2, cz=(b+B)/2;
+  x.fillStyle='#16221a'; x.fillRect(0,0,Wd,H);
+  x.save(); x.setTransform(sc,0,0,sc,Wd/2-cx*sc,H/2-cz*sc);
+  x.drawImage(mm.canvas, mm.minX, mm.minZ, mm.canvas.width/mm.sc, mm.canvas.height/mm.sc);
+  x.strokeStyle='#29d3ff'; x.lineWidth=5/sc; x.lineCap='round'; x.lineJoin='round'; x.beginPath(); x.moveTo(p[0],p[1]); for(let i=2;i<p.length;i+=2) x.lineTo(p[i],p[i+1]); x.stroke();
+  x.restore();
+  const P=(wx,wz)=>[Wd/2+(wx-cx)*sc, H/2+(wz-cz)*sc];
+  const [sx,sy]=P(p[0],p[1]); x.fillStyle='#ff4040'; x.strokeStyle='#fff'; x.lineWidth=3; x.beginPath(); x.arc(sx,sy,8*d/1.5,0,7); x.fill(); x.stroke();
+  const g=world.nodes[race.goal], [gx,gy]=P(g.x,g.z); x.fillStyle='#ffd84a'; x.strokeStyle='#000'; x.beginPath(); x.arc(gx,gy,9*d/1.5,0,7); x.fill(); x.stroke();
+  x.font=(14*d)+'px sans-serif'; x.fillStyle='#fff'; x.fillText('🏁',gx+8*d,gy-6*d); x.fillText('N↑',8*d,18*d);
+}
+function introCam(dt){
+  const R=race; R.introT+=dt;
+  const g=world.nodes[R.goal], toG=Math.atan2(g.x-car.x,-(g.z-car.z));
+  const ang = toG + Math.PI + Math.sin(R.introT*0.35)*0.5, rad=34, hgt=20;
+  camera.position.set(car.x+Math.sin(ang)*rad, hgt, car.z-Math.cos(ang)*rad);
+  camera.lookAt(car.x+(g.x-car.x)*0.02, 2, car.z+(g.z-car.z)*0.02);
+}
+async function fetchGoalPOI(R){
+  const o=world.origin; if(!o) return;
+  const g=world.nodes[R.goal], lat=o.lat - g.z/o.kz, lon=o.lon + g.x/o.kx;
+  const q=`[out:json][timeout:15];(node(around:300,${lat},${lon})["name"]["railway"="station"];nwr(around:200,${lat},${lon})["name"]["tourism"];nwr(around:200,${lat},${lon})["name"]["leisure"="park"];node(around:150,${lat},${lon})["name"]["amenity"];node(around:120,${lat},${lon})["name"]["shop"];);out center 40;`;
+  for(const url of OVERPASS){
+    try{
+      const res=await fetch(url,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}});
+      if(!res.ok) continue; const data=await res.json(); if(race!==R) return;
+      const pri=t=>t.railway==='station'?0:t.tourism?1:t.leisure?2:t.amenity?3:4;
+      let best=null,bs=Infinity;
+      for(const el of data.elements||[]){ const la=el.lat??(el.center&&el.center.lat), lo=el.lon??(el.center&&el.center.lon); if(la==null) continue;
+        const dd=Math.hypot((lo-lon)*o.kx,(la-lat)*o.kz), sc=pri(el.tags)*120+dd; if(sc<bs){bs=sc;best=el;} }
+      if(best) setDestName(best.tags.name+' 付近');
+      return;
+    }catch(e){ if(race!==R) return; }
+  }
 }
 
 /* ---------- Navigation ---------- */
@@ -776,19 +886,28 @@ function step(dt){
   const W=world, R=race;
   const ns=nearestSeg(car.x,car.z,car.edge); car.ns=ns;
   let onRoad=false; if(ns){ car.edge=ns.e; onRoad = ns.d < W.edges[ns.e].w/2+1.2; } else car.edge=-1;
-  const thr=input.up?1:0, brk=input.down?1:0, st=(input.right?1:0)-(input.left?1:0);
-  if(!R.started && !R.finished && (thr||brk)){ R.started=true; $('hint').classList.add('hidden'); }
-  const maxV = onRoad?42:13;
+  const thr=Math.max(input.up?1:0, sw.thr), brk=Math.max(input.down?1:0, sw.brk);
+  const st=Math.max(-1,Math.min(1,(input.right?1:0)-(input.left?1:0)+sw.steer));
+  if(!R.started && !R.finished && (thr>0||brk>0)){ R.started=true; $('hint').classList.add('hidden'); }
+  const maxV = onRoad?VMAX:13;
   let v=car.v;
-  if(thr){ if(v<0) v+=24*dt; else if(v<maxV) v+=(11*(1-v/maxV)+1.5)*dt; }
-  if(brk){ if(v>0.3) v-=24*dt; else v=Math.max(v-7*dt,-9); }
-  if(!thr&&!brk){ const dr=(onRoad?1.6:5)+0.0009*v*v; v = v>0?Math.max(0,v-dr*dt):Math.min(0,v+dr*dt); }
+  if(brk>0){
+    if(v>0.3) v-=(6+20*brk)*dt;
+    else if(brk>0.7 && thr===0) v=Math.max(v-6*dt,-8);
+    else if(v>0) v=0;
+  } else if(thr>0){
+    const target=thr*VMAX;
+    if(v<0) v=Math.min(0,v+20*dt);
+    else if(v<target) v=Math.min(target, v+(11*(1-v/VMAX)+2)*dt);
+    else v=Math.max(target, v-(2.5+0.0009*v*v)*dt);
+  } else { const dr=(onRoad?1.6:5)+0.0009*v*v; v = v>0?Math.max(0,v-dr*dt):Math.min(0,v+dr*dt); }
   if(v>maxV) v=Math.max(maxV, v-16*dt);
   car.v=v;
   car.steer += (st-car.steer)*Math.min(1,dt*7);
   const sa = car.steer*0.6/(1+Math.abs(v)/16);
   car.h += v*Math.tan(sa)/2.7*dt;
   car.x += Math.sin(car.h)*v*dt; car.z += -Math.cos(car.h)*v*dt;
+  if(roadLock) applyRoadLock(dt);
   // bounds
   const b=W.bounds, m=150;
   car.x=Math.max(b.minX-m,Math.min(b.maxX+m,car.x)); car.z=Math.max(b.minZ-m,Math.min(b.maxZ+m,car.z));
@@ -808,10 +927,129 @@ function step(dt){
   $('spd').textContent=Math.round(Math.abs(v)*3.6);
   $('time').textContent=fmtTime(R.time);
 }
+function applyRoadLock(dt){
+  const W=world, ns=nearestSeg(car.x,car.z,car.edge,1);
+  if(!ns){ respawn(); return; }
+  const E=W.edges[ns.e], lim=Math.max(1.2, E.w/2-1.0);
+  if(ns.d<=lim) return;
+  const nx=(car.x-ns.px)/ns.d, nz=(car.z-ns.pz)/ns.d;
+  car.x=ns.px+nx*lim; car.z=ns.pz+nz*lim;
+  const fx=Math.sin(car.h), fz=-Math.cos(car.h);
+  let ux=fx*car.v, uz=fz*car.v; const vn=ux*nx+uz*nz;
+  if(vn>0){
+    ux-=nx*vn; uz-=nz*vn;
+    const sp=Math.hypot(ux,uz), sg=car.v<0?-1:1;
+    if(sp>0.5){ const nh=Math.atan2(ux*sg,-uz*sg); let dh=nh-car.h; while(dh>Math.PI)dh-=2*Math.PI; while(dh<-Math.PI)dh+=2*Math.PI; car.h+=dh*Math.min(1,dt*8); }
+    car.v=sg*sp*Math.max(0,1-dt*0.6);
+  }
+}
+/* ---------- Real buildings (OSM, streamed by tiles) ---------- */
+const BPAL=['#d9d4ca','#c7ccd3','#e4ddcf','#b4bcc6','#ece7dd','#c2b6a6','#d1c3ad','#a9b3be','#dcd0c0','#bfc6b8'];
+function bldReset(){
+  for(const t of bld.tiles.values()) if(t.mesh){ scene.remove(t.mesh); t.mesh.geometry.dispose(); }
+  bld.tiles.clear(); bld.ids.clear(); bld.busy=false; bld.gen++; bld.fail=0;
+  const el=$('bldStat'); if(el) el.classList.add('hidden');
+}
+function bldStatus(){
+  const el=$('bldStat'); let loading=false, done=0; for(const t of bld.tiles.values()){ if(t.state==='loading') loading=true; if(t.state==='done') done++; }
+  if(!bld.on){ el.classList.add('hidden'); return; }
+  el.classList.toggle('hidden', !loading && bld.fail===0);
+  el.textContent = loading ? '🏢 建物を読み込み中…' : (bld.fail? '🏢 建物の取得に失敗（再試行します）' : '');
+}
+function bldTick(dt){
+  if(!world || !world.origin || !bld.on) return;
+  bld.timer-=dt; if(bld.timer>0) return; bld.timer=0.4;
+  for(const [k,t] of bld.tiles){
+    if(t.state!=='loading' && Math.hypot(t.cx-car.x,t.cz-car.z)>BDROP){
+      if(t.mesh){ scene.remove(t.mesh); t.mesh.geometry.dispose(); }
+      for(const id of t.ids) bld.ids.delete(id); bld.tiles.delete(k);
+    }
+  }
+  if(bld.busy) return;
+  const ti=Math.floor(car.x/BT), tj=Math.floor(car.z/BT), now=performance.now(); let best=null, bd=Infinity;
+  for(let i=ti-2;i<=ti+2;i++) for(let j=tj-2;j<=tj+2;j++){
+    const cx=(i+.5)*BT, cz=(j+.5)*BT, d=Math.hypot(cx-car.x,cz-car.z)-BT*0.7;
+    if(d>BLOAD) continue;
+    const t=bld.tiles.get(i+','+j);
+    if(t && (t.state!=='err' || now<t.retryAt)) continue;
+    if(d<bd){ bd=d; best={i,j,k:i+','+j,cx,cz}; }
+  }
+  if(best) loadTile(best);
+}
+async function loadTile(b){
+  const gen=bld.gen, o=world.origin; bld.busy=true;
+  const t={state:'loading',cx:b.cx,cz:b.cz,ids:[]}; bld.tiles.set(b.k,t); bldStatus();
+  const x0=b.i*BT, z0=b.j*BT;
+  const south=o.lat-(z0+BT)/o.kz, north=o.lat-z0/o.kz, west=o.lon+x0/o.kx, east=o.lon+(x0+BT)/o.kx;
+  const q=`[out:json][timeout:25];way["building"](${south.toFixed(6)},${west.toFixed(6)},${north.toFixed(6)},${east.toFixed(6)});out tags geom;`;
+  try{
+    const url=OVERPASS[bld.srv%OVERPASS.length];
+    const res=await fetch(url,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    if(gen!==bld.gen) return;
+    const mesh=buildBldMesh(data.elements||[], t);
+    if(mesh){ scene.add(mesh); t.mesh=mesh; }
+    t.state='done'; bld.fail=0;
+  }catch(e){
+    if(gen!==bld.gen) return;
+    t.state='err'; bld.fail++; bld.srv++; t.retryAt=performance.now()+Math.min(30000,3000*bld.fail);
+  }finally{
+    if(gen===bld.gen){ bld.busy=false; bldStatus(); }
+  }
+}
+function defaultBldH(type,id){
+  const r=id%4;
+  if(/^(house|detached|semidetached_house|bungalow|farm)$/.test(type)) return 6+r;
+  if(/^(garage|garages|shed|hut|carport|roof|kiosk)$/.test(type)) return 3+r*0.3;
+  if(/^(apartments|residential|dormitory)$/.test(type)) return 12+r*4;
+  if(/^(commercial|office|retail|hotel|hospital)$/.test(type)) return 14+r*5;
+  if(/^(industrial|warehouse)$/.test(type)) return 9+r;
+  return 7+r*2;
+}
+function buildBldMesh(els, t){
+  const o=world.origin, polys=[]; let nv=0;
+  for(const el of els){
+    if(el.type!=='way' || !el.geometry || bld.ids.has(el.id)) continue;
+    const pts=[]; for(const p of el.geometry){ if(p) pts.push((p.lon-o.lon)*o.kx, -(p.lat-o.lat)*o.kz); }
+    let n=pts.length/2;
+    if(n>=2 && pts[0]===pts[2*n-2] && pts[1]===pts[2*n-1]){ pts.length-=2; n--; }
+    if(n<3) continue;
+    const tg=el.tags||{};
+    let h=parseFloat(tg.height);
+    if(!(h>0)){ const lv=parseFloat(tg['building:levels']); h = lv>0 ? lv*3.2+(parseFloat(tg['roof:levels'])||0)*1.5 : defaultBldH(tg.building||'', el.id); }
+    h=Math.min(h,450);
+    let mh=parseFloat(tg.min_height); if(!(mh>=0)) mh=(parseFloat(tg['building:min_level'])||0)*3.2;
+    if(tg.building==='roof' && !mh) mh=Math.max(0,h-1);
+    if(mh>=h) continue;
+    const contour=[]; for(let i=0;i<n;i++) contour.push(new THREE.Vector2(pts[2*i],pts[2*i+1]));
+    let faces=[]; try{ faces=THREE.ShapeUtils.triangulateShape(contour,[]); }catch(e){}
+    polys.push({pts,n,h,mh,faces,id:el.id}); nv+=n*6+faces.length*3;
+    bld.ids.add(el.id); t.ids.push(el.id);
+  }
+  if(!polys.length) return null;
+  const P=new Float32Array(nv*3), C=new Float32Array(nv*3), col=new THREE.Color(); let v=0;
+  for(const b of polys){
+    col.set(BPAL[b.id%BPAL.length]);
+    const put=(x,y,z,s)=>{ P[v*3]=x; P[v*3+1]=y; P[v*3+2]=z; C[v*3]=Math.min(1,col.r*s); C[v*3+1]=Math.min(1,col.g*s); C[v*3+2]=Math.min(1,col.b*s); v++; };
+    for(let i=0;i<b.n;i++){
+      const j=(i+1)%b.n, ax=b.pts[2*i], az=b.pts[2*i+1], bx=b.pts[2*j], bz=b.pts[2*j+1];
+      put(ax,b.mh,az,.85); put(bx,b.mh,bz,.85); put(bx,b.h,bz,1);
+      put(ax,b.mh,az,.85); put(bx,b.h,bz,1); put(ax,b.h,az,1);
+    }
+    for(const f of b.faces) for(const k of f) put(b.pts[2*k],b.h,b.pts[2*k+1],1.08);
+  }
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(P.subarray(0,v*3),3));
+  g.setAttribute('color',new THREE.BufferAttribute(C.subarray(0,v*3),3));
+  g.computeVertexNormals(); g.computeBoundingSphere();
+  if(!bld.mat) bld.mat=new THREE.MeshLambertMaterial({vertexColors:true, side:THREE.DoubleSide});
+  return new THREE.Mesh(g, bld.mat);
+}
 function fmtTime(t){ const m=Math.floor(t/60), s=t-m*60; return m+':'+(s<10?'0':'')+s.toFixed(1); }
 function finish(){
   const R=race; R.finished=true; car.v=0;
-  for(const k in input) input[k]=false; document.querySelectorAll('.cb.on').forEach(b=>b.classList.remove('on'));
+  releaseControls();
   $('rTime').textContent=fmtTime(R.time); $('rOdo').textContent=fmtDist(R.odo); $('rBest').textContent=fmtDist(R.best);
   $('rAvg').textContent=R.time>0?Math.round(R.odo/R.time*3.6)+' km/h':'-';
   speak('ゴールしました。タイムは'+Math.floor(R.time/60)+'分'+Math.round(R.time%60)+'秒です');
@@ -839,10 +1077,12 @@ function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(0.05,(now-last)/1000); last=now; dtGlobal=dt;
   if(world && race){
-    if(!paused && !race.finished){
+    if(race.intro && !paused){ introCam(dt); routeTex.offset.y -= dt*1.5; }
+    else if(!paused && !race.finished){
       step(dt);
       race.navT-=dt; if(race.navT<=0){ race.navT=0.15; updateNav(); updateNavHUD(); rebuildRouteMesh(); }
     }
+    bldTick(dt);
     drawMinimap();
     routeTex.offset.y -= dt*1.5;
     const bm=goalGroup.userData.beam; bm.material.opacity=0.3+0.12*Math.sin(now/300);
@@ -851,20 +1091,42 @@ function loop(now){
 }
 
 /* ---------- Input ---------- */
-function bindHold(el,key){
-  const on=e=>{ e.preventDefault(); input[key]=true; el.classList.add('on'); try{el.setPointerCapture(e.pointerId);}catch(_){} };
-  const off=()=>{ input[key]=false; el.classList.remove('on'); };
-  el.addEventListener('pointerdown',on); el.addEventListener('pointerup',off); el.addEventListener('pointercancel',off);
-  el.addEventListener('lostpointercapture',off); el.addEventListener('contextmenu',e=>e.preventDefault());
+function releaseControls(){ for(const k in input) input[k]=false; sw.id=null; sw.steer=sw.thr=sw.brk=0; $('joy').classList.add('hidden'); }
+function swRanges(){ return {S:Math.max(60,Math.min(120,window.innerWidth*0.16)), T:Math.max(90,Math.min(200,window.innerHeight*0.3))}; }
+function swUpdate(x,y){
+  const {S,T}=swRanges(), dx=x-sw.x0, dy=sw.y0-y, dead=8;
+  sw.steer = Math.abs(dx)<dead?0:Math.max(-1,Math.min(1,(dx-Math.sign(dx)*dead)/S));
+  sw.thr = dy>dead?Math.min(1,(dy-dead)/T):0;
+  sw.brk = dy<-dead?Math.min(1,(-dy-dead)/(T*0.5)):0;
+  const kx=Math.max(-S,Math.min(S,dx)), ky=Math.max(-T,Math.min(T*0.5,-dy));
+  const knob=$('joyKnob'); knob.style.transform='translate('+kx+'px,'+ky+'px)'; knob.classList.toggle('brk', sw.brk>0);
+  $('thrFill').style.height=(sw.thr*100)+'%';
+  $('joyLbl').textContent = sw.brk>0 ? 'ブレーキ '+Math.round(sw.brk*100)+'%' : (sw.thr>0 ? Math.round(sw.thr*VMAX*3.6)+' km/h' : (sw.steer? (sw.steer>0?'右 ▶':'◀ 左') : '惰性'));
 }
-bindHold($('bL'),'left'); bindHold($('bR'),'right'); bindHold($('bA'),'up'); bindHold($('bB'),'down');
+function swDown(e){
+  if(!race || race.finished || paused) return;
+  e.preventDefault();
+  if(race.intro) endIntro();
+  if(sw.id!==null) return;
+  sw.id=e.pointerId; sw.x0=e.clientX; sw.y0=e.clientY;
+  try{ $('touch').setPointerCapture(e.pointerId); }catch(_){}
+  const j=$('joy'); j.style.left=sw.x0+'px'; j.style.top=sw.y0+'px'; j.classList.remove('hidden');
+  swUpdate(e.clientX,e.clientY);
+}
+const tl=$('touch');
+tl.addEventListener('pointerdown',swDown);
+$('intro').addEventListener('pointerdown',swDown);
+tl.addEventListener('pointermove',e=>{ if(e.pointerId===sw.id) swUpdate(e.clientX,e.clientY); });
+const swUp=e=>{ if(e.pointerId!==sw.id) return; sw.id=null; sw.steer=sw.thr=sw.brk=0; $('joy').classList.add('hidden'); };
+tl.addEventListener('pointerup',swUp); tl.addEventListener('pointercancel',swUp); tl.addEventListener('lostpointercapture',swUp);
+tl.addEventListener('contextmenu',e=>e.preventDefault());
 const KEYS={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',Space:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right'};
-window.addEventListener('keydown',e=>{ const k=KEYS[e.code]; if(k && !e.target.closest('input,select')){ input[k]=true; e.preventDefault(); }
+window.addEventListener('keydown',e=>{ const k=KEYS[e.code]; if(k && !e.target.closest('input,select')){ if(race&&race.intro&&!paused) endIntro(); input[k]=true; e.preventDefault(); }
   if(e.code==='Escape' && race && !race.finished) togglePause(); if(e.code==='KeyR') respawn(); });
 window.addEventListener('keyup',e=>{ const k=KEYS[e.code]; if(k) input[k]=false; });
-window.addEventListener('blur',()=>{ for(const k in input) input[k]=false; });
-function togglePause(){ if(!race) return; paused=!paused; for(const k in input) input[k]=false; show(paused?'pause':null); }
-function toTitle(){ cancelLoading(); paused=false; $('hud').classList.add('hidden'); $('ctrl').classList.add('hidden'); show('title'); }
+window.addEventListener('blur',releaseControls);
+function togglePause(){ if(!race) return; paused=!paused; releaseControls(); show(paused?'pause':null); if(!paused && race.intro) $('intro').classList.remove('hidden'); else if(paused) $('intro').classList.add('hidden'); }
+function toTitle(){ cancelLoading(); paused=false; $('hud').classList.add('hidden'); $('intro').classList.add('hidden'); releaseControls(); show('title'); }
 
 $('gpsBtn').onclick=startGPS;
 $('placeBtn').onclick=startPlace;
@@ -879,6 +1141,7 @@ $('pTitle').onclick=toTitle;
 $('rNext').onclick=()=>newRace(true);
 $('rTitle').onclick=toTitle;
 $('respawn').onclick=respawn;
+$('lockBtn').onclick=()=>{ roadLock=!roadLock; $('lockBtn').classList.toggle('on',roadLock); $('lockBtn').textContent=roadLock?'🛡 道路固定':'🛡 固定OFF'; };
 $('mmWrap').onclick=()=>{ mmZoomFar=!mmZoomFar; };
 $('voiceBtn').onclick=()=>{ voiceOn=!voiceOn; $('voiceBtn').classList.toggle('on',voiceOn); $('voiceBtn').textContent=voiceOn?'🔊 音声':'🔈 音声';
   if(voiceOn && window.speechSynthesis){ try{ const u=new SpeechSynthesisUtterance('音声案内をオンにしました'); u.lang='ja-JP'; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} } };
