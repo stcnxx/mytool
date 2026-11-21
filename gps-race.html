@@ -76,6 +76,11 @@ summary{cursor:pointer;color:#9fc3ff;font-size:14px;padding:4px 0}
 .blbl b{display:block;font-size:13px;color:#fff;overflow:hidden;text-overflow:ellipsis}
 .blbl span{color:#ffd84a;font-weight:700}
 .blbl:after{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-5px;border:5px solid transparent;border-top-color:rgba(255,216,74,.7);border-bottom:0}
+#arrive{position:absolute;left:50%;top:22%;transform:translateX(-50%);text-align:center;background:rgba(10,16,24,.55);border-radius:16px;padding:12px 20px;max-width:calc(100% - 30px);animation:fadein 1.2s ease}
+#arrive .ah{font-size:26px;font-weight:800;color:#ffd84a}#arrive .an{font-size:18px;font-weight:700;margin:2px 0}
+#arrive .at{margin-top:8px;font-size:14px;color:#cfe3ff;animation:bl 1.6s infinite}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+#hud.arrived #nav,#hud.arrived #spdCtl,#hud.arrived #roadName,#hud.arrived #binfo{display:none}
 #spdCtl{position:absolute;left:50%;bottom:calc(22px + env(safe-area-inset-bottom));transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(10,16,24,.8);border:1px solid #2f4a66;border-radius:24px;padding:6px 12px;pointer-events:auto;width:min(420px,calc(100% - 24px))}
 #spdCtl button{width:38px;height:38px;border-radius:50%;border:0;background:#2a3a4e;color:#fff;font-size:22px;font-weight:800;flex:none}
 #spdCtl input{flex:1;min-width:60px;padding:0;accent-color:#ffd84a;height:28px}
@@ -123,6 +128,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
   <div id="labels"></div>
   <div id="hint" class="hidden"></div>
   <div id="binfo" class="hidden"></div>
+  <div id="arrive" class="hidden"><div class="ah">🏁 到着しました</div><div id="arrName" class="an"></div><div id="arrInfo" class="small"></div><div class="at">画面をタップして次の目的地へ</div></div>
   <div id="spdCtl"><button id="spdDn">−</button><input type="range" id="spdRange" min="0" max="1000" step="1"><button id="spdUp">＋</button><span id="spdSet">43 km/h</span></div>
   <div id="toast" class="hidden"></div>
   <div id="joy" class="hidden"><div id="joyBase"></div><div id="thrBar"><div id="thrFill"></div></div><div id="joyKnob"></div><div id="joyLbl"></div></div>
@@ -167,7 +173,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
       <button class="btn sub" id="placeBtn">この場所でスタート</button>
     </details>
     <button class="btn ghost" id="demoBtn">🎮 デモマップで遊ぶ（通信なし）</button>
-    <p class="small" style="margin-top:12px">バージョン 10（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>位置情報と OpenStreetMap の道路データ（Overpass API）を使います。都市部は読み込みに数十秒かかることがあります。</p>
+    <p class="small" style="margin-top:12px">バージョン 11（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>位置情報と OpenStreetMap の道路データ（Overpass API）を使います。都市部は読み込みに数十秒かかることがあります。</p>
   </div>
 </div>
 
@@ -982,6 +988,7 @@ const srch={fromCurrent:false, items:[], remote:[], token:0};
 const normQ=t=>(t||'').normalize('NFKC').toLowerCase().replace(/\s+/g,'').replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
 function refPoint(){ return srch.fromCurrent ? {x:car.x,z:car.z} : {x:0,z:0}; }
 function openSearch(fromCurrent){
+  $('arrive').classList.add('hidden'); $('hud').classList.remove('arrived');
   srch.fromCurrent=fromCurrent; srch.remote=[]; srch.token++;
   $('hud').classList.add('hidden'); $('intro').classList.add('hidden'); releaseControls();
   show('search');
@@ -1495,10 +1502,11 @@ function finish(){
   const R=race; R.finished=true; car.v=0;
   releaseControls();
   car.v=0;
-  $('rName').textContent=R.goalName||'目的地'; $('rTime').textContent=fmtTime(R.time); $('rOdo').textContent=fmtDist(R.odo); $('rBest').textContent=fmtDist(R.best);
-  $('rAvg').textContent=R.time>0?Math.round(R.odo/R.time*3.6)+' km/h':'-';
+  R.arrT=0; car.look=wrapA(car.look);
+  $('arrName').textContent=R.goalName||'目的地';
+  $('arrInfo').textContent='所要時間 '+fmtTime(R.time)+'　走行距離 '+fmtDist(R.odo);
+  $('arrive').classList.remove('hidden'); $('hud').classList.add('arrived');
   speak('目的地に到着しました');
-  show('result');
 }
 function drawMinimap(){
   const c=$('mm'), x=c.getContext('2d'), W=c.width, H=c.height, mm=world.mm, R=race;
@@ -1523,6 +1531,11 @@ function loop(now){
   const dt=Math.min(0.05,(now-last)/1000); last=now; dtGlobal=dt;
   if(world && race){
     if(race.intro && !paused){ introCam(dt); routeTex.offset.y -= dt*1.5; }
+    else if(race.finished && !paused){ // 到着後：ゆっくり周囲を見回す
+      race.arrT=(race.arrT||0)+dt;
+      if(gs.id===null) car.look=wrapA(car.look+dt*0.22*Math.min(1,race.arrT/2));
+      updatePose(false); placeCamera(false);
+    }
     else if(!paused && !race.finished){
       step(dt);
       race.navT-=dt; if(race.navT<=0){ race.navT=0.15; updateNav(); updateNavHUD(); rebuildRouteMesh(); }
@@ -1541,7 +1554,7 @@ const gs={id:null,x0:0,y0:0,lx:0,t0:0,moved:false};
 function releaseControls(){ for(const k in input) input[k]=false; gs.id=null; drag.thr=drag.brk=0; $('joy').classList.add('hidden'); }
 function dragRange(){ return Math.max(90,Math.min(200,window.innerHeight*0.28)); }
 function gDown(e){
-  if(!race || race.finished || paused) return;
+  if(!race || paused) return;
   e.preventDefault();
   if(race.intro){ endIntro(); return; }
   if(gs.id!==null) return;
@@ -1554,6 +1567,7 @@ function gMove(e){
   if(!gs.moved && Math.hypot(e.clientX-gs.x0,e.clientY-gs.y0)>10) gs.moved=true;
   if(!gs.moved) return;
   car.look=wrapA(car.look+dx*0.0055);
+  if(race.finished) return;
   const dy=gs.y0-e.clientY, T=dragRange(), dead=24, j=$('joy');
   if(Math.abs(dy)>dead){
     const ddy=dy-Math.sign(dy)*dead;
@@ -1568,7 +1582,7 @@ function gUp(e){
   if(e.pointerId!==gs.id) return;
   const wasTap=!gs.moved && performance.now()-gs.t0<450;
   gs.id=null; drag.thr=drag.brk=0; $('joy').classList.add('hidden');
-  if(wasTap && e.type==='pointerup') handleTap(e.clientX,e.clientY);
+  if(wasTap && e.type==='pointerup'){ if(race.finished) openSearch(true); else handleTap(e.clientX,e.clientY); }
 }
 const tl=$('touch');
 tl.addEventListener('pointerdown',gDown);
@@ -1580,11 +1594,12 @@ const KEYS={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',Space:'down',Arr
 window.addEventListener('keydown',e=>{ if(e.target.closest && e.target.closest('input,select')) return; const k=KEYS[e.code];
   if(k){ if(race&&race.intro&&!paused) endIntro(); input[k]=true; e.preventDefault(); }
   if(e.code==='Escape' && race && !race.finished) togglePause();
-  if(e.code==='KeyP' && race && !race.intro) setHold(!car.hold); });
+  if(e.code==='KeyP' && race && !race.intro) setHold(!car.hold);
+  if(e.code==='Enter' && race && race.finished && !paused) openSearch(true); });
 window.addEventListener('keyup',e=>{ const k=KEYS[e.code]; if(k) input[k]=false; });
 window.addEventListener('blur',releaseControls);
 function togglePause(){ if(!race) return; paused=!paused; releaseControls(); show(paused?'pause':null); if(!paused && race.intro) $('intro').classList.remove('hidden'); else if(paused) $('intro').classList.add('hidden'); }
-function toTitle(){ cancelLoading(); paused=false; $('hud').classList.add('hidden'); $('intro').classList.add('hidden'); releaseControls(); show('title'); }
+function toTitle(){ $('arrive').classList.add('hidden'); $('hud').classList.remove('arrived'); cancelLoading(); paused=false; $('hud').classList.add('hidden'); $('intro').classList.add('hidden'); releaseControls(); show('title'); }
 
 $('gpsBtn').onclick=startGPS;
 $('placeBtn').onclick=startPlace;
