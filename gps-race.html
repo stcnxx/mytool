@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>GPSドライブ ― ゴールを目指せ</title>
+<title>GPSドライブ ― 目的地まで走ろう</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;background:#0d1117;color:#fff;font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif;user-select:none;-webkit-user-select:none;touch-action:none}
@@ -64,6 +64,8 @@ summary{cursor:pointer;color:#9fc3ff;font-size:14px;padding:4px 0}
 #joyLbl{position:absolute;left:-80px;top:-84px;width:160px;text-align:center;font-weight:800;font-size:16px;text-shadow:0 0 4px #000}
 #thrBar{position:absolute;left:58px;top:-70px;width:10px;height:140px;border-radius:6px;background:rgba(255,255,255,.18);overflow:hidden}
 #thrFill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(#ff5a3c,#ffd84a 40%,#3cdc78)}
+#branch{position:absolute;left:50%;top:58%;transform:translateX(-50%);font-size:15px;font-weight:700;background:rgba(28,111,209,.85);padding:6px 14px;border-radius:20px;white-space:nowrap}
+#toast{position:absolute;left:50%;bottom:calc(70px + env(safe-area-inset-bottom));transform:translateX(-50%);font-size:14px;background:rgba(10,16,24,.85);padding:8px 14px;border-radius:12px;white-space:nowrap}
 #bldStat{position:absolute;left:max(10px,env(safe-area-inset-left));bottom:calc(26px + env(safe-area-inset-bottom));font-size:12px;background:rgba(10,16,24,.6);padding:3px 10px;border-radius:12px}
 .chk{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px;color:#b8c4d2}.chk input{width:20px;height:20px}
 #dest{max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ffe48a}
@@ -77,7 +79,7 @@ summary{cursor:pointer;color:#9fc3ff;font-size:14px;padding:4px 0}
 .tapgo{margin-top:10px;text-align:center;font-weight:800;font-size:17px;color:#0d1117;background:#ffd84a;border-radius:12px;padding:12px;animation:bl 1.4s infinite}
 @media (max-height:500px){#ovMap{height:110px}#introName{font-size:20px}#mm{width:110px;height:110px}#topBtns{top:calc(max(10px,env(safe-area-inset-top)) + 118px)}#nav{min-width:200px}#navDist{font-size:22px}#navIcon{width:48px;height:48px}}
 @media (max-width:520px){#nav{top:calc(max(10px,env(safe-area-inset-top)) + 150px);max-width:calc(100% - 20px)}#topBtns{top:calc(max(10px,env(safe-area-inset-top)) + 228px)}}
-.resultBig{font-size:40px;font-weight:800;color:#ffd84a;margin:6px 0}
+.resultBig{font-size:24px;font-weight:800;color:#ffd84a;margin:6px 0}
 table.res{width:100%;font-size:15px;color:#cdd8e4;border-collapse:collapse}
 table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:700}
 </style>
@@ -89,7 +91,6 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
 <div id="hud" class="hidden">
   <div id="stats">
     <div><span id="spd">0</span> km/h</div>
-    <div>⏱ <b id="time">0:00.0</b></div>
     <div>🏁 残り <b id="remain">-</b></div>
     <div id="dest"></div>
   </div>
@@ -99,11 +100,13 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
   <div id="topBtns">
     <button class="hbtn" id="menuBtn">≡ メニュー</button>
     <button class="hbtn" id="voiceBtn">🔈 音声</button>
-    <button class="hbtn on" id="lockBtn">🛡 道路固定</button>
-    <button class="hbtn" id="respawn">道路に戻る</button>
+    <button class="hbtn" id="autoBtn">🧭 自動で進む</button>
+    <button class="hbtn" id="uturnBtn">↩ Uターン</button>
   </div>
   <div id="roadName"></div>
-  <div id="hint">上にスワイプで出発！<br><span class="small">上＝アクセル（距離で速度）・下＝ブレーキ・左右＝ハンドル<br>PC：↑↓←→ / WASD</span></div>
+  <div id="hint">行きたい道路をタップ<br><span class="small">または 上にドラッグで前進・左右にドラッグで向きを変える</span></div>
+  <div id="branch" class="hidden"></div>
+  <div id="toast" class="hidden"></div>
   <div id="joy" class="hidden"><div id="joyBase"></div><div id="thrBar"><div id="thrFill"></div></div><div id="joyKnob"></div><div id="joyLbl"></div></div>
   <div id="attr"></div>
   <div id="bldStat" class="hidden"></div>
@@ -115,7 +118,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <div id="introName">-</div>
     <div id="introInfo">-</div>
     <canvas id="ovMap"></canvas>
-    <div class="how"><div><b>↑</b>アクセル<br>距離で速度</div><div><b>↔</b>ハンドル</div><div><b>↓</b>ブレーキ</div></div>
+    <div class="how"><div><b>👆</b>道路をタップ<br>そこまで移動</div><div><b>↑</b>上ドラッグ<br>前進（距離で速度）</div><div><b>↔</b>左右ドラッグ<br>向き・曲がる方向</div><div><b>🧭</b>自動で<br>目的地へ</div></div>
     <div class="tapgo">画面をタップしてスタート</div>
   </div>
 </div>
@@ -124,8 +127,8 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
 <div id="title" class="overlay">
   <div class="card">
     <h1>GPS<span>ドライブ</span></h1>
-    <p>現在地から半径5kmの実際の道路を3Dで再現。スタートと同時にゴールが決まります。曲がる方向は画面上部の案内に従ってください。</p>
-    <div class="row"><label>ゴール距離</label>
+    <p>現在地から半径5kmの実際の道路と建物を3Dで再現。目的地が決まったら、道路をタップしたりドラッグしたりして目的地まで進みます。曲がる方向は画面上部に表示されます。</p>
+    <div class="row"><label>目的地の距離</label>
       <select id="distSel"><option value="near">近い（1〜2km）</option><option value="mid" selected>ふつう（2〜3.5km）</option><option value="far">遠い（3.5km〜）</option></select></div>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
     <button class="btn" id="gpsBtn">📍 現在地でスタート</button>
@@ -145,7 +148,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
       <button class="btn sub" id="placeBtn">この場所でスタート</button>
     </details>
     <button class="btn ghost" id="demoBtn">🎮 デモマップで遊ぶ（通信なし）</button>
-    <p class="small" style="margin-top:12px">位置情報と OpenStreetMap の道路データ（Overpass API）を使います。都市部は読み込みに数十秒かかることがあります。</p>
+    <p class="small" style="margin-top:12px">バージョン 6（2026/11/21）— 表示が変わらない時はページを再読み込みしてください。<br>位置情報と OpenStreetMap の道路データ（Overpass API）を使います。都市部は読み込みに数十秒かかることがあります。</p>
   </div>
 </div>
 
@@ -173,14 +176,15 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
 <!-- Result -->
 <div id="result" class="overlay dim hidden">
   <div class="card">
-    <h2>🏁 ゴール！</h2>
-    <div class="resultBig" id="rTime">0:00.0</div>
+    <h2>🏁 目的地に到着！</h2>
+    <div class="resultBig" id="rName">-</div>
     <table class="res">
+      <tr><td>所要時間</td><td id="rTime">-</td></tr>
       <tr><td>走行距離</td><td id="rOdo">-</td></tr>
       <tr><td>最短ルート</td><td id="rBest">-</td></tr>
       <tr><td>平均速度</td><td id="rAvg">-</td></tr>
     </table>
-    <button class="btn" id="rNext">ここから次のゴールへ</button>
+    <button class="btn" id="rNext">ここから次の目的地へ</button>
     <button class="btn ghost" id="rTitle">タイトルへ</button>
   </div>
 </div>
@@ -194,9 +198,10 @@ const ROAD_W = {motorway:14,trunk:12,primary:10,secondary:9,tertiary:8,unclassif
 const RADIUS = 5000;
 const OVERPASS = ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
 const CELL = 40;
-const VMAX = 42; // m/s ≒ 151km/h
+const VMAX = 22; // m/s ≒ 80km/h
 const DIST_RANGE = {near:[1000,2000],mid:[2000,3500],far:[3500,7000]};
 
+let pinGroup, raycaster, ndc;
 let renderer, scene, camera, carGroup, wheels=[], goalGroup, routeMesh=null, routeTex, roadTex;
 let worldObjs = [];
 let world = null, race = null, paused = false;
@@ -230,8 +235,10 @@ function initThree(){
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(30000,30000), new THREE.MeshBasicMaterial({map:gTex}));
   ground.rotation.x = -Math.PI/2; ground.position.y = -0.2; scene.add(ground);
   roadTex = makeRoadTex(); routeTex = makeRouteTex();
-  carGroup = makeCar(); scene.add(carGroup); carGroup.visible=false;
+  carGroup = new THREE.Group(); // 車は表示しない（一人称視点）
+  pinGroup = makePin(); scene.add(pinGroup); pinGroup.visible=false;
   goalGroup = makeGoal(); scene.add(goalGroup); goalGroup.visible=false;
+  raycaster=new THREE.Raycaster(); ndc=new THREE.Vector2();
   onResize(); window.addEventListener('resize', onResize);
   return true;
 }
@@ -287,6 +294,12 @@ function makeCar(){
   const tl = new THREE.MeshBasicMaterial({color:0xff2020});
   for(const x of [-0.7,0.7]){ const l=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.16,0.05),tl); l.position.set(x,0.85,2.16); g.add(l); }
   return g;
+}
+function makePin(){
+  const g=new THREE.Group(), m=new THREE.MeshBasicMaterial({color:0x29d3ff,fog:false});
+  const cone=new THREE.Mesh(new THREE.ConeGeometry(2.2,6,16),m); cone.rotation.x=Math.PI; cone.position.y=7; g.add(cone);
+  const ring=new THREE.Mesh(new THREE.RingGeometry(3,4.2,32),new THREE.MeshBasicMaterial({color:0x29d3ff,side:THREE.DoubleSide,fog:false}));
+  ring.rotation.x=-Math.PI/2; ring.position.y=0.12; g.add(ring); g.userData.cone=cone; return g;
 }
 function makeGoal(){
   const g = new THREE.Group();
@@ -889,12 +902,13 @@ function newRace(fromCurrent){
   const dg = dijkstra(W,goal);
   race = {start,goal,dist:dg.dist,next:dg.via,best:dg.dist[start],time:0,started:false,finished:false,odo:0,said:new Set(),nav:null,route:[],navT:0,intro:true,introT:0,id:Math.random()};
   // spawn
-  const sn=W.nodes[start];
-  let dir={x:0,z:-1};
-  if(dg.via[start]>=0) dir = leaveDir(W.edges[dg.via[start]], start);
-  if(fromCurrent){ /* keep position */ } else { car.x=sn.x+dir.x*2; car.z=sn.z+dir.z*2; }
-  if(!fromCurrent){ car.h=Math.atan2(dir.x,-dir.z); car.v=0; }
-  car.steer=0; car.edge=-1; car.offT=0;
+  if(!fromCurrent || car.e==null || car.e<0){
+    const e0 = dg.via[start]>=0 ? dg.via[start] : W.nodes[start].adj[0], E0=W.edges[e0];
+    car.e=e0; car.dir = E0.a===start?1:-1; const s0=Math.min(2,E0.len/2); car.s = car.dir>0?s0:E0.len-s0;
+    car.look=0; car.first=true;
+  }
+  car.v=0; car.mode='manual'; tap=null; pinGroup.visible=false; updateModeBtn();
+  updatePose(true);
   const gn=W.nodes[goal]; goalGroup.position.set(gn.x,0,gn.z); goalGroup.visible=true;
   carGroup.visible=false;
   paused=false;
@@ -905,19 +919,6 @@ function newRace(fromCurrent){
   $('hint').classList.add('hidden'); releaseControls();
   startIntro();
 }
-function respawn(){
-  if(!world) return;
-  let ns=null; for(let r=1;r<40 && !ns;r+=2) ns=nearestSeg(car.x,car.z,-1,r);
-  if(!ns) return;
-  const W=world, E=W.edges[ns.e], s=ns.s;
-  const d=norm(W.bx[s]-W.ax[s], W.bz[s]-W.az[s]);
-  const along=W.cum[s]+ns.t*Math.hypot(W.bx[s]-W.ax[s],W.bz[s]-W.az[s]);
-  const toB = (E.len-along)+race.dist[E.b], toA = along+race.dist[E.a];
-  const f = toB<=toA ? d : {x:-d.x,z:-d.z};
-  car.x=ns.px; car.z=ns.pz; car.h=Math.atan2(f.x,-f.z); car.v=0; car.steer=0; car.edge=ns.e; car.offT=0;
-  placeCamera(true); updateNav();
-}
-
 /* ---------- Destination intro ---------- */
 const DIRS=['北','北東','東','南東','南','南西','西','北西'];
 function goalRoadName(){
@@ -952,8 +953,8 @@ function startIntro(){
 function endIntro(){
   if(!race || !race.intro) return;
   race.intro=false; $('intro').classList.add('hidden');
-  if(!race.started) $('hint').classList.remove('hidden');
-  placeCamera(true);
+  if(!race.started && car.mode==='manual') $('hint').classList.remove('hidden');
+  updatePose(true); placeCamera(true);
 }
 function drawOverview(){
   if(!race || !race.full) return;
@@ -972,7 +973,7 @@ function drawOverview(){
   const g=world.nodes[race.goal], [gx,gy]=P(g.x,g.z); x.fillStyle='#ffd84a'; x.strokeStyle='#000'; x.beginPath(); x.arc(gx,gy,9*d/1.5,0,7); x.fill(); x.stroke();
   x.font=(14*d)+'px sans-serif'; x.fillStyle='#fff'; x.fillText('🏁',gx+8*d,gy-6*d); x.fillText('N↑',8*d,18*d);
 }
-function introCam(dt){ race.introT+=dt; placeCamera(true); }
+function introCam(dt){ race.introT+=dt; updatePose(true); placeCamera(true); }
 async function fetchGoalPOI(R){
   const o=world.origin; if(!o) return;
   const g=world.nodes[R.goal], lat=o.lat - g.z/o.kz, lon=o.lon + g.x/o.kx;
@@ -1096,73 +1097,142 @@ function updateNavHUD(){
 }
 
 /* ---------- Physics & loop ---------- */
+function camYaw(){ return car.hd + car.look; }
 function placeCamera(snap){
-  const f={x:Math.sin(car.h), z:-Math.cos(car.h)}, eye=1.25;
-  camera.position.set(car.x+f.x*0.4, eye, car.z+f.z*0.4);
-  camera.lookAt(car.x+f.x*40, eye-0.9, car.z+f.z*40);
-  camera.rotateZ(-car.steer*Math.min(1,Math.abs(car.v)/25)*0.05);
+  const y=camYaw(), f={x:Math.sin(y), z:-Math.cos(y)}, eye=1.3;
+  camera.position.set(car.px, eye, car.pz);
+  camera.lookAt(car.px+f.x*40, eye-1.0, car.pz+f.z*40);
 }
 let dtGlobal=0.016;
+const wrapA=a=>{ while(a>Math.PI)a-=2*Math.PI; while(a<-Math.PI)a+=2*Math.PI; return a; };
+let tap=null;
+const drag={thr:0,brk:0};
+const CRUISE={auto:14, tap:12};
+function edgeCum(E){ if(E.cumv) return E.cumv; const p=E.pts,n=p.length/2,c=new Float64Array(n); for(let i=1;i<n;i++) c[i]=c[i-1]+Math.hypot(p[2*i]-p[2*i-2],p[2*i+1]-p[2*i-1]); E.cumv=c; return c; }
+function posOn(E,s){
+  const c=edgeCum(E), p=E.pts, n=p.length/2; s=Math.max(0,Math.min(c[n-1],s));
+  let lo=0, hi=n-1; while(hi-lo>1){ const m=(lo+hi)>>1; if(c[m]<=s) lo=m; else hi=m; }
+  const L=c[hi]-c[lo]||1, t=(s-c[lo])/L;
+  return {x:p[2*lo]+(p[2*hi]-p[2*lo])*t, z:p[2*lo+1]+(p[2*hi+1]-p[2*lo+1])*t, tx:(p[2*hi]-p[2*lo])/L, tz:(p[2*hi+1]-p[2*lo+1])/L};
+}
+function edgeLen(E){ const c=edgeCum(E); return c[c.length-1]; }
+// true position / heading, and smoothed display pose
+function updatePose(snap){
+  const E=world.edges[car.e], len=edgeLen(E), p=posOn(E,car.s);
+  const ah=posOn(E, car.s+car.dir*6);
+  let hx=(ah.x-p.x), hz=(ah.z-p.z); if(Math.hypot(hx,hz)<0.5){ hx=p.tx*car.dir; hz=p.tz*car.dir; }
+  car.x=p.x; car.z=p.z; car.h=Math.atan2(hx,-hz);
+  const lo=Math.min(1.8,E.w*0.22), lx=Math.cos(car.h)*-1, lz=Math.sin(car.h)*-1; // left of heading
+  const tx=p.x+lx*lo, tz=p.z+lz*lo;
+  if(snap || car.px==null){ car.px=tx; car.pz=tz; car.hd=car.h; }
+  else { const k=1-Math.exp(-dtGlobal*8), kh=1-Math.exp(-dtGlobal*5);
+    car.px+=(tx-car.px)*k; car.pz+=(tz-car.pz)*k; car.hd=wrapA(car.hd+wrapA(car.h-car.hd)*kh); }
+}
+function nextNodeInfo(){ const E=world.edges[car.e], len=edgeLen(E); return {N:car.dir>0?E.b:E.a, O:car.dir>0?E.a:E.b, d:car.dir>0?len-car.s:car.s, len}; }
+function chooseNext(node,inE){
+  const W=world, adj=W.nodes[node].adj;
+  if(car.mode==='auto'){ return race.next[node]; }
+  if(car.mode==='tap' && tap){ const v=tap.via[node]; if(v===-2) return tap.e; if(v>=0) return v; }
+  const want=car.h+car.look, wv={x:Math.sin(want),z:-Math.cos(want)};
+  let best=-1, bd=Infinity;
+  for(const e of adj){ if(e===inE && adj.length>1) continue; const a=Math.abs(sAngle(wv,leaveDir(W.edges[e],node))); if(a<bd){bd=a;best=e;} }
+  return best;
+}
+function uTurn(){
+  car.dir*=-1; car.v=Math.min(car.v,2);
+  car.look=wrapA(car.look-Math.PI); car.hd=wrapA(car.hd+Math.PI);
+  updatePose(false);
+}
+function setMode(m){ car.mode=m; if(m!=='tap'){ tap=null; pinGroup.visible=false; } updateModeBtn(); }
+function updateModeBtn(){ const b=$('autoBtn'); if(!b) return; b.classList.toggle('on',car.mode==='auto'); b.textContent=car.mode==='auto'?'⏸ 自動を止める':'🧭 自動で進む'; }
+function faceTowards(dist){ // turn around if the other way is shorter
+  const E=world.edges[car.e], k=nextNodeInfo();
+  if(k.len-k.d+dist[k.O]+3 < k.d+dist[k.N]) uTurn();
+}
+function startAuto(){ setMode('auto'); faceTowards(race.dist); $('hint').classList.add('hidden'); }
+function dijkstraMulti(g,srcs){
+  const N=g.nodes.length, dist=new Float64Array(N).fill(Infinity), via=new Int32Array(N).fill(-1), h=new Heap();
+  for(const [n,d] of srcs) if(d<dist[n]){ dist[n]=d; via[n]=-2; h.push(n,d); }
+  while(h.size){ const u=h.pop(), du=h.pk; if(du>dist[u]) continue;
+    for(const e of g.nodes[u].adj){ const E=g.edges[e], v=E.a===u?E.b:E.a, nd=du+E.len; if(nd<dist[v]){dist[v]=nd;via[v]=e;h.push(v,nd);} } }
+  return {dist,via};
+}
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.remove('hidden'); clearTimeout(toast.tm); toast.tm=setTimeout(()=>t.classList.add('hidden'),2200); }
+function handleTap(x,y){
+  if(!world || !race || race.finished) return;
+  const r=renderer.domElement.getBoundingClientRect();
+  ndc.set((x-r.left)/r.width*2-1, -((y-r.top)/r.height)*2+1);
+  raycaster.setFromCamera(ndc,camera);
+  const o=raycaster.ray.origin, d=raycaster.ray.direction;
+  if(d.y>-0.003){ toast('道路をタップすると、その場所まで進みます'); return; }
+  const t=-o.y/d.y; if(t>1500){ toast('もう少し手前の道路をタップしてください'); return; }
+  const px=o.x+d.x*t, pz=o.z+d.z*t, tol=Math.max(10,t*0.05);
+  let ns=nearestSeg(px,pz,-1,1); if(!ns || ns.d>tol){ const n2=nearestSeg(px,pz,-1,2); ns=(n2&&n2.d<=tol*1.5)?n2:null; }
+  if(!ns){ toast('そこには道路がありません'); return; }
+  const W=world, E=W.edges[ns.e], sT=W.cum[ns.s]+ns.t*Math.hypot(W.bx[ns.s]-W.ax[ns.s],W.bz[ns.s]-W.az[ns.s]);
+  const m=dijkstraMulti(W,[[E.a,sT],[E.b,edgeLen(E)-sT]]);
+  tap={e:ns.e,s:sT,dist:m.dist,via:m.via};
+  pinGroup.position.set(ns.px,0,ns.pz); pinGroup.visible=true;
+  setMode('tap'); tap=tap||null;
+  if(car.e===tap.e){ const dT=car.dir>0?sT-car.s:car.s-sT; if(dT<0) uTurn(); }
+  else faceTowards(tap.dist);
+  $('hint').classList.add('hidden');
+}
 function step(dt){
   const W=world, R=race;
-  const ns=nearestSeg(car.x,car.z,car.edge); car.ns=ns;
-  let onRoad=false; if(ns){ car.edge=ns.e; onRoad = ns.d < W.edges[ns.e].w/2+1.2; } else car.edge=-1;
-  const thr=Math.max(input.up?1:0, sw.thr), brk=Math.max(input.down?1:0, sw.brk);
-  const st=Math.max(-1,Math.min(1,(input.right?1:0)-(input.left?1:0)+sw.steer));
-  if(!R.started && !R.finished && (thr>0||brk>0)){ R.started=true; $('hint').classList.add('hidden'); }
-  const maxV = onRoad?VMAX:13;
+  // speed target
+  let target=0, brk=Math.max(input.down?1:0, drag.brk);
+  const thr=Math.max(input.up?1:0, drag.thr);
+  if(thr>0 && car.mode!=='manual') setMode('manual');
+  if(car.mode==='manual') target=thr*VMAX; else target=CRUISE[car.mode];
+  if(car.mode==='manual' && thr>0 && car.v<1 && Math.abs(car.look)>1.9) uTurn();
+  if(input.left) car.look=wrapA(car.look-1.6*dt);
+  if(input.right) car.look=wrapA(car.look+1.6*dt);
+  if(!R.started && (thr>0 || car.mode!=='manual')){ R.started=true; $('hint').classList.add('hidden'); }
+  // look ahead: slow down for turns / stop points
+  const k=nextNodeInfo(); let vlim=Infinity;
+  const ne=chooseNext(k.N,car.e);
+  if(ne<0) vlim=Math.sqrt(2*3*Math.max(0,k.d-1));
+  else { const th=Math.abs(sAngle(arriveDir(W.edges[car.e],k.N), leaveDir(W.edges[ne],k.N)));
+    const vt = th<0.35?Infinity:Math.max(3.5,15*(1-th/Math.PI)); vlim=Math.sqrt(vt*vt+2*3*k.d); }
+  if(car.mode==='tap' && tap && car.e===tap.e){ const dT=car.dir>0?tap.s-car.s:car.s-tap.s;
+    if(dT<0.6){ car.v=0; setMode('manual'); toast('到着しました'); } else vlim=Math.min(vlim,Math.sqrt(2*2.5*(dT-0.3))); }
   let v=car.v;
-  if(brk>0){
-    if(v>0.3) v-=(6+20*brk)*dt;
-    else if(brk>0.7 && thr===0) v=Math.max(v-6*dt,-8);
-    else if(v>0) v=0;
-  } else if(thr>0){
-    const target=thr*VMAX;
-    if(v<0) v=Math.min(0,v+20*dt);
-    else if(v<target) v=Math.min(target, v+(11*(1-v/VMAX)+2)*dt);
-    else v=Math.max(target, v-(2.5+0.0009*v*v)*dt);
-  } else { const dr=(onRoad?1.6:5)+0.0009*v*v; v = v>0?Math.max(0,v-dr*dt):Math.min(0,v+dr*dt); }
-  if(v>maxV) v=Math.max(maxV, v-16*dt);
+  if(brk>0) v=Math.max(0,v-9*brk*dt);
+  else if(v<target) v=Math.min(target, v+3.5*dt);
+  else v=Math.max(target, v-4*dt);
+  if(v>vlim) v=Math.max(vlim, v-7*dt);
   car.v=v;
-  car.steer += (st-car.steer)*Math.min(1,dt*7);
-  const sa = car.steer*0.6/(1+Math.abs(v)/16);
-  car.h += v*Math.tan(sa)/2.7*dt;
-  car.x += Math.sin(car.h)*v*dt; car.z += -Math.cos(car.h)*v*dt;
-  if(roadLock) applyRoadLock(dt);
-  // bounds
-  const b=W.bounds, m=150;
-  car.x=Math.max(b.minX-m,Math.min(b.maxX+m,car.x)); car.z=Math.max(b.minZ-m,Math.min(b.maxZ+m,car.z));
-  if(R.started && !R.finished){ R.time+=dt; R.odo+=Math.abs(v)*dt; }
-  car.offT = onRoad?0:car.offT+dt;
-  $('respawn').classList.toggle('alert', car.offT>3);
+  // advance along the graph
+  let rem=v*dt, guard=0;
+  while(rem>0 && guard++<20){
+    const E=W.edges[car.e], len=edgeLen(E), toEnd=car.dir>0?len-car.s:car.s;
+    if(rem<toEnd){ car.s+=car.dir*rem; rem=0; break; }
+    rem-=toEnd; const N=car.dir>0?E.b:E.a;
+    const nx=chooseNext(N,car.e);
+    if(nx<0){ car.s=car.dir>0?len:0; car.v=0; break; }
+    const oldH=car.h, E2=W.edges[nx];
+    car.e=nx; car.dir=(E2.a===N)?1:-1; car.s=car.dir>0?0:edgeLen(E2);
+    const nh=Math.atan2(leaveDir(E2,N).x,-leaveDir(E2,N).z), dH=wrapA(nh-oldH);
+    if(Math.abs(car.look)>0.1 && Math.sign(car.look)===Math.sign(dH)){ const c=Math.sign(dH)*Math.min(Math.abs(car.look),Math.abs(dH)); car.look-=c; car.hd=wrapA(car.hd+c); }
+  }
+  updatePose(false);
+  if(R.started && !R.finished){ R.time+=dt; R.odo+=v*dt; }
+  car.ns=nearestSeg(car.x,car.z,car.e);
   // goal
   const g=W.nodes[R.goal];
-  if(!R.finished && Math.hypot(car.x-g.x,car.z-g.z)<20){ finish(); }
-  // visuals
-  carGroup.position.set(car.x,0,car.z); carGroup.rotation.set(0,-car.h,0);
-  carGroup.rotation.z = -car.steer*Math.min(1,Math.abs(v)/30)*0.06;
-  for(const w of wheels) w.rotation.x -= v*dt/0.4;
-  wheels[0].rotation.y = wheels[1].rotation.y = -car.steer*0.45;
-  const fov=68+Math.min(45,Math.max(0,v))*0.3; if(Math.abs(camera.fov-fov)>0.1){ camera.fov=fov; camera.updateProjectionMatrix(); }
+  if(!R.finished && Math.hypot(car.x-g.x,car.z-g.z)<15) finish();
+  // branch preview (manual)
+  const bEl=$('branch');
+  if(car.mode==='manual' && W.nodes[k.N].adj.length>=3 && k.d<250 && ne>=0){
+    const th=sAngle(arriveDir(W.edges[car.e],k.N), leaveDir(W.edges[ne],k.N));
+    bEl.textContent='次の交差点：'+(Math.abs(th)<0.45?'直進 ↑':(th>0?'右へ ↱':'左へ ↰'))+'　'+fmtDist(k.d);
+    bEl.classList.remove('hidden');
+  } else bEl.classList.add('hidden');
+  pinGroup.userData.cone.position.y=7+Math.sin(performance.now()/250)*0.8;
+  const fov=68+Math.min(25,v)*0.4; if(Math.abs(camera.fov-fov)>0.1){ camera.fov=fov; camera.updateProjectionMatrix(); }
   placeCamera(false);
-  $('spd').textContent=Math.round(Math.abs(v)*3.6);
-  $('time').textContent=fmtTime(R.time);
-}
-function applyRoadLock(dt){
-  const W=world, ns=nearestSeg(car.x,car.z,car.edge,1);
-  if(!ns){ respawn(); return; }
-  const E=W.edges[ns.e], lim=Math.max(1.2, E.w/2-1.0);
-  if(ns.d<=lim) return;
-  const nx=(car.x-ns.px)/ns.d, nz=(car.z-ns.pz)/ns.d;
-  car.x=ns.px+nx*lim; car.z=ns.pz+nz*lim;
-  const fx=Math.sin(car.h), fz=-Math.cos(car.h);
-  let ux=fx*car.v, uz=fz*car.v; const vn=ux*nx+uz*nz;
-  if(vn>0){
-    ux-=nx*vn; uz-=nz*vn;
-    const sp=Math.hypot(ux,uz), sg=car.v<0?-1:1;
-    if(sp>0.5){ const nh=Math.atan2(ux*sg,-uz*sg); let dh=nh-car.h; while(dh>Math.PI)dh-=2*Math.PI; while(dh<-Math.PI)dh+=2*Math.PI; car.h+=dh*Math.min(1,dt*8); }
-    car.v=sg*sp*Math.max(0,1-dt*0.6);
-  }
+  $('spd').textContent=Math.round(v*3.6);
 }
 /* ---------- Real buildings (from vector tiles, built in chunks near the car) ---------- */
 const BPAL=['#d9d4ca','#c7ccd3','#e4ddcf','#b4bcc6','#ece7dd','#c2b6a6','#d1c3ad','#a9b3be','#dcd0c0','#bfc6b8'];
@@ -1232,9 +1302,10 @@ function fmtTime(t){ const m=Math.floor(t/60), s=t-m*60; return m+':'+(s<10?'0':
 function finish(){
   const R=race; R.finished=true; car.v=0;
   releaseControls();
-  $('rTime').textContent=fmtTime(R.time); $('rOdo').textContent=fmtDist(R.odo); $('rBest').textContent=fmtDist(R.best);
+  setMode('manual');
+  $('rName').textContent=R.goalName||'目的地'; $('rTime').textContent=fmtTime(R.time); $('rOdo').textContent=fmtDist(R.odo); $('rBest').textContent=fmtDist(R.best);
   $('rAvg').textContent=R.time>0?Math.round(R.odo/R.time*3.6)+' km/h':'-';
-  speak('ゴールしました。タイムは'+Math.floor(R.time/60)+'分'+Math.round(R.time%60)+'秒です');
+  speak('目的地に到着しました');
   show('result');
 }
 function drawMinimap(){
@@ -1242,13 +1313,13 @@ function drawMinimap(){
   const radiusM = mmZoomFar?1500:450, ppm=(W/2)/radiusM;
   x.save(); x.clearRect(0,0,W,H); x.beginPath(); x.arc(W/2,H/2,W/2,0,Math.PI*2); x.clip();
   x.fillStyle='#16221a'; x.fillRect(0,0,W,H);
-  x.translate(W/2,H/2); x.rotate(-car.h);
+  const yaw=camYaw(); x.translate(W/2,H/2); x.rotate(-yaw);
   x.save(); x.scale(ppm/mm.sc, ppm/mm.sc); x.drawImage(mm.canvas, -(car.x-mm.minX)*mm.sc, -(car.z-mm.minZ)*mm.sc); x.restore();
   x.scale(ppm,ppm); x.translate(-car.x,-car.z);
   const r=R.route; if(r && r.length>=4){ x.strokeStyle='#29d3ff'; x.lineWidth=5/ppm; x.lineCap='round'; x.lineJoin='round'; x.beginPath(); x.moveTo(r[0],r[1]); for(let i=2;i<r.length;i+=2) x.lineTo(r[i],r[i+1]); x.stroke(); }
   x.restore();
   // goal marker (clamped)
-  const g=world.nodes[R.goal]; let gx=g.x-car.x, gz=g.z-car.z; const ch=Math.cos(-car.h), sh=Math.sin(-car.h);
+  const g=world.nodes[R.goal]; let gx=g.x-car.x, gz=g.z-car.z; const ch=Math.cos(-yaw), sh=Math.sin(-yaw);
   let sx=(gx*ch-gz*sh)*ppm, sy=(gx*sh+gz*ch)*ppm; const L=Math.hypot(sx,sy), lim=W/2-9; if(L>lim){ sx*=lim/L; sy*=lim/L; }
   x.fillStyle='#ffd84a'; x.strokeStyle='#000'; x.lineWidth=2; x.beginPath(); x.arc(W/2+sx,H/2+sy,7,0,Math.PI*2); x.fill(); x.stroke();
   // car
@@ -1272,39 +1343,51 @@ function loop(now){
   renderer.render(scene,camera);
 }
 
-/* ---------- Input ---------- */
-function releaseControls(){ for(const k in input) input[k]=false; sw.id=null; sw.steer=sw.thr=sw.brk=0; $('joy').classList.add('hidden'); }
-function swRanges(){ return {S:Math.max(60,Math.min(120,window.innerWidth*0.16)), T:Math.max(90,Math.min(200,window.innerHeight*0.3))}; }
-function swUpdate(x,y){
-  const {S,T}=swRanges(), dx=x-sw.x0, dy=sw.y0-y, dead=8;
-  sw.steer = Math.abs(dx)<dead?0:Math.max(-1,Math.min(1,(dx-Math.sign(dx)*dead)/S));
-  sw.thr = dy>dead?Math.min(1,(dy-dead)/T):0;
-  sw.brk = dy<-dead?Math.min(1,(-dy-dead)/(T*0.5)):0;
-  const kx=Math.max(-S,Math.min(S,dx)), ky=Math.max(-T,Math.min(T*0.5,-dy));
-  const knob=$('joyKnob'); knob.style.transform='translate('+kx+'px,'+ky+'px)'; knob.classList.toggle('brk', sw.brk>0);
-  $('thrFill').style.height=(sw.thr*100)+'%';
-  $('joyLbl').textContent = sw.brk>0 ? 'ブレーキ '+Math.round(sw.brk*100)+'%' : (sw.thr>0 ? Math.round(sw.thr*VMAX*3.6)+' km/h' : (sw.steer? (sw.steer>0?'右 ▶':'◀ 左') : '惰性'));
-}
-function swDown(e){
+/* ---------- Input: tap a road to go there / drag up to move / drag sideways to look ---------- */
+const gs={id:null,x0:0,y0:0,lx:0,t0:0,moved:false};
+function releaseControls(){ for(const k in input) input[k]=false; gs.id=null; drag.thr=drag.brk=0; $('joy').classList.add('hidden'); }
+function dragRange(){ return Math.max(90,Math.min(200,window.innerHeight*0.28)); }
+function gDown(e){
   if(!race || race.finished || paused) return;
   e.preventDefault();
-  if(race.intro) endIntro();
-  if(sw.id!==null) return;
-  sw.id=e.pointerId; sw.x0=e.clientX; sw.y0=e.clientY;
+  if(race.intro){ endIntro(); }
+  if(gs.id!==null) return;
+  gs.id=e.pointerId; gs.x0=gs.lx=e.clientX; gs.y0=e.clientY; gs.t0=performance.now(); gs.moved=false;
   try{ $('touch').setPointerCapture(e.pointerId); }catch(_){}
-  const j=$('joy'); j.style.left=sw.x0+'px'; j.style.top=sw.y0+'px'; j.classList.remove('hidden');
-  swUpdate(e.clientX,e.clientY);
+}
+function gMove(e){
+  if(e.pointerId!==gs.id) return;
+  const dx=e.clientX-gs.lx; gs.lx=e.clientX;
+  if(!gs.moved && Math.hypot(e.clientX-gs.x0,e.clientY-gs.y0)>10) gs.moved=true;
+  if(!gs.moved) return;
+  car.look=wrapA(car.look+dx*0.0055);
+  const dy=gs.y0-e.clientY, T=dragRange(), dead=24, j=$('joy');
+  if(Math.abs(dy)>dead){
+    drag.thr=dy>0?Math.min(1,(dy-dead)/T):0; drag.brk=dy<0?Math.min(1,(-dy-dead)/(T*0.5)):0;
+    j.style.left=gs.x0+'px'; j.style.top=gs.y0+'px'; j.classList.remove('hidden');
+    const knob=$('joyKnob'); knob.style.transform='translate(0px,'+Math.max(-T,Math.min(T*0.5,-dy))+'px)'; knob.classList.toggle('brk',drag.brk>0);
+    $('thrFill').style.height=(drag.thr*100)+'%';
+    $('joyLbl').textContent=drag.brk>0?'止まる':Math.round(drag.thr*VMAX*3.6)+' km/h';
+  } else { drag.thr=drag.brk=0; j.classList.add('hidden'); }
+}
+function gUp(e){
+  if(e.pointerId!==gs.id) return;
+  const wasTap=!gs.moved && performance.now()-gs.t0<450;
+  gs.id=null; drag.thr=drag.brk=0; $('joy').classList.add('hidden');
+  if(wasTap && e.type==='pointerup') handleTap(e.clientX,e.clientY);
 }
 const tl=$('touch');
-tl.addEventListener('pointerdown',swDown);
-$('intro').addEventListener('pointerdown',swDown);
-tl.addEventListener('pointermove',e=>{ if(e.pointerId===sw.id) swUpdate(e.clientX,e.clientY); });
-const swUp=e=>{ if(e.pointerId!==sw.id) return; sw.id=null; sw.steer=sw.thr=sw.brk=0; $('joy').classList.add('hidden'); };
-tl.addEventListener('pointerup',swUp); tl.addEventListener('pointercancel',swUp); tl.addEventListener('lostpointercapture',swUp);
+tl.addEventListener('pointerdown',gDown);
+$('intro').addEventListener('pointerdown',e=>{ e.preventDefault(); endIntro(); });
+tl.addEventListener('pointermove',gMove);
+tl.addEventListener('pointerup',gUp); tl.addEventListener('pointercancel',gUp);
 tl.addEventListener('contextmenu',e=>e.preventDefault());
 const KEYS={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',Space:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right'};
-window.addEventListener('keydown',e=>{ const k=KEYS[e.code]; if(k && !e.target.closest('input,select')){ if(race&&race.intro&&!paused) endIntro(); input[k]=true; e.preventDefault(); }
-  if(e.code==='Escape' && race && !race.finished) togglePause(); if(e.code==='KeyR') respawn(); });
+window.addEventListener('keydown',e=>{ if(e.target.closest && e.target.closest('input,select')) return; const k=KEYS[e.code];
+  if(k){ if(race&&race.intro&&!paused) endIntro(); input[k]=true; e.preventDefault(); }
+  if(e.code==='Escape' && race && !race.finished) togglePause();
+  if(e.code==='KeyU' && race && !race.intro) uTurn();
+  if(e.code==='KeyG' && race && !race.intro) (car.mode==='auto'?setMode('manual'):startAuto()); });
 window.addEventListener('keyup',e=>{ const k=KEYS[e.code]; if(k) input[k]=false; });
 window.addEventListener('blur',releaseControls);
 function togglePause(){ if(!race) return; paused=!paused; releaseControls(); show(paused?'pause':null); if(!paused && race.intro) $('intro').classList.remove('hidden'); else if(paused) $('intro').classList.add('hidden'); }
@@ -1322,8 +1405,8 @@ $('pNewGoal').onclick=()=>{ paused=false; newRace(true); };
 $('pTitle').onclick=toTitle;
 $('rNext').onclick=()=>newRace(true);
 $('rTitle').onclick=toTitle;
-$('respawn').onclick=respawn;
-$('lockBtn').onclick=()=>{ roadLock=!roadLock; $('lockBtn').classList.toggle('on',roadLock); $('lockBtn').textContent=roadLock?'🛡 道路固定':'🛡 固定OFF'; };
+$('autoBtn').onclick=()=>{ if(!race||race.finished) return; if(race.intro) endIntro(); if(car.mode==='auto') setMode('manual'); else startAuto(); };
+$('uturnBtn').onclick=()=>{ if(!race||race.finished) return; if(race.intro) endIntro(); setMode('manual'); uTurn(); };
 $('mmWrap').onclick=()=>{ mmZoomFar=!mmZoomFar; };
 $('voiceBtn').onclick=()=>{ voiceOn=!voiceOn; $('voiceBtn').classList.toggle('on',voiceOn); $('voiceBtn').textContent=voiceOn?'🔊 音声':'🔈 音声';
   if(voiceOn && window.speechSynthesis){ try{ const u=new SpeechSynthesisUtterance('音声案内をオンにしました'); u.lang='ja-JP'; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} } };
