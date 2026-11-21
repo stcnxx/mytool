@@ -103,6 +103,14 @@ summary{cursor:pointer;color:#9fc3ff;font-size:14px;padding:4px 0}
 .resultBig{font-size:24px;font-weight:800;color:#ffd84a;margin:6px 0}
 table.res{width:100%;font-size:15px;color:#cdd8e4;border-collapse:collapse}
 table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:700}
+
+.sect{margin-top:12px;padding-top:10px;border-top:1px solid #2c3b4d}
+.lab{font-size:13px;color:#9fc3ff;font-weight:700}
+.sel{font-size:17px;font-weight:800;margin:4px 0;color:#8193a8}
+.sel.ok{color:#fff}
+.qlist{max-height:min(30vh,260px);overflow:auto;margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.btn:disabled{opacity:.4}
+#intro{position:fixed;inset:0;z-index:15;display:flex;align-items:flex-end;justify-content:center;padding:16px 16px max(16px,env(safe-area-inset-bottom));background:linear-gradient(transparent 30%,rgba(8,12,18,.85));touch-action:none}
 </style>
 </head>
 <body>
@@ -116,7 +124,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <div id="dest"></div>
   </div>
   <div id="nav"><div id="navIcon"><svg id="navArrow" viewBox="0 0 48 48"><path d="M24 4 L40 24 H30 V44 H18 V24 H8 Z" fill="#fff"/></svg><span id="navEmoji" class="hidden"></span></div>
-    <div style="min-width:0"><div id="navDist">-</div><div id="navText">ルート計算中</div></div></div>
+    <div style="min-width:0"><div id="navDist">-</div><div id="navText">ルート案内</div></div></div>
   <div id="mmWrap"><canvas id="mm"></canvas></div>
   <div id="topBtns">
     <button class="hbtn" id="menuBtn">≡ メニュー</button>
@@ -126,54 +134,59 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
   </div>
   <div id="roadName"></div>
   <div id="labels"></div>
-  <div id="hint" class="hidden"></div>
+  <div id="toast" class="hidden"></div>
   <div id="binfo" class="hidden"></div>
   <div id="arrive" class="hidden"><div class="ah">🏁 到着しました</div><div id="arrName" class="an"></div><div id="arrInfo" class="small"></div><div class="at">画面をタップして次の目的地へ</div></div>
   <div id="spdCtl"><button id="spdDn">−</button><input type="range" id="spdRange" min="0" max="1000" step="1"><button id="spdUp">＋</button><span id="spdSet">43 km/h</span></div>
-  <div id="toast" class="hidden"></div>
   <div id="joy" class="hidden"><div id="joyBase"></div><div id="thrBar"><div id="thrFill"></div></div><div id="joyKnob"></div><div id="joyLbl"></div></div>
   <div id="attr"></div>
   <div id="bldStat" class="hidden"></div>
-</div>
-
-<div id="intro" class="hidden">
-  <div class="card">
-    <div class="small">今回の目的地</div>
-    <div id="introName">-</div>
-    <div id="introInfo">-</div>
-    <canvas id="ovMap"></canvas>
-    <div class="how"><div><b>🚗</b>自動で目的地へ<br>道なりに進む</div><div><b>↕</b>上下ドラッグ・下のバー<br>4〜300km/h</div><div><b>↔</b>左右ドラッグ<br>見回す</div><div><b>👆</b>タップ<br>停止・建物情報</div></div>
-    <div class="tapgo">画面をタップしてスタート</div>
-  </div>
 </div>
 
 <!-- Title -->
 <div id="title" class="overlay">
   <div class="card">
     <h1>GPS<span>ドライブ</span></h1>
-    <p>現在地から半径5kmの実際の道路と建物を3Dで再現。目的地が決まったら、道路をタップしたりドラッグしたりして目的地まで進みます。曲がる方向は画面上部に表示されます。</p>
-    <div class="row"><label>おまかせ時の距離</label>
-      <select id="distSel"><option value="near">近い（1〜2km）</option><option value="mid" selected>ふつう（2〜3.5km）</option><option value="far">遠い（3.5km〜）</option></select></div>
+    <p>実際の道路や建物を3Dで再現して、目的地まで自動で走ります。</p>
+    <button class="btn" id="realBtn">🗾 実際の地図で走る</button>
+    <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
+    <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <div class="row"><input id="destIn" placeholder="目的地（例：東京タワー）※あとで検索も可" autocomplete="off"></div>
-    <button class="btn" id="gpsBtn">📍 現在地でスタート</button>
-    <details>
-      <summary>場所を指定してスタート</summary>
-      <div class="row"><select id="preset">
-        <option value="">— 地点を選ぶ —</option>
-        <option value="35.6812,139.7671">東京駅</option>
-        <option value="35.6595,139.7005">渋谷駅</option>
-        <option value="35.1709,136.8815">名古屋駅</option>
-        <option value="34.9858,135.7588">京都駅</option>
-        <option value="34.7025,135.4959">大阪駅</option>
-        <option value="43.0687,141.3508">札幌駅</option>
-        <option value="33.5902,130.4207">博多駅</option>
-      </select></div>
-      <div class="row"><input id="coordIn" placeholder="緯度,経度（例 35.68,139.76）" inputmode="decimal"></div>
-      <button class="btn sub" id="placeBtn">この場所でスタート</button>
-    </details>
-    <button class="btn ghost" id="demoBtn">🎮 デモマップで遊ぶ（通信なし）</button>
-    <p class="small" style="margin-top:12px">バージョン 11（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>位置情報と OpenStreetMap の道路データ（Overpass API）を使います。都市部は読み込みに数十秒かかることがあります。</p>
+    <p class="small" style="margin-top:12px">バージョン 12（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、検索：Nominatim、ルート：OSRM</p>
+  </div>
+</div>
+
+<!-- Real-map route setup -->
+<div id="setup" class="overlay hidden">
+  <div class="card">
+    <h2>🗾 ルートを決める</h2>
+    <div class="sect">
+      <div class="lab">スタート地点</div>
+      <div id="startSel" class="sel">未設定</div>
+      <button class="btn sub" id="startGPS">📍 現在地をスタートにする</button>
+      <div class="row"><input id="startQ" placeholder="駅・施設名・住所で検索" enterkeyhint="search" autocomplete="off"><button class="btn sbtn" id="startBtn">検索</button></div>
+      <div id="startList" class="qlist"></div>
+    </div>
+    <div class="sect">
+      <div class="lab">目的地</div>
+      <div id="goalSel" class="sel">未設定</div>
+      <div class="row"><input id="goalQ" placeholder="駅・施設名・住所で検索" enterkeyhint="search" autocomplete="off"><button class="btn sbtn" id="goalBtn">検索</button></div>
+      <div id="goalList" class="qlist"></div>
+    </div>
+    <button class="btn" id="routeBtn" disabled>🚗 このルートで出発</button>
+    <button class="btn ghost" id="setupBack">タイトルへ</button>
+  </div>
+</div>
+
+<!-- Demo destination -->
+<div id="dsearch" class="overlay hidden">
+  <div class="card">
+    <h2>🎮 目的地を選ぶ（デモ）</h2>
+    <div id="dList" class="qlist"></div>
+    <div class="row"><label>おまかせの距離</label>
+      <select id="distSel"><option value="near">近い（1〜2km）</option><option value="mid" selected>ふつう（2〜3.5km）</option><option value="far">遠い（3.5km〜）</option></select></div>
+    <button class="btn sub" id="dRandom">🎲 おまかせで決める</button>
+    <button class="btn ghost" id="dBack">タイトルへ</button>
   </div>
 </div>
 
@@ -183,20 +196,19 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <div class="spinner" id="spin"></div>
     <div id="loadMsg">準備中…</div>
     <div id="loadSub"></div>
-    <button class="btn sub" id="loadDemo">デモマップで遊ぶ</button>
     <button class="btn ghost" id="loadCancel">キャンセルして戻る</button>
   </div>
 </div>
 
-<!-- Destination search -->
-<div id="search" class="overlay hidden">
+<!-- Destination intro -->
+<div id="intro" class="hidden">
   <div class="card">
-    <h2>🔍 目的地を検索</h2>
-    <div class="row"><input id="qIn" placeholder="駅・店・施設名・住所など" enterkeyhint="search" autocomplete="off"><button class="btn sbtn" id="qBtn">検索</button></div>
-    <div id="qStat" class="small" style="margin-top:6px"></div>
-    <div id="qList"></div>
-    <button class="btn sub" id="qRandom">🎲 おまかせで決める</button>
-    <button class="btn ghost" id="qBack">タイトルへ</button>
+    <div class="small">今回の目的地</div>
+    <div id="introName">-</div>
+    <div id="introInfo">-</div>
+    <canvas id="ovMap"></canvas>
+    <div class="how"><div><b>🚗</b>自動で目的地へ<br>道なりに進む</div><div><b>↕</b>上下ドラッグ・下のバー<br>4〜300km/h</div><div><b>↔</b>左右ドラッグ<br>見回す</div><div><b>👆</b>タップ<br>停止・建物情報</div></div>
+    <div class="tapgo">画面をタップしてスタート</div>
   </div>
 </div>
 
@@ -210,47 +222,69 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
   </div>
 </div>
 
-<!-- Result -->
-<div id="result" class="overlay dim hidden">
-  <div class="card">
-    <h2>🏁 目的地に到着！</h2>
-    <div class="resultBig" id="rName">-</div>
-    <table class="res">
-      <tr><td>所要時間</td><td id="rTime">-</td></tr>
-      <tr><td>走行距離</td><td id="rOdo">-</td></tr>
-      <tr><td>最短ルート</td><td id="rBest">-</td></tr>
-      <tr><td>平均速度</td><td id="rAvg">-</td></tr>
-    </table>
-    <button class="btn" id="rNext">🔍 ここから次の目的地を探す</button>
-    <button class="btn ghost" id="rTitle">タイトルへ</button>
-  </div>
-</div>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
+const CELL = 40;
+const TZ = 14;
+const OFM_TILEJSON='https://tiles.openfreemap.org/planet';
+const OFM_FALLBACK='https://tiles.openfreemap.org/planet/20251217_001001_pt/{z}/{x}/{y}.pbf';
 const ROAD_W = {motorway:14,trunk:12,primary:10,secondary:9,tertiary:8,unclassified:6,residential:6,living_street:5,
   motorway_link:7,trunk_link:7,primary_link:7,secondary_link:6,tertiary_link:6};
-const RADIUS = 5000;
-const OVERPASS = ['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
-const CELL = 40;
-const VMAX = 22; // m/s ≒ 80km/h
+const CLASS_W = {motorway:14,trunk:12,primary:10,secondary:9,tertiary:8,minor:6,service:4,busway:6};
 const DIST_RANGE = {near:[1000,2000],mid:[2000,3500],far:[3500,7000]};
+const td=new TextDecoder();
+let tileTpl=null;
 
-let pinGroup, raycaster, ndc;
-let renderer, scene, camera, carGroup, wheels=[], goalGroup, routeMesh=null, routeTex, roadTex;
-let worldObjs = [];
-let world = null, race = null, paused = false;
-let car = {x:0,z:0,h:0,v:0,steer:0,edge:-1,ns:null,offT:0};
+let renderer, scene, camera, ground, goalGroup, routeMesh=null, routeTex, roadTex, raycaster, ndc;
+let mode=null;            // 'real' | 'demo'
+let world=null;           // demo world (road graph)
+let worldObjs=[];
+let paused=false;
+let origin=null;          // {lat,lon,kx,kz}
+const car = {s:0,v:0,setKmh:43,hold:false,look:0,hd:0,px:null,pz:0,x:0,z:0,h:0,node:-1};
 const input = {up:false,down:false,left:false,right:false};
-const sw = {id:null,x0:0,y0:0,steer:0,thr:0,brk:0};
-let loadToken = 0, loadAbort = null;
-let voiceOn = false;
-let mmZoomFar = false;
-let roadLock = true;
-const BLOAD=700, BDROP=1300;
-const bld = {tiles:new Map(), ids:new Set(), busy:false, timer:0, srv:0, fail:0, on:true, gen:0, mat:null};
+let loadToken=0, loadAbort=null, voiceOn=false, mmZoomFar=false, dtGlobal=0.016;
+const drive = {pts:null,cum:null,total:0,corners:[],steps:[],ci:0,si:0,hint:0,goalName:'',time:0,odo:0,started:false,
+  finished:false,intro:false,said:new Set(),navT:0,arrT:0,startName:'',endLL:null,goalNode:-1,active:false};
+const bld = {chunks:new Map(), timer:0, mats:null, on:true};
+const tiles = new Map();
+const TL = {busy:0, timer:0, gen:0};
+
+/* ---------- small helpers ---------- */
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const OVERLAYS=['title','setup','dsearch','loading','pause'];
+function show(id){ for(const k of OVERLAYS) $(k).classList.toggle('hidden', k!==id); }
+function setStatus(msg, sub='', isErr=false){
+  $('loadMsg').textContent=msg; $('loadMsg').classList.toggle('err',isErr);
+  $('loadSub').textContent=sub; $('spin').classList.toggle('hidden',isErr);
+  $('loadCancel').textContent=isErr?'戻る':'キャンセルして戻る';
+}
+function cancelLoading(){ loadToken++; if(loadAbort){ try{loadAbort.abort();}catch(e){} loadAbort=null; } }
+const wrapA=a=>{ while(a>Math.PI)a-=2*Math.PI; while(a<-Math.PI)a+=2*Math.PI; return a; };
+
+function norm(x,z){ const l=Math.hypot(x,z)||1; return {x:x/l,z:z/l}; }
+
+const sAngle = (a,b) => Math.atan2(a.x*b.z-a.z*b.x, a.x*b.x+a.z*b.z); // + = right
+
+function fmtDist(d){ if(!isFinite(d)) return '-'; if(d<1000) return (d<100?Math.max(0,Math.round(d/5)*5):Math.round(d/10)*10)+' m'; return (d/1000).toFixed(1)+' km'; }
+
+function fmtTime(t){ const m=Math.floor(t/60), s=t-m*60; return m+':'+(s<10?'0':'')+s.toFixed(1); }
+
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.remove('hidden'); clearTimeout(toast.tm); toast.tm=setTimeout(()=>t.classList.add('hidden'),2200); }
+
+function speak(t){ if(!voiceOn || !window.speechSynthesis) return; try{ const u=new SpeechSynthesisUtterance(t); u.lang='ja-JP'; u.rate=1.1; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} }
+
+function getPosition(){
+  return new Promise((res,rej)=>{
+    if(!navigator.geolocation) return rej(new Error('この端末/ブラウザでは位置情報が使えません'));
+    navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lon:p.coords.longitude}),
+      e=>rej(new Error(e.code===1?'位置情報の利用が許可されませんでした':'現在地を取得できませんでした')),
+      {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
+  });
+}
+
 
 /* ---------- 3D setup ---------- */
 function initThree(){
@@ -260,36 +294,31 @@ function initThree(){
   renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
   $('game').appendChild(renderer.domElement);
   scene = new THREE.Scene();
-  const sky = 0xa8d4f0;
-  scene.background = new THREE.Color(sky);
-  scene.fog = new THREE.Fog(sky, 180, 1100);
-  camera = new THREE.PerspectiveCamera(68, 1, 0.3, 2500);
-  camera.position.set(0,30,40); camera.lookAt(0,0,0);
-  scene.add(new THREE.HemisphereLight(0xdfefff, 0x4a5a3a, 0.85));
-  const sun = new THREE.DirectionalLight(0xffffff, 0.7); sun.position.set(300,500,200); scene.add(sun);
-  // ground
-  const gTex = makeGroundTex(); gTex.repeat.set(750,750);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(30000,30000), new THREE.MeshBasicMaterial({map:gTex}));
-  ground.rotation.x = -Math.PI/2; ground.position.y = -0.2; scene.add(ground);
-  roadTex = makeRoadTex(); routeTex = makeRouteTex();
-  carGroup = new THREE.Group(); // 車は表示しない（一人称視点）
-  pinGroup = makePin(); scene.add(pinGroup); pinGroup.visible=false;
-  goalGroup = makeGoal(); scene.add(goalGroup); goalGroup.visible=false;
+  const sky=0xa8d4f0; scene.background=new THREE.Color(sky); scene.fog=new THREE.Fog(sky,180,1100);
+  camera = new THREE.PerspectiveCamera(68,1,0.3,2500); camera.position.set(0,30,40); camera.lookAt(0,0,0);
+  scene.add(new THREE.HemisphereLight(0xdfefff,0x4a5a3a,0.85));
+  const sun=new THREE.DirectionalLight(0xffffff,0.7); sun.position.set(300,500,200); scene.add(sun);
+  const gTex=makeGroundTex(); gTex.repeat.set(750,750);
+  ground=new THREE.Mesh(new THREE.PlaneGeometry(30000,30000), new THREE.MeshBasicMaterial({map:gTex}));
+  ground.rotation.x=-Math.PI/2; ground.position.y=-0.2; scene.add(ground);
+  roadTex=makeRoadTex(); routeTex=makeRouteTex();
+  goalGroup=makeGoal(); scene.add(goalGroup); goalGroup.visible=false;
   raycaster=new THREE.Raycaster(); ndc=new THREE.Vector2();
-  onResize(); window.addEventListener('resize', onResize);
+  onResize(); window.addEventListener('resize',onResize);
   return true;
 }
 function onResize(){
   if(!renderer) return;
-  const w = window.innerWidth, h = window.innerHeight;
-  renderer.setSize(w,h,false); camera.aspect = w/h; camera.updateProjectionMatrix();
-  const mm = $('mm'), d = Math.min(window.devicePixelRatio||1,2), r = mm.getBoundingClientRect();
-  mm.width = Math.max(100,r.width*d); mm.height = Math.max(100,r.height*d);
+  const w=window.innerWidth, h=window.innerHeight;
+  renderer.setSize(w,h,false); camera.aspect=w/h; camera.updateProjectionMatrix();
+  const mm=$('mm'), d=Math.min(window.devicePixelRatio||1,2), r=mm.getBoundingClientRect();
+  mm.width=Math.max(100,r.width*d); mm.height=Math.max(100,r.height*d);
 }
 function canvasTex(w,h,draw){
   const c=document.createElement('canvas'); c.width=w; c.height=h; draw(c.getContext('2d'),w,h);
   const t=new THREE.CanvasTexture(c); t.anisotropy = renderer.capabilities.getMaxAnisotropy(); return t;
 }
+
 function makeGroundTex(){
   const t = canvasTex(128,128,(g,w,h)=>{
     g.fillStyle='#6e9a58'; g.fillRect(0,0,w,h);
@@ -298,6 +327,7 @@ function makeGroundTex(){
   });
   t.wrapS=t.wrapT=THREE.RepeatWrapping; return t;
 }
+
 function makeRoadTex(){
   const t = canvasTex(128,256,(g,w,h)=>{
     g.fillStyle='#45484e'; g.fillRect(0,0,w,h);
@@ -307,6 +337,7 @@ function makeRoadTex(){
   });
   t.wrapS=THREE.ClampToEdgeWrapping; t.wrapT=THREE.RepeatWrapping; return t;
 }
+
 function makeRouteTex(){
   const t = canvasTex(64,64,(g,w,h)=>{
     g.fillStyle='rgba(30,200,255,.55)'; g.fillRect(0,0,w,h);
@@ -315,29 +346,7 @@ function makeRouteTex(){
   });
   t.wrapS=THREE.ClampToEdgeWrapping; t.wrapT=THREE.RepeatWrapping; return t;
 }
-function makeCar(){
-  const g = new THREE.Group();
-  const red = new THREE.MeshLambertMaterial({color:0xe23b3b});
-  const dark = new THREE.MeshLambertMaterial({color:0x22303c});
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2,0.7,4.3), red); body.position.y=0.7; g.add(body);
-  const nose = new THREE.Mesh(new THREE.BoxGeometry(1.9,0.3,1.1), red); nose.position.set(0,1.1,-1.5); g.add(nose);
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7,0.62,2.0), dark); cabin.position.set(0,1.35,0.35); g.add(cabin);
-  const spoiler = new THREE.Mesh(new THREE.BoxGeometry(2,0.1,0.5), dark); spoiler.position.set(0,1.45,2.0); g.add(spoiler);
-  const wg = new THREE.CylinderGeometry(0.4,0.4,0.32,14); wg.rotateZ(Math.PI/2);
-  const wm = new THREE.MeshLambertMaterial({color:0x111111});
-  for(const [x,z] of [[-1,-1.4],[1,-1.4],[-1,1.4],[1,1.4]]){ const w=new THREE.Mesh(wg,wm); w.position.set(x,0.4,z); g.add(w); wheels.push(w); }
-  const hl = new THREE.MeshBasicMaterial({color:0xfff6c8});
-  for(const x of [-0.65,0.65]){ const l=new THREE.Mesh(new THREE.BoxGeometry(0.45,0.18,0.05),hl); l.position.set(x,0.85,-2.16); g.add(l); }
-  const tl = new THREE.MeshBasicMaterial({color:0xff2020});
-  for(const x of [-0.7,0.7]){ const l=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.16,0.05),tl); l.position.set(x,0.85,2.16); g.add(l); }
-  return g;
-}
-function makePin(){
-  const g=new THREE.Group(), m=new THREE.MeshBasicMaterial({color:0x29d3ff,fog:false});
-  const cone=new THREE.Mesh(new THREE.ConeGeometry(2.2,6,16),m); cone.rotation.x=Math.PI; cone.position.y=7; g.add(cone);
-  const ring=new THREE.Mesh(new THREE.RingGeometry(3,4.2,32),new THREE.MeshBasicMaterial({color:0x29d3ff,side:THREE.DoubleSide,fog:false}));
-  ring.rotation.x=-Math.PI/2; ring.position.y=0.12; g.add(ring); g.userData.cone=cone; return g;
-}
+
 function makeGoal(){
   const g = new THREE.Group();
   const beam = new THREE.Mesh(new THREE.CylinderGeometry(5,5,500,20,1,true),
@@ -353,104 +362,14 @@ function makeGoal(){
   return g;
 }
 
-/* ---------- Data loading ---------- */
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
-function show(id){ for(const k of ['title','loading','pause','result','search']) $(k).classList.toggle('hidden', k!==id); }
-function setStatus(msg, sub='', isErr=false){
-  $('loadMsg').textContent = msg; $('loadMsg').classList.toggle('err', isErr);
-  $('loadSub').textContent = sub; $('spin').classList.toggle('hidden', isErr);
-  $('loadCancel').textContent = isErr ? 'タイトルへ戻る' : 'キャンセルして戻る';
-}
-function cancelLoading(){ loadToken++; if(loadAbort){ try{loadAbort.abort();}catch(e){} loadAbort=null; } }
 
-function getPosition(){
-  return new Promise((res,rej)=>{
-    if(!navigator.geolocation) return rej(new Error('この端末/ブラウザでは位置情報が使えません'));
-    navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lon:p.coords.longitude}),
-      e=>rej(new Error(e.code===1?'位置情報の利用が許可されませんでした':'現在地を取得できませんでした')),
-      {enableHighAccuracy:true,timeout:15000,maximumAge:60000});
-  });
-}
-async function startGPS(){
-  cancelLoading(); const token = loadToken;
-  show('loading'); setStatus('現在地を取得中…','位置情報の許可を求められたら「許可」を選んでください');
-  try{
-    const p = await getPosition();
-    if(token!==loadToken) return;
-    await loadArea(p.lat,p.lon,token);
-  }catch(e){ if(token===loadToken) setStatus(e.message||'エラーが発生しました','「場所を指定」やデモマップでも遊べます',true); }
-}
-async function startPlace(){
-  let s = $('coordIn').value.trim() || $('preset').value;
-  const m = s.match(/(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)/);
-  if(!m){ $('coordIn').focus(); $('coordIn').placeholder='地点を選ぶか 緯度,経度 を入力'; return; }
-  cancelLoading(); const token = loadToken;
-  show('loading');
-  try{ await loadArea(parseFloat(m[1]),parseFloat(m[2]),token); }
-  catch(e){ if(token===loadToken) setStatus(e.message||'エラーが発生しました','',true); }
-}
-async function startDemo(){
-  cancelLoading(); const token = loadToken;
-  show('loading'); setStatus('デモマップを生成中…');
-  await sleep(20); if(token!==loadToken) return;
-  try{ await buildWorld(makeDemoRaw(), token, false); }
-  catch(e){ if(token===loadToken) setStatus('生成に失敗しました',String(e.message||e),true); }
-}
-async function fetchOverpass(url, q, token){
-  loadAbort = new AbortController();
-  const res = await fetch(url,{method:'POST',body:'data='+encodeURIComponent(q),
-    headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:loadAbort.signal});
-  if(!res.ok) throw new Error('サーバー応答 '+res.status);
-  let text;
-  if(res.body && res.body.getReader){
-    const reader = res.body.getReader(), chunks=[]; let n=0;
-    for(;;){ const {done,value} = await reader.read(); if(done) break; chunks.push(value); n+=value.length;
-      if(token===loadToken) $('loadSub').textContent = '受信 '+(n/1048576).toFixed(1)+' MB'; }
-    const buf = new Uint8Array(n); let o=0; for(const c of chunks){ buf.set(c,o); o+=c.length; }
-    text = new TextDecoder().decode(buf);
-  } else text = await res.text();
-  const data = JSON.parse(text);
-  if((!data.elements || !data.elements.length) && data.remark) throw new Error('サーバーが混雑しています');
-  return data;
-}
-async function loadAreaOverpass(lat, lon, token){
-  setStatus('道路データを取得中…（半径5km）','サーバーに問い合わせ中');
-  const q = `[out:json][timeout:90];way(around:${RADIUS},${lat},${lon})["highway"~"^(${Object.keys(ROAD_W).join('|')})$"];out body;>;out skel qt;`;
-  let data=null, lastErr=null;
-  for(let i=0;i<OVERPASS.length && !data;i++){
-    if(token!==loadToken) return;
-    try{ data = await fetchOverpass(OVERPASS[i], q, token); }
-    catch(e){ if(e.name==='AbortError' || token!==loadToken) return; lastErr=e;
-      if(i<OVERPASS.length-1) setStatus('別のサーバーで再試行中…', String(e.message||'')); }
-  }
-  if(token!==loadToken) return;
-  if(!data) throw new Error('道路データを取得できませんでした（'+((lastErr&&lastErr.message)||'通信エラー')+'）');
-  setStatus('道路網を構築中…', data.elements.length.toLocaleString()+' 要素'); await sleep(20);
-  if(token!==loadToken) return;
-  const raw = osmToRaw(data, lat, lon);
-  if(raw.ways.length < 5) throw new Error('この周辺に走れる道路が見つかりませんでした');
-  await buildWorld(raw, token, true);
-}
-async function loadArea(lat, lon, token){
-  try{ await loadAreaVector(lat, lon, token); }
-  catch(e){
-    if(e.name==='AbortError' || token!==loadToken) return;
-    console.warn(e);
-    setStatus('別の方法で再試行中…', String(e.message||e)); await sleep(300);
-    if(token!==loadToken) return;
-    await loadAreaOverpass(lat, lon, token);
-  }
-}
-/* ---------- Vector tiles (OpenFreeMap / OpenMapTiles schema) ---------- */
-const OFM_TILEJSON='https://tiles.openfreemap.org/planet';
-const OFM_FALLBACK='https://tiles.openfreemap.org/planet/20251217_001001_pt/{z}/{x}/{y}.pbf';
-const TZ=14;
-const CLASS2HW={motorway:'motorway',trunk:'trunk',primary:'primary',secondary:'secondary',tertiary:'tertiary',minor:'residential'};
-let tileTpl=null;
-const td=new TextDecoder();
+/* ---------- Vector tile decoding (MVT) ---------- */
 function rv(r){ let v=0,m=1,b; do{ b=r.buf[r.pos++]; v+=(b&0x7f)*m; m*=128; }while(b&0x80); return v; }
+
 function pskip(r,t){ if(t===0) rv(r); else if(t===1) r.pos+=8; else if(t===2){ const l=rv(r); r.pos+=l; } else if(t===5) r.pos+=4; else throw new Error('pbf'); }
+
 const zz=n=>(n%2)?-(n+1)/2:n/2;
+
 function parseValue(buf,s,e){ const r={buf,pos:s}; let v=null;
   while(r.pos<e){ const tag=rv(r),f=tag>>>3,t=tag&7;
     if(f===1&&t===2){ const l=rv(r); v=td.decode(buf.subarray(r.pos,r.pos+l)); r.pos+=l; }
@@ -461,11 +380,13 @@ function parseValue(buf,s,e){ const r={buf,pos:s}; let v=null;
     else if(f===7&&t===0) v=!!rv(r);
     else pskip(r,t); }
   return v; }
+
 function parseTile(buf,want){
   const r={buf,pos:0}, layers={};
   while(r.pos<buf.length){ const tag=rv(r),f=tag>>>3,t=tag&7;
     if(f===3&&t===2){ const l=rv(r), end=r.pos+l, L=parseLayer(buf,r.pos,end,want); if(L) layers[L.name]=L; r.pos=end; } else pskip(r,t); }
   return layers; }
+
 function parseLayer(buf,start,end,want){
   const r={buf,pos:start}; let name='', ext=4096; const feats=[],keys=[],vals=[];
   while(r.pos<end){ const tag=rv(r),f=tag>>>3,t=tag&7;
@@ -476,7 +397,9 @@ function parseLayer(buf,start,end,want){
     else if(f===5&&t===0) ext=rv(r);
     else pskip(r,t); }
   return want.has(name)?{name,ext,keys,vals,feats,buf}:null; }
+
 function featCount(L){ return L.feats.length/2; }
+
 function featAt(L,i){
   const r={buf:L.buf,pos:L.feats[2*i]}, e=L.feats[2*i+1]; let type=0, tags={}, geom=null;
   while(r.pos<e){ const tag=rv(r),f=tag>>>3,t=tag&7;
@@ -485,6 +408,7 @@ function featAt(L,i){
     else if(f===4&&t===2){ const l=rv(r), end=r.pos+l; geom=[]; while(r.pos<end) geom.push(rv(r)); }
     else pskip(r,t); }
   return {type,tags,geom}; }
+
 function decodeGeom(g){ const parts=[]; let x=0,y=0,cur=null,i=0; if(!g) return parts;
   while(i<g.length){ const c=g[i++], cmd=c&7, cnt=Math.floor(c/8);
     if(cmd===1){ for(let k=0;k<cnt;k++){ x+=zz(g[i++]); y+=zz(g[i++]); cur=[x,y]; parts.push(cur); } }
@@ -492,187 +416,328 @@ function decodeGeom(g){ const parts=[]; let x=0,y=0,cur=null,i=0; if(!g) return 
     else if(cmd===7){ if(cur) cur.push(cur[0],cur[1]); }
     else break; }
   return parts; }
+
 function ringArea(p){ let a=0; for(let i=0;i<p.length-2;i+=2) a+=p[i]*p[i+3]-p[i+2]*p[i+1]; return a/2; }
+
 function polysOf(rings){ const out=[]; for(const r of rings){ if(r.length<8) continue; const a=ringArea(r); if(a>0) out.push({outer:r,holes:[]}); else if(a<0 && out.length) out[out.length-1].holes.push(r); } return out; }
+
 function lbClip(x0,y0,x1,y1,E){
   let t0=0,t1=1; const dx=x1-x0, dy=y1-y0;
   const p=[-dx,dx,-dy,dy], q=[x0,E-x0,y0,E-y0];
   for(let i=0;i<4;i++){ if(p[i]===0){ if(q[i]<0) return null; } else { const t=q[i]/p[i]; if(p[i]<0){ if(t>t1) return null; if(t>t0) t0=t; } else { if(t<t0) return null; if(t<t1) t1=t; } } }
   return [x0+t0*dx,y0+t0*dy,x0+t1*dx,y0+t1*dy];
 }
+
 function clipLine(p,E){ const out=[]; let cur=null;
   for(let i=0;i<p.length-2;i+=2){ const r=lbClip(p[i],p[i+1],p[i+2],p[i+3],E); if(!r){ cur=null; continue; }
     if(!cur || cur[cur.length-2]!==r[0] || cur[cur.length-1]!==r[1]){ cur=[r[0],r[1]]; out.push(cur); }
     cur.push(r[2],r[3]); if(r[2]!==p[i+2]||r[3]!==p[i+3]) cur=null; }
   return out.filter(c=>c.length>=4); }
+
 const lon2tx=lon=>(lon+180)/360*2**TZ;
+
 const lat2ty=lat=>{ const r=lat*Math.PI/180; return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*2**TZ; };
+
 function makeProj(o,tx,ty,E){ const n=E*2**TZ;
   return (p)=>{ const out=new Array(p.length); for(let i=0;i<p.length;i+=2){ const gx=tx*E+p[i], gy=ty*E+p[i+1];
     const lon=gx/n*360-180, lat=Math.atan(Math.sinh(Math.PI*(1-2*gy/n)))*180/Math.PI; out[i]=(lon-o.lon)*o.kx; out[i+1]=-(lat-o.lat)*o.kz; } return out; }; }
+
 async function gunzipMaybe(u8){
   if(u8.length>2 && u8[0]===0x1f && u8[1]===0x8b){ if(!window.DecompressionStream) throw new Error('このブラウザは圧縮データ非対応');
     const st=new Blob([u8]).stream().pipeThrough(new DecompressionStream('gzip')); return new Uint8Array(await new Response(st).arrayBuffer()); }
   return u8; }
+
 async function getTileTpl(signal){
   if(tileTpl) return tileTpl;
   try{ const r=await fetch(OFM_TILEJSON,{signal}); const j=await r.json(); if(j.tiles && j.tiles[0]) tileTpl=j.tiles[0]; }
   catch(e){ if(e.name==='AbortError') throw e; }
   return tileTpl || OFM_FALLBACK;
 }
-async function fetchTiles(list,tpl,token){
-  const res=new Array(list.length); let next=0, done=0, ok=0;
-  const worker=async()=>{ while(next<list.length){ const i=next++, t=list[i];
-    const url=tpl.replace('{z}',TZ).replace('{x}',t.x).replace('{y}',t.y);
-    for(let a=0;a<3;a++){ if(token!==loadToken) return;
-      try{ const r=await fetch(url,{signal:loadAbort.signal});
-        if(r.status===204||r.status===404){ res[i]=new Uint8Array(0); break; }
-        if(!r.ok) throw new Error('HTTP '+r.status);
-        res[i]=await gunzipMaybe(new Uint8Array(await r.arrayBuffer())); break; }
-      catch(e){ if(e.name==='AbortError') return; await sleep(600*(a+1)); } }
-    if(res[i]) ok++; done++;
-    if(token===loadToken) $('loadSub').textContent='地図タイル '+done+' / '+list.length; } };
-  await Promise.all(Array.from({length:6},worker));
-  return {res,ok};
-}
-async function loadAreaVector(lat,lon,token){
-  loadAbort=new AbortController();
-  setStatus('地図データを取得中…（半径5km）','タイル情報を確認中');
-  const o={lat,lon,kx:Math.cos(lat*Math.PI/180)*111320,kz:110574};
-  const dLat=RADIUS/o.kz, dLon=RADIUS/o.kx;
-  const x0=Math.floor(lon2tx(lon-dLon)), x1=Math.floor(lon2tx(lon+dLon)), y0=Math.floor(lat2ty(lat+dLat)), y1=Math.floor(lat2ty(lat-dLat));
-  const cx=lon2tx(lon), cy=lat2ty(lat), list=[];
-  for(let x=x0;x<=x1;x++) for(let y=y0;y<=y1;y++) list.push({x,y,d:Math.hypot(x+.5-cx,y+.5-cy)});
-  list.sort((a,b)=>a.d-b.d);
-  const tpl=await getTileTpl(loadAbort.signal);
-  if(token!==loadToken) return;
-  const {res,ok}=await fetchTiles(list,tpl,token);
-  if(token!==loadToken) return;
-  if(!ok) throw new Error('地図タイルを取得できませんでした');
-  setStatus('道路データを解析中…'); await sleep(20);
-  const want=new Set(['transportation','transportation_name','water','building','poi']);
-  const poi=new Map();
-  const lines=[], names=[], water=[], vt=[];
-  for(let i=0;i<list.length;i++){
-    if(!res[i] || !res[i].length) continue;
-    const t=list[i], layers=parseTile(res[i],want);
-    const T=layers.transportation;
-    if(T){ const E=T.ext, proj=makeProj(o,t.x,t.y,E);
-      for(let k=0;k<featCount(T);k++){ const f=featAt(T,k); if(f.type!==2) continue;
-        let hw=CLASS2HW[f.tags.class]; if(!hw) continue;
-        if((f.tags.ramp===1||f.tags.ramp===true) && hw!=='residential') hw+='_link';
-        const br=(f.tags.brunnel==='bridge'||f.tags.brunnel==='tunnel')?f.tags.brunnel:'';
-        const ow=f.tags.oneway==1?1:(f.tags.oneway==-1?-1:0);
-        for(const part of decodeGeom(f.geom)) for(const pc of clipLine(part,E)) lines.push({pts:proj(pc),hw,br,ow}); } }
-    const N=layers.transportation_name;
-    if(N){ const proj=makeProj(o,t.x,t.y,N.ext);
-      for(let k=0;k<featCount(N);k++){ const f=featAt(N,k); if(f.type!==2) continue; const nm=f.tags['name:ja']||f.tags.name; if(!nm) continue;
-        for(const part of decodeGeom(f.geom)) if(part.length>=4) names.push({pts:proj(part),name:nm}); } }
-    const Wt=layers.water;
-    if(Wt){ const proj=makeProj(o,t.x,t.y,Wt.ext);
-      for(let k=0;k<featCount(Wt);k++){ const f=featAt(Wt,k); if(f.type!==3) continue;
-        for(const pg of polysOf(decodeGeom(f.geom))) water.push({outer:proj(pg.outer),holes:pg.holes.map(proj)}); } }
-    const Pt=layers.poi;
-    if(Pt){ const proj=makeProj(o,t.x,t.y,Pt.ext);
-      for(let k=0;k<featCount(Pt);k++){ const f=featAt(Pt,k); if(f.type!==1) continue; const nm=f.tags['name:ja']||f.tags.name; if(!nm) continue;
-        for(const part of decodeGeom(f.geom)){ const q=proj(part.slice(0,2)); const key=Math.floor(q[0]/50)+','+Math.floor(q[1]/50); let l=poi.get(key); if(!l){l=[];poi.set(key,l);} l.push({x:q[0],z:q[1],name:nm,rank:+f.tags.rank||99}); } } }
-    if(layers.building) vt.push({x:t.x,y:t.y,L:layers.building,proj:makeProj(o,t.x,t.y,layers.building.ext),chunks:null});
-    if(i%4===3){ $('loadSub').textContent='解析 '+(i+1)+' / '+list.length; await sleep(0); if(token!==loadToken) return; }
+
+
+/* ---------- projection ---------- */
+function setOrigin(lat,lon){ origin={lat,lon,kx:Math.cos(lat*Math.PI/180)*111320,kz:110574}; }
+const ll2xz=(lat,lon)=>[(lon-origin.lon)*origin.kx, -(lat-origin.lat)*origin.kz];
+const xz2ll=(x,z)=>[origin.lat - z/origin.kz, origin.lon + x/origin.kx];
+
+/* ---------- geometry helpers ---------- */
+function writeStrip(p, hw, y, vs, P, U, I, v0, k0){
+  const n=p.length/2; let dist=0;
+  for(let i=0;i<n;i++){
+    const x=p[2*i], z=p[2*i+1];
+    if(i>0) dist+=Math.hypot(x-p[2*i-2], z-p[2*i-1]);
+    let n1=null,n2=null;
+    if(i>0){ const d=norm(x-p[2*i-2], z-p[2*i-1]); n1={x:-d.z,z:d.x}; }
+    if(i<n-1){ const d=norm(p[2*i+2]-x, p[2*i+3]-z); n2={x:-d.z,z:d.x}; }
+    let nx,nz;
+    if(n1&&n2){ nx=n1.x+n2.x; nz=n1.z+n2.z; const l=Math.hypot(nx,nz);
+      if(l<1e-3){nx=n1.x;nz=n1.z;} else { nx/=l; nz/=l; const s=1/Math.max(nx*n1.x+nz*n1.z,0.4); nx*=s; nz*=s; } }
+    else { const m=n1||n2; nx=m.x; nz=m.z; }
+    const o=(v0+2*i)*3; P[o]=x+nx*hw; P[o+1]=y; P[o+2]=z+nz*hw; P[o+3]=x-nx*hw; P[o+4]=y; P[o+5]=z-nz*hw;
+    const u=(v0+2*i)*2; U[u]=0; U[u+1]=dist/vs; U[u+2]=1; U[u+3]=dist/vs;
   }
-  if(lines.length<5) throw new Error('この周辺に走れる道路が見つかりませんでした');
-  setStatus('道路をつなぎ合わせ中…', lines.length.toLocaleString()+' 本'); await sleep(20);
-  if(token!==loadToken) return;
-  assignNames(lines,names);
-  const raw=nodeLines(lines);
-  raw.origin=o; raw.water=water; raw.vt=vt; raw.poi=poi;
-  await buildWorld(raw, token, true);
+  for(let i=0;i<n-1;i++){ const a=v0+2*i; I[k0++]=a; I[k0++]=a+2; I[k0++]=a+1; I[k0++]=a+1; I[k0++]=a+2; I[k0++]=a+3; }
+  return k0;
 }
-function assignNames(lines,names){
-  const G=30, grid=new Map(), key=(i,j)=>(i+50000)*100003+(j+50000);
-  names.forEach((n,ni)=>{ const p=n.pts; for(let i=0;i<p.length-2;i+=2){ const k=key(Math.floor((p[i]+p[i+2])/2/G),Math.floor((p[i+1]+p[i+3])/2/G)); let l=grid.get(k); if(!l){l=[];grid.set(k,l);} l.push(ni,i); } });
-  for(const L of lines){ const p=L.pts, m=Math.max(0,((p.length/2-1)>>1))*2; if(p.length<4) continue;
-    const mx=(p[m]+p[m+2])/2, mz=(p[m+1]+p[m+3])/2, d=norm(p[m+2]-p[m],p[m+3]-p[m+1]); let best=null, bd=6;
-    const ci=Math.floor(mx/G), cj=Math.floor(mz/G);
-    for(let i=ci-1;i<=ci+1;i++) for(let j=cj-1;j<=cj+1;j++){ const l=grid.get(key(i,j)); if(!l) continue;
-      for(let q=0;q<l.length;q+=2){ const n=names[l[q]], s=l[q+1], P=n.pts, ax=P[s],az=P[s+1],dx=P[s+2]-ax,dz=P[s+3]-az,L2=dx*dx+dz*dz||1;
-        let t=((mx-ax)*dx+(mz-az)*dz)/L2; t=t<0?0:t>1?1:t; const dd=Math.hypot(mx-ax-dx*t,mz-az-dz*t);
-        if(dd<bd && Math.abs((dx*d.x+dz*d.z)/Math.sqrt(L2))>0.7){ bd=dd; best=n.name; } } }
-    L.name=best||''; }
+
+function geom(P,U,I){
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(P,3)); g.setAttribute('uv',new THREE.BufferAttribute(U,2));
+  g.setIndex(new THREE.BufferAttribute(I,1)); g.computeBoundingSphere(); return g;
 }
-// Build a connected road network: merge coincident points, split at crossings and T-junctions.
-function nodeLines(lines){
-  const NX=[], NZ=[], ng=new Map(), nk=(i,j)=>(i+50000)*100003+(j+50000);
-  const getNode=(x,z,tol)=>{ const i=Math.floor(x), j=Math.floor(z), r=Math.ceil(tol); let best=-1, bd=tol;
-    for(let a=i-r;a<=i+r;a++) for(let b=j-r;b<=j+r;b++){ const l=ng.get(nk(a,b)); if(l) for(const id of l){ const d=Math.hypot(NX[id]-x,NZ[id]-z); if(d<=bd){bd=d;best=id;} } }
-    if(best>=0) return best; const id=NX.length; NX.push(x); NZ.push(z); const k=nk(i,j); let l=ng.get(k); if(!l){l=[];ng.set(k,l);} l.push(id); return id; };
-  const L=[];
-  for(const ln of lines){ const ids=[]; const p=ln.pts;
-    for(let i=0;i<p.length;i+=2){ const id=getNode(p[i],p[i+1],0.8); if(ids[ids.length-1]!==id) ids.push(id); }
-    if(ids.length>=2) L.push({ids,hw:ln.hw,br:ln.br,ow:ln.ow||0,name:ln.name||''}); }
-  const cnt=new Map(); for(const l of L) for(const id of l.ids) cnt.set(id,(cnt.get(id)||0)+1);
-  const G=25, sg=new Map(), sl=[], si=[];
-  L.forEach((l,li)=>{ for(let i=0;i<l.ids.length-1;i++){ const a=l.ids[i], b=l.ids[i+1], s=sl.length; sl.push(li); si.push(i);
-    const i0=Math.floor(Math.min(NX[a],NX[b])/G), i1=Math.floor(Math.max(NX[a],NX[b])/G), j0=Math.floor(Math.min(NZ[a],NZ[b])/G), j1=Math.floor(Math.max(NZ[a],NZ[b])/G);
-    for(let x=i0;x<=i1;x++) for(let y=j0;y<=j1;y++){ const k=nk(x,y); let c=sg.get(k); if(!c){c=[];sg.set(k,c);} c.push(s); } } });
-  const splits=new Map();
-  const addSplit=(s,t,id)=>{ const l=L[sl[s]]; if(l.ids[si[s]]===id||l.ids[si[s]+1]===id) return; let a=splits.get(s); if(!a){a=[];splits.set(s,a);} if(!a.some(e=>e.id===id)) a.push({t,id}); };
-  // T-junctions: dangling ends close to another road
-  for(let li=0;li<L.length;li++){ const l=L[li];
-    for(const end of [0,l.ids.length-1]){ const id=l.ids[end]; if(cnt.get(id)!==1) continue;
-      const x=NX[id], z=NZ[id], ci=Math.floor(x/G), cj=Math.floor(z/G); let best=-1, bd=2.5, bt=0;
-      for(let a=ci-1;a<=ci+1;a++) for(let b=cj-1;b<=cj+1;b++){ const c=sg.get(nk(a,b)); if(!c) continue;
-        for(const s of c){ const o=L[sl[s]]; if(sl[s]===li || o.br!==l.br) continue; const A=o.ids[si[s]], B=o.ids[si[s]+1];
-          const dx=NX[B]-NX[A], dz=NZ[B]-NZ[A], L2=dx*dx+dz*dz||1; let t=((x-NX[A])*dx+(z-NZ[A])*dz)/L2; t=t<0?0:t>1?1:t;
-          const d=Math.hypot(x-NX[A]-dx*t, z-NZ[A]-dz*t); if(d<bd){ bd=d; best=s; bt=t; } } }
-      if(best<0) continue;
-      const o=L[sl[best]], A=o.ids[si[best]], B=o.ids[si[best]+1];
-      const px=NX[A]+(NX[B]-NX[A])*bt, pz=NZ[A]+(NZ[B]-NZ[A])*bt;
-      let nid; if(Math.hypot(px-NX[A],pz-NZ[A])<1.5) nid=A; else if(Math.hypot(px-NX[B],pz-NZ[B])<1.5) nid=B;
-      else { nid=getNode(px,pz,0.3); addSplit(best,bt,nid); }
-      if(nid!==id){ if(l.ids[end===0?1:end-1]!==nid){ l.ids[end]=nid; cnt.set(nid,(cnt.get(nid)||0)+1); } }
-    } }
-  // crossings at grade
-  for(const c of sg.values()){ for(let p=0;p<c.length;p++){ const s1=c[p], l1=L[sl[s1]]; if(l1.br) continue; const a1=l1.ids[si[s1]], a2=l1.ids[si[s1]+1];
-    for(let q=p+1;q<c.length;q++){ const s2=c[q], l2=L[sl[s2]]; if(l2.br) continue; const b1=l2.ids[si[s2]], b2=l2.ids[si[s2]+1];
-      if(a1===b1||a1===b2||a2===b1||a2===b2) continue;
-      const ax=NX[a1],az=NZ[a1],adx=NX[a2]-ax,adz=NZ[a2]-az,bx=NX[b1],bz=NZ[b1],bdx=NX[b2]-bx,bdz=NZ[b2]-bz;
-      const den=adx*bdz-adz*bdx; if(Math.abs(den)<1e-9) continue;
-      const t=((bx-ax)*bdz-(bz-az)*bdx)/den, u=((bx-ax)*adz-(bz-az)*adx)/den;
-      if(t<-1e-6||t>1+1e-6||u<-1e-6||u>1+1e-6) continue;
-      const id=getNode(ax+adx*t, az+adz*t, 0.8); addSplit(s1,t,id); addSplit(s2,u,id); } } }
-  const nodes=new Map(), ways=[];
-  for(let i=0;i<NX.length;i++) nodes.set(i,{x:NX[i],z:NZ[i]});
-  let s=0;
-  for(const l of L){ const refs=[l.ids[0]];
-    for(let i=0;i<l.ids.length-1;i++,s++){ const sp=splits.get(s); if(sp){ sp.sort((a,b)=>a.t-b.t); for(const e of sp) if(refs[refs.length-1]!==e.id) refs.push(e.id); }
-      if(refs[refs.length-1]!==l.ids[i+1]) refs.push(l.ids[i+1]); }
-    if(refs.length>=2) ways.push({refs,hw:l.hw,name:l.name,ow:l.ow}); }
-  return {nodes,ways};
+
+// roads of one tile (positions relative to ox,oz)
+function buildRoadMeshes(lines, ox, oz){
+  let vc=0, ic=0, caps=0;
+  for(const l of lines){ const n=l.pts.length/2; vc+=n*2; ic+=(n-1)*6; caps+=l.capA+l.capB; }
+  if(!vc) return [];
+  const P=new Float32Array(vc*3), U=new Float32Array(vc*2), I=new Uint32Array(ic); let v=0,k=0;
+  for(const l of lines){ const rel=new Array(l.pts.length); for(let i=0;i<l.pts.length;i+=2){ rel[i]=l.pts[i]-ox; rel[i+1]=l.pts[i+1]-oz; }
+    k=writeStrip(rel, l.w/2, 0, 16, P,U,I,v,k); v+=rel.length; }
+  const roads=new THREE.Mesh(geom(P,U,I), roadMat()); roads.position.set(ox,0,oz);
+  const out=[roads];
+  if(caps){ const SEG=10, DP=new Float32Array(caps*(SEG+1)*3), DU=new Float32Array(caps*(SEG+1)*2), DI=new Uint32Array(caps*SEG*3); let dv=0, dk=0;
+    const cap=(x,z,r)=>{ const c=dv; DP[c*3]=x-ox; DP[c*3+2]=z-oz; DU[c*2]=0.3; DU[c*2+1]=0.75; dv++;
+      for(let i=0;i<SEG;i++){ const a=i/SEG*Math.PI*2; DP[dv*3]=x-ox+Math.cos(a)*r; DP[dv*3+2]=z-oz+Math.sin(a)*r; DU[dv*2]=0.3; DU[dv*2+1]=0.75; dv++; }
+      for(let i=0;i<SEG;i++){ DI[dk++]=c; DI[dk++]=c+1+((i+1)%SEG); DI[dk++]=c+1+i; } };
+    for(const l of lines){ const p=l.pts, n=p.length; if(l.capA) cap(p[0],p[1],l.w/2); if(l.capB) cap(p[n-2],p[n-1],l.w/2); }
+    const d=new THREE.Mesh(geom(DP,DU,DI), capMat()); d.position.set(ox,0,oz); d.renderOrder=1; out.push(d); }
+  return out;
 }
-function buildWater(water){
-  if(!water.length) return null;
+function roadMat(){ return roadMat.m||(roadMat.m=new THREE.MeshBasicMaterial({map:roadTex,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2})); }
+function capMat(){ return capMat.m||(capMat.m=new THREE.MeshBasicMaterial({map:roadTex,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4})); }
+function buildWaterMesh(water, ox, oz){
   const P=[];
   for(const w of water){
-    const toV=p=>{ const a=[]; let n=p.length/2; if(n>1 && p[0]===p[2*n-2] && p[1]===p[2*n-1]) n--; for(let i=0;i<n;i++) a.push(new THREE.Vector2(p[2*i],p[2*i+1])); return a; };
+    const toV=p=>{ const a=[]; let n=p.length/2; if(n>1 && p[0]===p[2*n-2] && p[1]===p[2*n-1]) n--; for(let i=0;i<n;i++) a.push(new THREE.Vector2(p[2*i]-ox,p[2*i+1]-oz)); return a; };
     const outer=toV(w.outer), holes=w.holes.map(toV).filter(h=>h.length>=3); if(outer.length<3) continue;
     let faces; try{ faces=THREE.ShapeUtils.triangulateShape(outer,holes); }catch(e){ continue; }
     const all=outer.concat(...holes);
-    for(const f of faces) for(const k of f){ const v=all[k]; if(v) P.push(v.x,-0.1,v.y); }
+    for(const f of faces) for(const k of f){ const q=all[k]; if(q) P.push(q.x,-0.1,q.y); }
   }
   if(!P.length) return null;
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));
-  return new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:0x4f8fc8,side:THREE.DoubleSide}));
+  const m=new THREE.Mesh(g, waterMat()); m.position.set(ox,0,oz); return m;
 }
-function osmToRaw(data, lat0, lon0){
-  const kx = Math.cos(lat0*Math.PI/180)*111320, kz = 110574;
-  const nodes = new Map(), ways = [];
-  for(const el of data.elements){
-    if(el.type==='node') nodes.set(el.id,{x:(el.lon-lon0)*kx, z:-(el.lat-lat0)*kz});
-    else if(el.type==='way' && el.nodes && el.tags) { const t=el.tags, o=t.oneway; const ow=(o==='yes'||o==='1'||o==='true')?1:(o==='-1'?-1:((o!=='no' && (t.highway==='motorway'||t.junction==='roundabout'))?1:0));
-      ways.push({refs:el.nodes, hw:t.highway, name:t.name||t.ref||'', ow}); }
+function waterMat(){ return waterMat.m||(waterMat.m=new THREE.MeshBasicMaterial({color:0x4f8fc8,side:THREE.DoubleSide})); }
+function disposeObj(o){ scene.remove(o); if(o.geometry) o.geometry.dispose(); }
+
+/* ---------- buildings (textures + mesh) ---------- */
+const BPAL=['#d9d4ca','#c7ccd3','#e4ddcf','#b4bcc6','#ece7dd','#c2b6a6','#d1c3ad','#a9b3be','#dcd0c0','#bfc6b8'];
+
+const FLOOR_H=3.4, COL_W=3.2, TEX_U=COL_W*4, TEX_V=FLOOR_H*4;
+
+function makeFacadeTex(style){
+  const t=canvasTex(256,256,(g,W,H)=>{
+    const cell=64, rnd=Math.random;
+    const wall = style===0 ? '#cfd6dd' : style===1 ? '#f1eee8' : '#f4efe6';
+    g.fillStyle=wall; g.fillRect(0,0,W,H);
+    for(let i=0;i<2500;i++){ g.fillStyle=rnd()<.5?'rgba(0,0,0,.05)':'rgba(255,255,255,.08)'; g.fillRect(rnd()*W,rnd()*H,2,2); }
+    for(let r=0;r<4;r++) for(let c=0;c<4;c++){
+      const x=c*cell, y=r*cell;
+      if(style===0){ // office / glass curtain wall
+        g.fillStyle='#8f9aa6'; g.fillRect(x,y+50,cell,14);                       // spandrel
+        const gr=g.createLinearGradient(x,y,x+cell,y+50); const b=150+rnd()*60;
+        gr.addColorStop(0,`rgb(${b*0.45|0},${b*0.62|0},${b*0.8|0})`); gr.addColorStop(1,`rgb(${b*0.3|0},${b*0.42|0},${b*0.6|0})`);
+        g.fillStyle=gr; g.fillRect(x+2,y+2,cell-4,46);
+        g.fillStyle='rgba(255,255,255,.18)'; g.beginPath(); g.moveTo(x+2,y+2); g.lineTo(x+26,y+2); g.lineTo(x+2,y+30); g.fill();
+        g.fillStyle='#b9c2cb'; g.fillRect(x+cell/2-1,y+2,2,46);                   // mullion
+      } else if(style===1){ // apartment: windows + balcony rail
+        const dark=55+rnd()*40; g.fillStyle=`rgb(${dark*0.8|0},${dark*0.9|0},${dark|0})`; g.fillRect(x+10,y+8,44,30);
+        g.fillStyle='rgba(255,255,255,.15)'; g.fillRect(x+12,y+10,14,26);
+        if(rnd()<0.5){ g.fillStyle='rgba(230,225,215,.9)'; g.fillRect(x+12,y+10,10,26); } // curtain
+        g.fillStyle='#d9d5cd'; g.fillRect(x,y+42,cell,4);                         // balcony slab
+        g.fillStyle='rgba(120,125,130,.85)'; g.fillRect(x,y+46,cell,2);
+        for(let k=2;k<cell;k+=6) g.fillRect(x+k,y+46,1.5,14);                     // rail bars
+        g.fillRect(x,y+58,cell,2);
+      } else { // house / small building
+        if(rnd()<0.75){ const dark=60+rnd()*40; g.fillStyle='#ffffff'; g.fillRect(x+18,y+14,28,30);
+          g.fillStyle=`rgb(${dark*0.8|0},${dark*0.9|0},${dark|0})`; g.fillRect(x+20,y+16,24,26);
+          g.fillStyle='#ffffff'; g.fillRect(x+31,y+16,2,26); g.fillRect(x+20,y+28,24,2); }
+        g.fillStyle='rgba(0,0,0,.08)'; g.fillRect(x,y+62,cell,2);
+      }
+    }
+  });
+  t.wrapS=t.wrapT=THREE.RepeatWrapping; return t;
+}
+
+function buildingMats(){
+  if(bld.mats) return bld.mats;
+  bld.mats=[0,1,2].map(st=>new THREE.MeshLambertMaterial({map:makeFacadeTex(st),vertexColors:true,side:THREE.DoubleSide}));
+  bld.mats.push(new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide})); // roofs
+  return bld.mats;
+}
+
+function bStyle(b){ return b.H>=28?0:(b.H>=10?(b.id%3===0?0:1):2); }
+// polys: {pts(flat x,z), n, faces, all(Vector2[]), H, M, id, name}
+
+function makeBuildingMesh(polys,ox=0,oz=0){
+  const wc=[0,0,0]; let rc=0;
+  for(const b of polys){ b.st=bStyle(b); wc[b.st]+=b.n*6; rc+=b.faces.length*3; }
+  const total=wc[0]+wc[1]+wc[2]+rc; if(!total) return null;
+  const P=new Float32Array(total*3), C=new Float32Array(total*3), U=new Float32Array(total*2), owner=new Int32Array(total/3);
+  const off=[0,wc[0],wc[0]+wc[1]], roofOff=wc[0]+wc[1]+wc[2], cur=off.slice(); let rv=roofOff;
+  const col=new THREE.Color(), meta=[];
+  polys.forEach((b,bi)=>{
+    let cx=0,cz=0; for(let i=0;i<b.n;i++){cx+=b.pts[2*i];cz+=b.pts[2*i+1];} meta.push({name:b.name||'',h:b.H,x:cx/b.n,z:cz/b.n});
+    col.set(BPAL[b.id%BPAL.length]);
+    const put=(v,x,y,z,s,u,w)=>{ P[v*3]=x-ox; P[v*3+1]=y; P[v*3+2]=z-oz; C[v*3]=Math.min(1,col.r*s); C[v*3+1]=Math.min(1,col.g*s); C[v*3+2]=Math.min(1,col.b*s); U[v*2]=u; U[v*2+1]=w; if(v%3===0) owner[v/3]=bi; };
+    let v=cur[b.st], d=0; const v0=b.M/TEX_V, v1=b.H/TEX_V, sh=b.st===0?1:1.02;
+    for(let i=0;i<b.n;i++){ const j=(i+1)%b.n, ax=b.pts[2*i], az=b.pts[2*i+1], bx=b.pts[2*j], bz=b.pts[2*j+1], L=Math.hypot(bx-ax,bz-az), u0=d/TEX_U, u1=(d+L)/TEX_U; d+=L;
+      put(v++,ax,b.M,az,.9*sh,u0,v0); put(v++,bx,b.M,bz,.9*sh,u1,v0); put(v++,bx,b.H,bz,sh,u1,v1);
+      put(v++,ax,b.M,az,.9*sh,u0,v0); put(v++,bx,b.H,bz,sh,u1,v1); put(v++,ax,b.H,az,sh,u0,v1); }
+    cur[b.st]=v;
+    for(const f of b.faces) for(const k of f){ const p=b.all[k]; if(p) put(rv++,p.x,b.H,p.y,0.95,0,0); else put(rv++,0,-50,0,1,0,0); }
+  });
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.BufferAttribute(P,3));
+  g.setAttribute('color',new THREE.BufferAttribute(C,3));
+  g.setAttribute('uv',new THREE.BufferAttribute(U,2));
+  g.addGroup(0,wc[0],0); g.addGroup(off[1],wc[1],1); g.addGroup(off[2],wc[2],2); g.addGroup(roofOff,rc,3);
+  g.computeVertexNormals(); g.computeBoundingSphere();
+  const mesh=new THREE.Mesh(g, buildingMats()); mesh.position.set(ox,0,oz); mesh.userData={owner,meta}; return mesh;
+}
+
+function metaOfHit(hit){
+  const o=hit.object;
+  const O=o.userData.owner, M=o.userData.meta; if(!O || hit.faceIndex==null) return null;
+  return M[O[hit.faceIndex]]||null;
+}
+
+function showBInfo(m){
+  const el=$('binfo'); el.innerHTML='';
+  const n=document.createElement('div'); n.className='n'; n.textContent='🏢 '+(m.name||'名称不明の建物');
+  const h=document.createElement('div'); h.className='h'; h.textContent='高さ 約'+Math.round(m.h)+' m';
+  const f=document.createElement('div'); f.className='small'; f.textContent='（およそ'+Math.max(1,Math.round(m.h/3.3))+'階建て相当）';
+  el.append(n,h,f); el.classList.remove('hidden'); clearTimeout(showBInfo.tm); showBInfo.tm=setTimeout(()=>el.classList.add('hidden'),4000);
+}
+
+
+/* ---------- Real map: tile streaming ---------- */
+const tileKey=(x,y)=>x+','+y;
+function tileSizeM(lat){ return 40075016*Math.cos(lat*Math.PI/180)/2**TZ; }
+function wantedTiles(){
+  const [lat,lon]=xz2ll(car.x,car.z), cx=lon2tx(lon), cy=lat2ty(lat), tsz=tileSizeM(lat), set=new Map();
+  const add=(tx,ty,d)=>{ const k=tileKey(tx,ty), p=set.get(k); if(!p||d<p.d) set.set(k,{x:tx,y:ty,d}); };
+  const r=Math.ceil(1600/tsz)+1;
+  for(let dx=-r;dx<=r;dx++) for(let dy=-r;dy<=r;dy++){ const tx=Math.floor(cx)+dx, ty=Math.floor(cy)+dy;
+    const ddx=Math.max(0,Math.abs(tx+.5-cx)-.5), ddy=Math.max(0,Math.abs(ty+.5-cy)-.5), d=Math.hypot(ddx,ddy)*tsz;
+    if(d<1600) add(tx,ty,d); }
+  if(drive.pts) for(let s=car.s; s<Math.min(drive.total,car.s+4000); s+=150){ const p=posAt(s), ll=xz2ll(p.x,p.z);
+    add(Math.floor(lon2tx(ll[1])),Math.floor(lat2ty(ll[0])),(s-car.s)*0.5); }
+  return [...set.values()].sort((a,b)=>a.d-b.d);
+}
+function tileTick(dt){
+  if(mode!=='real' || !origin) return;
+  TL.timer-=dt; if(TL.timer>0) return; TL.timer=0.3;
+  for(const [k,t] of tiles){ if(t.state==='loading') continue; if(t.cx!=null && Math.hypot(t.cx-car.x,t.cz-car.z)>4500){ unloadTile(t); tiles.delete(k); } }
+  const now=performance.now();
+  for(const w of wantedTiles()){ if(TL.busy>=4) break; const t=tiles.get(tileKey(w.x,w.y));
+    if(t && !(t.state==='err' && now>t.retryAt)) continue; loadTile(w.x,w.y); }
+  const st=$('bldStat'); if(TL.busy>0){ st.textContent='🗺 地図を読み込み中…'; st.classList.remove('hidden'); }
+}
+function unloadTile(t){
+  for(const m of t.meshes) disposeObj(m); t.meshes=[];
+  for(const [k,c] of bld.chunks) if(c.tile===t){ if(c.mesh) disposeObj(c.mesh); bld.chunks.delete(k); }
+}
+function clearTiles(){ TL.gen++; TL.busy=0; for(const t of tiles.values()) unloadTile(t); tiles.clear(); }
+async function loadTile(x,y){
+  const gen=TL.gen, t={x,y,state:'loading',meshes:[]}; tiles.set(tileKey(x,y),t); TL.busy++;
+  try{
+    const tpl=await getTileTpl();
+    const r=await fetch(tpl.replace('{z}',TZ).replace('{x}',x).replace('{y}',y));
+    let buf;
+    if(r.status===204||r.status===404) buf=new Uint8Array(0);
+    else { if(!r.ok) throw new Error('HTTP '+r.status); buf=await gunzipMaybe(new Uint8Array(await r.arrayBuffer())); }
+    if(gen!==TL.gen) return;
+    processTile(t,buf); t.state='done';
+  }catch(e){ if(gen!==TL.gen) return; t.state='err'; t.retryAt=performance.now()+5000; }
+  finally{ if(gen===TL.gen) TL.busy--; }
+}
+const WANT=new Set(['transportation','water','building','poi']);
+function processTile(t,buf){
+  const P0=makeProj(origin,t.x,t.y,4096), c=P0([2048,2048]), a=P0([0,0]), b=P0([4096,4096]);
+  t.cx=c[0]; t.cz=c[1]; t.bx0=a[0]; t.bz0=a[1]; t.bx1=b[0]; t.bz1=b[1];
+  const mmc=document.createElement('canvas'); mmc.width=mmc.height=256; t.mmc=mmc;
+  if(!buf.length) return;
+  const layers=parseTile(buf,WANT);
+  const T=layers.transportation;
+  const mx=mmc.getContext('2d'); mx.lineCap='round'; mx.lineJoin='round';
+  if(T){ const E=T.ext, proj=makeProj(origin,t.x,t.y,E), lines=[];
+    for(let k=0;k<featCount(T);k++){ const f=featAt(T,k); if(f.type!==2) continue;
+      let w=CLASS_W[f.tags.class]; if(!w) continue; if(f.tags.ramp==1) w=Math.max(6,w*0.6);
+      for(const part of decodeGeom(f.geom)) for(const pc of clipLine(part,E)){
+        const n=pc.length, inA=pc[0]>0&&pc[0]<E&&pc[1]>0&&pc[1]<E, inB=pc[n-2]>0&&pc[n-2]<E&&pc[n-1]>0&&pc[n-1]<E;
+        lines.push({pts:proj(pc),w,capA:inA?1:0,capB:inB?1:0});
+        mx.strokeStyle=w>=10?'#e8c66a':(w>=8?'#c9d1da':'#8a96a3'); mx.lineWidth=Math.max(1.2,w*256/E*0.35);
+        mx.beginPath(); mx.moveTo(pc[0]*256/E,pc[1]*256/E); for(let i=2;i<n;i+=2) mx.lineTo(pc[i]*256/E,pc[i+1]*256/E); mx.stroke(); } }
+    for(const m of buildRoadMeshes(lines,t.cx,t.cz)){ scene.add(m); t.meshes.push(m); } }
+  const Wt=layers.water;
+  if(Wt){ const proj=makeProj(origin,t.x,t.y,Wt.ext), water=[];
+    for(let k=0;k<featCount(Wt);k++){ const f=featAt(Wt,k); if(f.type!==3) continue;
+      for(const pg of polysOf(decodeGeom(f.geom))) water.push({outer:proj(pg.outer),holes:pg.holes.map(proj)}); }
+    const wm=buildWaterMesh(water,t.cx,t.cz); if(wm){ scene.add(wm); t.meshes.push(wm); } }
+  const Pt=layers.poi; t.poi=new Map();
+  if(Pt){ const proj=makeProj(origin,t.x,t.y,Pt.ext);
+    for(let k=0;k<featCount(Pt);k++){ const f=featAt(Pt,k); if(f.type!==1) continue; const nm=f.tags['name:ja']||f.tags.name; if(!nm) continue;
+      for(const part of decodeGeom(f.geom)){ const q=proj(part.slice(0,2)), key=Math.floor(q[0]/50)+','+Math.floor(q[1]/50);
+        let l=t.poi.get(key); if(!l){l=[];t.poi.set(key,l);} l.push({x:q[0],z:q[1],name:nm,rank:+f.tags.rank||99}); } } }
+  if(layers.building){ t.bL=layers.building; t.bproj=makeProj(origin,t.x,t.y,layers.building.ext); }
+}
+function poiName(pts,T){
+  const P=T&&T.poi; if(!P) return '';
+  let a=1e12,b=1e12,A=-1e12,B=-1e12; for(let i=0;i<pts.length;i+=2){ a=Math.min(a,pts[i]); A=Math.max(A,pts[i]); b=Math.min(b,pts[i+1]); B=Math.max(B,pts[i+1]); }
+  let best=null;
+  for(let i=Math.floor(a/50);i<=Math.floor(A/50);i++) for(let j=Math.floor(b/50);j<=Math.floor(B/50);j++){ const l=P.get(i+','+j); if(!l) continue;
+    for(const q of l){ if(q.x<a||q.x>A||q.z<b||q.z>B) continue; let inside=false;
+      for(let k=0,m=pts.length/2-1;k<pts.length/2;m=k++){ const xi=pts[2*k],zi=pts[2*k+1],xj=pts[2*m],zj=pts[2*m+1];
+        if(((zi>q.z)!==(zj>q.z)) && (q.x < (xj-xi)*(q.z-zi)/(zj-zi)+xi)) inside=!inside; }
+      if(inside && (!best || q.rank<best.rank)) best=q; } }
+  return best?best.name:'';
+}
+function decodeBuildings(T){
+  const L=T.bL, E=L.ext, S=E/4; T.bchunks=Array.from({length:16},()=>[]);
+  for(let k=0;k<featCount(L);k++){ const f=featAt(L,k); if(f.type!==3 || f.tags.hide_3d) continue;
+    const H=+f.tags.render_height||8, M=+f.tags.render_min_height||0; if(M>=H) continue;
+    for(const pg of polysOf(decodeGeom(f.geom))){ const o=pg.outer; let mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9;
+      for(let i=0;i<o.length;i+=2){ mnx=Math.min(mnx,o[i]); mxx=Math.max(mxx,o[i]); mny=Math.min(mny,o[i+1]); mxy=Math.max(mxy,o[i+1]); }
+      const cx=(mnx+mxx)/2, cy=(mny+mxy)/2; if(cx<0||cx>=E||cy<0||cy>=E) continue;
+      T.bchunks[Math.floor(cy/S)*4+Math.floor(cx/S)].push({o,h:pg.holes,H,M,id:k}); } }
+  T.bL=null;
+  T.bcenters=[]; for(let j=0;j<4;j++) for(let i=0;i<4;i++) T.bcenters.push(T.bproj([(i+.5)*S,(j+.5)*S]));
+}
+function buildBldMesh(T, list, center){
+  if(!list.length) return null;
+  const polys=[];
+  for(const b of list){
+    const strip=p=>{ let q=T.bproj(p), n=q.length/2; if(n>1 && q[0]===q[2*n-2] && q[1]===q[2*n-1]){ q.length-=2; n--; } return q; };
+    const pts=strip(b.o), n=pts.length/2; if(n<3) continue;
+    const holes=b.h.map(strip).filter(h=>h.length>=6);
+    const toV=p=>{ const a=[]; for(let i=0;i<p.length;i+=2) a.push(new THREE.Vector2(p[i],p[i+1])); return a; };
+    const cv=toV(pts), hv=holes.map(toV); let faces=[]; try{ faces=THREE.ShapeUtils.triangulateShape(cv,hv); }catch(e){}
+    polys.push({pts,n,faces,all:cv.concat(...hv),H:b.H,M:b.M,id:b.id,name:poiName(pts,T)});
   }
-  return {nodes, ways, origin:{lat:lat0,lon:lon0,kx,kz}};
+  return polys.length?makeBuildingMesh(polys,center[0],center[1]):null;
 }
+function bldTick(dt){
+  if(mode!=='real' || !bld.on) return;
+  bld.timer-=dt; if(bld.timer>0) return; bld.timer=0.15;
+  for(const [k,c] of bld.chunks) if(Math.hypot(c.cx-car.x,c.cz-car.z)>1300){ if(c.mesh) disposeObj(c.mesh); bld.chunks.delete(k); }
+  let best=null, bd=700;
+  for(const T of tiles.values()){
+    if(T.state!=='done') continue;
+    if(!T.bchunks){ if(!T.bL) continue; const d=Math.hypot(T.cx-car.x,T.cz-car.z)-1500; if(d<bd){ bd=d; best={T,decode:true}; } continue; }
+    for(let i=0;i<16;i++){ const key=T.x+','+T.y+','+i; if(bld.chunks.has(key)) continue; const c=T.bcenters[i], d=Math.hypot(c[0]-car.x,c[1]-car.z)-360; if(d<bd){ bd=d; best={T,i,key,c}; } }
+  }
+  const st=$('bldStat');
+  if(!best){ if(TL.busy===0) st.classList.add('hidden'); return; }
+  st.textContent='🏢 建物を生成中…'; st.classList.remove('hidden');
+  if(best.decode){ decodeBuildings(best.T); return; }
+  const mesh=buildBldMesh(best.T, best.T.bchunks[best.i], best.c);
+  if(mesh) scene.add(mesh);
+  bld.chunks.set(best.key,{mesh,cx:best.c[0],cz:best.c[1],meta:mesh?mesh.userData.meta:null,tile:best.T});
+}
+
+/* ---------- Demo world (generated town, road graph) ---------- */
 function makeDemoRaw(){
   const nodes = new Map(), ways = []; let id = 1;
   const S = 4600, xs=[], zs=[];
@@ -698,7 +763,6 @@ function makeDemoRaw(){
   return {nodes, ways, demoPlaces};
 }
 
-/* ---------- Graph ---------- */
 function buildGraph(raw){
   const cnt = new Map();
   for(const w of raw.ways){ const r=w.refs; for(let i=0;i<r.length;i++){ const k=r[i]; cnt.set(k,(cnt.get(k)||0)+((i===0||i===r.length-1)?2:1)); } }
@@ -727,6 +791,7 @@ function buildGraph(raw){
   }
   return {nodes, edges};
 }
+
 function keepLargest(g){
   const N=g.nodes.length, comp=new Int32Array(N).fill(-1); let best=-1,bestSize=0,c=0;
   for(let s=0;s<N;s++){ if(comp[s]>=0) continue; let size=0; const st=[s]; comp[s]=c;
@@ -738,7 +803,9 @@ function keepLargest(g){
     nodes[ne.a].adj.push(e); if(ne.a!==ne.b) nodes[ne.b].adj.push(e); }
   return {nodes, edges};
 }
+
 const gkey = (i,j) => (i+3000)*8192 + (j+3000);
+
 function buildSegments(g){
   let n=0; for(const e of g.edges) n += e.pts.length/2-1;
   g.ax=new Float32Array(n); g.az=new Float32Array(n); g.bx=new Float32Array(n); g.bz=new Float32Array(n);
@@ -757,6 +824,7 @@ function buildSegments(g){
   });
   g.bounds={minX,minZ,maxX,maxZ}; g.totalLen=total;
 }
+
 function nearestSeg(x,z,prefEdge,ring=1){
   const W=world, ix=Math.floor(x/CELL), iz=Math.floor(z/CELL);
   let best=null,bd=Infinity,bp=null,bpd=Infinity;
@@ -774,6 +842,7 @@ function nearestSeg(x,z,prefEdge,ring=1){
   if(best) best.e=W.se[best.s];
   return best;
 }
+
 function roadClearance(x,z){
   const W=world, ix=Math.floor(x/CELL), iz=Math.floor(z/CELL); let m=Infinity;
   for(let i=ix-1;i<=ix+1;i++) for(let j=iz-1;j<=iz+1;j++){
@@ -784,6 +853,7 @@ function roadClearance(x,z){
   }
   return m;
 }
+
 class Heap{
   constructor(){this.ids=[];this.ks=[];this.pk=0;}
   get size(){return this.ids.length;}
@@ -793,17 +863,7 @@ class Heap{
     return id;}
 }
 // directed: may we drive along E leaving node "from"?
-function canGo(E,from){ if(!E.ow || E.a===E.b) return true; return E.ow===1 ? from===E.a : from===E.b; }
-// toGoal=true: distances TO src (reverse search), false: FROM src
-function dijkstraDir(g,src,toGoal){
-  const N=g.nodes.length, dist=new Float64Array(N).fill(Infinity), via=new Int32Array(N).fill(-1), h=new Heap();
-  dist[src]=0; h.push(src,0);
-  while(h.size){ const u=h.pop(), du=h.pk; if(du>dist[u]) continue;
-    for(const e of g.nodes[u].adj){ const E=g.edges[e], v=E.a===u?E.b:E.a;
-      if(toGoal ? !canGo(E,v) : !canGo(E,u)) continue;
-      const nd=du+E.len; if(nd<dist[v]){dist[v]=nd;via[v]=e;h.push(v,nd);} } }
-  return {dist,via};
-}
+
 function dijkstra(g,src){
   const N=g.nodes.length, dist=new Float64Array(N).fill(Infinity), via=new Int32Array(N).fill(-1), h=new Heap();
   dist[src]=0; h.push(src,0);
@@ -812,6 +872,7 @@ function dijkstra(g,src){
   return {dist,via};
 }
 // point at distance d from the given end node along edge
+
 function pointAt(E, fromA, d){
   const p=E.pts, n=p.length/2; let acc=0;
   for(let k=0;k<n-1;k++){
@@ -822,34 +883,11 @@ function pointAt(E, fromA, d){
   }
   return fromA?{x:p[2*n-2],z:p[2*n-1]}:{x:p[0],z:p[1]};
 }
-function norm(x,z){ const l=Math.hypot(x,z)||1; return {x:x/l,z:z/l}; }
-function leaveDir(E, node){ const fromA=E.a===node; const nd=world.nodes[node]; const q=pointAt(E,fromA,Math.min(15,E.len)); return norm(q.x-nd.x,q.z-nd.z); }
-function arriveDir(E, node){ const fromA=E.a===node && !(E.a===E.b); const nd=world.nodes[node]; const q=pointAt(E,fromA,Math.min(15,E.len)); return norm(nd.x-q.x,nd.z-q.z); }
-const sAngle = (a,b) => Math.atan2(a.x*b.z-a.z*b.x, a.x*b.x+a.z*b.z); // + = right
 
-/* ---------- World meshes ---------- */
-function writeStrip(p, hw, y, vs, P, U, I, v0, k0){
-  const n=p.length/2; let dist=0;
-  for(let i=0;i<n;i++){
-    const x=p[2*i], z=p[2*i+1];
-    if(i>0) dist+=Math.hypot(x-p[2*i-2], z-p[2*i-1]);
-    let n1=null,n2=null;
-    if(i>0){ const d=norm(x-p[2*i-2], z-p[2*i-1]); n1={x:-d.z,z:d.x}; }
-    if(i<n-1){ const d=norm(p[2*i+2]-x, p[2*i+3]-z); n2={x:-d.z,z:d.x}; }
-    let nx,nz;
-    if(n1&&n2){ nx=n1.x+n2.x; nz=n1.z+n2.z; const l=Math.hypot(nx,nz);
-      if(l<1e-3){nx=n1.x;nz=n1.z;} else { nx/=l; nz/=l; const s=1/Math.max(nx*n1.x+nz*n1.z,0.4); nx*=s; nz*=s; } }
-    else { const m=n1||n2; nx=m.x; nz=m.z; }
-    const o=(v0+2*i)*3; P[o]=x+nx*hw; P[o+1]=y; P[o+2]=z+nz*hw; P[o+3]=x-nx*hw; P[o+4]=y; P[o+5]=z-nz*hw;
-    const u=(v0+2*i)*2; U[u]=0; U[u+1]=dist/vs; U[u+2]=1; U[u+3]=dist/vs;
-  }
-  for(let i=0;i<n-1;i++){ const a=v0+2*i; I[k0++]=a; I[k0++]=a+2; I[k0++]=a+1; I[k0++]=a+1; I[k0++]=a+2; I[k0++]=a+3; }
-  return k0;
-}
-function geom(P,U,I){
-  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(P,3)); g.setAttribute('uv',new THREE.BufferAttribute(U,2));
-  g.setIndex(new THREE.BufferAttribute(I,1)); g.computeBoundingSphere(); return g;
-}
+function leaveDir(E, node){ const fromA=E.a===node; const nd=world.nodes[node]; const q=pointAt(E,fromA,Math.min(15,E.len)); return norm(q.x-nd.x,q.z-nd.z); }
+
+function arriveDir(E, node){ const fromA=E.a===node && !(E.a===E.b); const nd=world.nodes[node]; const q=pointAt(E,fromA,Math.min(15,E.len)); return norm(nd.x-q.x,nd.z-q.z); }
+
 function buildRoads(g){
   let vc=0, ic=0; for(const e of g.edges){ const n=e.pts.length/2; vc+=n*2; ic+=(n-1)*6; }
   const P=new Float32Array(vc*3), U=new Float32Array(vc*2), I=new Uint32Array(ic); let v=0,k=0;
@@ -870,6 +908,7 @@ function buildRoads(g){
   discs.renderOrder=1;
   return [roads, discs];
 }
+
 function buildScenery(g){
   const out=[], segN=g.ax.length; if(!segN) return out;
   const maxB=Math.min(5000, Math.floor(g.totalLen/22)), maxT=Math.min(3000, Math.floor(g.totalLen/40));
@@ -909,6 +948,7 @@ function buildScenery(g){
   tm.count=m; tm.instanceMatrix.needsUpdate=true; out.push(tm);
   return out;
 }
+
 function buildMinimap(g){
   const b=g.bounds, size=2048, sc=size/Math.max(b.maxX-b.minX, b.maxZ-b.minZ, 1);
   const c=document.createElement('canvas'); c.width=size; c.height=size; const x=c.getContext('2d');
@@ -921,428 +961,273 @@ function buildMinimap(g){
   }
   g.mm={canvas:c, sc, minX:b.minX, minZ:b.minZ};
 }
-function clearWorld(){
-  bldReset();
-  for(const o of worldObjs){ scene.remove(o); if(o.geometry) o.geometry.dispose(); if(o.material && !Array.isArray(o.material) && o.material.dispose) o.material.dispose(); }
-  worldObjs=[];
-  if(routeMesh){ scene.remove(routeMesh); routeMesh.geometry.dispose(); routeMesh=null; }
-  world=null; race=null;
-}
-async function buildWorld(raw, token, isReal){
-  setStatus('道路網を構築中…'); await sleep(20); if(token!==loadToken) return;
-  let g = buildGraph(raw);
-  if(g.edges.length<3) throw new Error('道路が少なすぎます');
-  g = keepLargest(g);
-  buildSegments(g);
-  setStatus('3Dマップを生成中…', g.edges.length.toLocaleString()+' 区間 / 総延長 '+(g.totalLen/1000).toFixed(0)+' km'); await sleep(20);
-  if(token!==loadToken) return;
-  clearWorld();
-  world = g; g.origin = raw.origin||null;
-  for(const m of buildRoads(g)){ scene.add(m); worldObjs.push(m); }
-  g.vt = raw.vt||null; g.poi = raw.poi||null;
-  g.poiList=[]; if(g.poi) for(const l of g.poi.values()) for(const p of l) g.poiList.push(p);
-  if(raw.demoPlaces) g.poiList=raw.demoPlaces(g);
-  if(raw.water){ const wm=buildWater(raw.water); if(wm){ scene.add(wm); worldObjs.push(wm); } }
-  bld.on = isReal && !!g.vt && $('bldChk').checked;
-  if(!bld.on) for(const m of buildScenery(g)){ scene.add(m); worldObjs.push(m); }
-  buildMinimap(g);
-  $('attr').textContent = isReal ? (g.vt?'© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors':'地図データ © OpenStreetMap contributors') : 'デモマップ（架空の街）';
-  openSearch(false);
-}
 
-/* ---------- Race ---------- */
 function nearestNode(x,z){ let bi=0,bd=Infinity; world.nodes.forEach((n,i)=>{ const d=(n.x-x)**2+(n.z-z)**2; if(d<bd){bd=d;bi=i;} }); return bi; }
-function newRace(fromCurrent, dest){
-  const W=world;
-  const start = fromCurrent ? nearestNode(car.x,car.z) : nearestNode(0,0);
-  const ds = dijkstraDir(W,start,false);
-  const [mn,mx] = DIST_RANGE[$('distSel').value]||DIST_RANGE.mid;
-  let cand=[], maxd=0;
-  for(let i=0;i<ds.dist.length;i++){ const d=ds.dist[i]; if(d<Infinity){ if(d>maxd)maxd=d; if(d>=mn&&d<=mx) cand.push(i); } }
-  if(!cand.length) for(let i=0;i<ds.dist.length;i++) if(ds.dist[i]<Infinity && ds.dist[i]>=maxd*0.7) cand.push(i);
-  let goal = cand[(Math.random()*cand.length)|0];
-  if(dest){ let bd=Infinity; W.nodes.forEach((n,i)=>{ if(ds.dist[i]===Infinity) return; const d=(n.x-dest.x)**2+(n.z-dest.z)**2; if(d<bd){bd=d;goal=i;} }); }
-  const dg = dijkstraDir(W,goal,true), du = dijkstra(W,goal);
-  for(let i=0;i<dg.dist.length;i++) if(dg.dist[i]===Infinity){ dg.dist[i]=du.dist[i]; dg.via[i]=du.via[i]; }
-  race = {start,goal,dist:dg.dist,next:dg.via,best:dg.dist[start],time:0,started:false,finished:false,odo:0,said:new Set(),nav:null,route:[],navT:0,intro:true,introT:0,id:Math.random(),fixedName:dest?dest.name:''};
-  // spawn
-  if(!fromCurrent || car.e==null || car.e<0){
-    const e0 = dg.via[start]>=0 ? dg.via[start] : W.nodes[start].adj[0], E0=W.edges[e0];
-    car.e=e0; car.dir = E0.a===start?1:-1; const s0=Math.min(2,E0.len/2); car.s = car.dir>0?s0:E0.len-s0;
-    car.look=0; car.first=true;
+function buildDemoWorld(){
+  const raw=makeDemoRaw();
+  let g=keepLargest(buildGraph(raw)); buildSegments(g);
+  world=g;
+  for(const m of buildRoads(g)){ scene.add(m); worldObjs.push(m); }
+  if(bld.on) for(const m of buildScenery(g)){ scene.add(m); worldObjs.push(m); }
+  buildMinimap(g);
+  g.places=raw.demoPlaces(g);
+}
+const angToMod=a=>{ const A=Math.abs(a), lr=a>0?'right':'left'; if(A<0.49) return 'straight'; if(A<0.96) return 'slight '+lr; if(A<2.3) return lr; return 'sharp '+lr; };
+function demoRoute(start, goal){
+  const W=world, dg=dijkstra(W,goal), pts=[W.nodes[start].x,W.nodes[start].z], steps=[];
+  let cur=start, acc=0, arrive=null, lastName=null, guard=0;
+  while(cur!==goal && guard++<5000){
+    const e=dg.via[cur]; if(e<0) break; const E=W.edges[e], fwd=E.a===cur, q=E.pts, m=q.length/2;
+    if(arrive && W.nodes[cur].adj.length>=3){ const ang=sAngle(arrive,leaveDir(E,cur)); const mod=angToMod(ang);
+      if(mod!=='straight') steps.push({s:acc,type:'turn',mod,name:E.name,ref:''});
+      else if(E.name!==lastName) steps.push({s:acc,type:'new name',mod:'straight',name:E.name,ref:''}); }
+    else if(!arrive) steps.push({s:0,type:'depart',mod:'',name:E.name,ref:''});
+    lastName=E.name;
+    if(fwd) for(let i=1;i<m;i++) pts.push(q[2*i],q[2*i+1]); else for(let i=m-2;i>=0;i--) pts.push(q[2*i],q[2*i+1]);
+    acc+=E.len; const nx=fwd?E.b:E.a; arrive=arriveDir(E,nx); cur=nx;
   }
-  car.v=0; car.mode='auto'; car.hold=false; tap=null; pinGroup.visible=false; updateGoBtn();
-  updatePose(true);
-  const gn=W.nodes[goal]; goalGroup.position.set(gn.x,0,gn.z); goalGroup.visible=true;
-  carGroup.visible=false;
-  paused=false;
-  placeCamera(true);
-  car.ns = nearestSeg(car.x,car.z,-1);
-  updateNav();
-  show(null); $('hud').classList.remove('hidden');
-  $('hint').classList.add('hidden'); releaseControls();
-  startIntro();
-}
-/* ---------- Destination search ---------- */
-const srch={fromCurrent:false, items:[], remote:[], token:0};
-const normQ=t=>(t||'').normalize('NFKC').toLowerCase().replace(/\s+/g,'').replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
-function refPoint(){ return srch.fromCurrent ? {x:car.x,z:car.z} : {x:0,z:0}; }
-function openSearch(fromCurrent){
-  $('arrive').classList.add('hidden'); $('hud').classList.remove('arrived');
-  srch.fromCurrent=fromCurrent; srch.remote=[]; srch.token++;
-  $('hud').classList.add('hidden'); $('intro').classList.add('hidden'); releaseControls();
-  show('search');
-  const pre=$('destIn').value.trim();
-  if(!fromCurrent && pre){ $('qIn').value=pre; runSearch(true); }
-  else { $('qIn').value=''; runSearch(false); }
-  if(!world.origin && !world.poiList.length) $('qStat').textContent='このマップでは検索できません。おまかせで決めてください。';
-}
-function localSearch(q){
-  const n=normQ(q), r=refPoint(), seen=new Set(), out=[];
-  if(!n) return out;
-  for(const p of world.poiList){ if(!normQ(p.name).includes(n)) continue; const k=p.name+'|'+Math.round(p.x/30)+'|'+Math.round(p.z/30); if(seen.has(k)) continue; seen.add(k);
-    out.push({x:p.x,z:p.z,name:p.name,sub:'地図データ内の場所'}); }
-  out.forEach(o=>o.d=Math.hypot(o.x-r.x,o.z-r.z)); out.sort((a,b)=>a.d-b.d);
-  return out.slice(0,15);
-}
-async function remoteSearch(q,tk){
-  const o=world.origin; if(!o) return;
-  const dLat=RADIUS/o.kz, dLon=RADIUS/o.kx;
-  const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=10&accept-language=ja&bounded=1&viewbox='+
-    [(o.lon-dLon).toFixed(5),(o.lat+dLat).toFixed(5),(o.lon+dLon).toFixed(5),(o.lat-dLat).toFixed(5)].join(',')+'&q='+encodeURIComponent(q);
-  $('qStat').textContent='インターネットで検索中…';
-  try{
-    const res=await fetch(url,{headers:{'Accept':'application/json'}}); const j=await res.json(); if(tk!==srch.token) return;
-    const r=refPoint();
-    srch.remote=j.map(e=>{ const x=(+e.lon-o.lon)*o.kx, z=-(+e.lat-o.lat)*o.kz, parts=(e.display_name||'').split(',').map(t=>t.trim());
-      return {x,z,name:e.name||parts[0]||q,sub:parts.slice(1,4).join(' '),d:Math.hypot(x-r.x,z-r.z)}; });
-    $('qStat').textContent='';
-  }catch(e){ if(tk===srch.token) $('qStat').textContent='インターネット検索に失敗しました（地図内の候補のみ表示）'; }
-  if(tk===srch.token) renderResults();
-}
-function runSearch(remote){
-  const q=$('qIn').value.trim(); srch.token++; srch.remote=[];
-  srch.items=localSearch(q);
-  $('qStat').textContent = q ? '' : '名前を入力して検索、または「おまかせ」で決めます';
-  renderResults();
-  if(remote && q) remoteSearch(q,srch.token);
-}
-function renderResults(){
-  const box=$('qList'); box.innerHTML='';
-  const all=[...srch.items];
-  for(const r of srch.remote) if(!all.some(a=>Math.hypot(a.x-r.x,a.z-r.z)<60 && normQ(a.name)===normQ(r.name))) all.push(r);
-  all.sort((a,b)=>a.d-b.d);
-  for(const it of all.slice(0,20)){
-    const out=Math.hypot(it.x,it.z)>RADIUS*1.02;
-    const b=document.createElement('button'); b.className='qi'+(out?' off':'');
-    b.textContent=it.name+'　'+fmtDist(it.d);
-    const sm=document.createElement('small'); sm.textContent=out?'読み込んだ範囲（半径5km）の外です':(it.sub||''); b.appendChild(sm);
-    b.onclick=()=>{ if(out){ $('qStat').textContent='その場所は範囲外です。半径5km以内から選んでください'; return; } chooseDest(it); };
-    box.appendChild(b);
-  }
-  if(!all.length && $('qIn').value.trim() && !$('qStat').textContent) $('qStat').textContent='見つかりませんでした。「検索」ボタンでインターネットからも探せます';
-}
-function chooseDest(it){ srch.token++; newRace(srch.fromCurrent, it); }
-
-/* ---------- Destination intro ---------- */
-const DIRS=['北','北東','東','南東','南','南西','西','北西'];
-function goalRoadName(){
-  const W=world, g=race.goal, names=[];
-  for(const e of W.nodes[g].adj){ const n=W.edges[e].name; if(n && !names.includes(n)) names.push(n); }
-  if(names.length>=2) return names[0]+'と'+names[1]+'の交差点';
-  if(names.length===1) return names[0]+' 沿い';
-  const gn=W.nodes[g];
-  for(let r=1;r<=8;r++){ const ns=nearestSeg(gn.x,gn.z,-1,r); if(ns && W.edges[ns.e].name && ns.d<350) return W.edges[ns.e].name+' 付近'; if(ns && r>=3) break; }
-  return 'ゴール地点';
-}
-function fullRoute(){
-  const W=world, R=race, pts=[car.x,car.z]; let cur=R.start, guard=0;
-  pts.push(W.nodes[cur].x, W.nodes[cur].z);
-  while(cur!==R.goal && guard++<5000){ const ne=R.next[cur]; if(ne<0) break; const E=W.edges[ne], fwd=E.a===cur, q=E.pts, m=q.length/2;
-    if(fwd) for(let i=1;i<m;i++) pts.push(q[2*i],q[2*i+1]); else for(let i=m-2;i>=0;i--) pts.push(q[2*i],q[2*i+1]); cur=fwd?E.b:E.a; }
-  return pts;
-}
-function setDestName(name){ race.goalName=name; $('introName').textContent=name; $('dest').textContent='📍 '+name; }
-function startIntro(){
-  const W=world, R=race, g=W.nodes[R.goal];
-  const dx=g.x-car.x, dz=g.z-car.z, straight=Math.hypot(dx,dz);
-  let brg=Math.atan2(dx,-dz)*180/Math.PI; if(brg<0) brg+=360;
-  setDestName(R.fixedName||goalRoadName());
-  $('introInfo').textContent = DIRS[Math.round(brg/45)%8]+'へ 直線 '+fmtDist(straight)+'　ルート '+fmtDist(R.best);
-  R.full = fullRoute();
-  $('intro').classList.remove('hidden');
-  requestAnimationFrame(drawOverview);
-  rebuildRouteMesh();
-  if(!R.fixedName) fetchGoalPOI(R);
-}
-function endIntro(){
-  if(!race || !race.intro) return;
-  race.intro=false; $('intro').classList.add('hidden');
-  setHold(false);
-  updatePose(true); placeCamera(true);
-}
-function drawOverview(){
-  if(!race || !race.full) return;
-  const c=$('ovMap'), d=Math.min(window.devicePixelRatio||1,2), rect=c.getBoundingClientRect();
-  c.width=Math.max(200,rect.width*d); c.height=Math.max(100,rect.height*d);
-  const x=c.getContext('2d'), Wd=c.width, H=c.height, p=race.full, mm=world.mm;
-  let a=Infinity,b=Infinity,A=-Infinity,B=-Infinity; for(let i=0;i<p.length;i+=2){ a=Math.min(a,p[i]); A=Math.max(A,p[i]); b=Math.min(b,p[i+1]); B=Math.max(B,p[i+1]); }
-  const sc=Math.min(Wd/((A-a)*1.25+200), H/((B-b)*1.25+200)), cx=(a+A)/2, cz=(b+B)/2;
-  x.fillStyle='#16221a'; x.fillRect(0,0,Wd,H);
-  x.save(); x.setTransform(sc,0,0,sc,Wd/2-cx*sc,H/2-cz*sc);
-  x.drawImage(mm.canvas, mm.minX, mm.minZ, mm.canvas.width/mm.sc, mm.canvas.height/mm.sc);
-  x.strokeStyle='#29d3ff'; x.lineWidth=5/sc; x.lineCap='round'; x.lineJoin='round'; x.beginPath(); x.moveTo(p[0],p[1]); for(let i=2;i<p.length;i+=2) x.lineTo(p[i],p[i+1]); x.stroke();
-  x.restore();
-  const P=(wx,wz)=>[Wd/2+(wx-cx)*sc, H/2+(wz-cz)*sc];
-  const [sx,sy]=P(p[0],p[1]); x.fillStyle='#ff4040'; x.strokeStyle='#fff'; x.lineWidth=3; x.beginPath(); x.arc(sx,sy,8*d/1.5,0,7); x.fill(); x.stroke();
-  const g=world.nodes[race.goal], [gx,gy]=P(g.x,g.z); x.fillStyle='#ffd84a'; x.strokeStyle='#000'; x.beginPath(); x.arc(gx,gy,9*d/1.5,0,7); x.fill(); x.stroke();
-  x.font=(14*d)+'px sans-serif'; x.fillStyle='#fff'; x.fillText('🏁',gx+8*d,gy-6*d); x.fillText('N↑',8*d,18*d);
-}
-function introCam(dt){ race.introT+=dt; updatePose(true); placeCamera(true); }
-async function fetchGoalPOI(R){
-  const o=world.origin; if(!o) return;
-  const g=world.nodes[R.goal], lat=o.lat - g.z/o.kz, lon=o.lon + g.x/o.kx;
-  const q=`[out:json][timeout:15];(node(around:300,${lat},${lon})["name"]["railway"="station"];nwr(around:200,${lat},${lon})["name"]["tourism"];nwr(around:200,${lat},${lon})["name"]["leisure"="park"];node(around:150,${lat},${lon})["name"]["amenity"];node(around:120,${lat},${lon})["name"]["shop"];);out center 40;`;
-  for(const url of OVERPASS){
-    try{
-      const res=await fetch(url,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'}});
-      if(!res.ok) continue; const data=await res.json(); if(race!==R) return;
-      const pri=t=>t.railway==='station'?0:t.tourism?1:t.leisure?2:t.amenity?3:4;
-      let best=null,bs=Infinity;
-      for(const el of data.elements||[]){ const la=el.lat??(el.center&&el.center.lat), lo=el.lon??(el.center&&el.center.lon); if(la==null) continue;
-        const dd=Math.hypot((lo-lon)*o.kx,(la-lat)*o.kz), sc=pri(el.tags)*120+dd; if(sc<bs){bs=sc;best=el;} }
-      if(best) setDestName(best.tags.name+' 付近');
-      return;
-    }catch(e){ if(race!==R) return; }
-  }
+  steps.push({s:acc,type:'arrive',mod:'',name:'',ref:''});
+  return {pts,steps};
 }
 
-/* ---------- Navigation ---------- */
-function fmtDist(d){ if(!isFinite(d)) return '-'; if(d<1000) return (d<100?Math.max(0,Math.round(d/5)*5):Math.round(d/10)*10)+' m'; return (d/1000).toFixed(1)+' km'; }
-function updateNav(){
-  const W=world, R=race, ns=car.ns;
-  const route=[];
-  if(!ns || ns.d > W.edges[ns.e].w/2 + 25){
-    const g=W.nodes[R.goal];
-    R.nav={type:'off', ang:sAngle({x:Math.sin(car.h),z:-Math.cos(car.h)}, norm(g.x-car.x,g.z-car.z)), d:Math.hypot(g.x-car.x,g.z-car.z), remaining:Math.hypot(g.x-car.x,g.z-car.z), name:''};
-    R.route=route; return;
-  }
-  const e=ns.e, E=W.edges[e], s=ns.s, li=s-E.segStart, p=E.pts, n=p.length/2;
-  const sd=norm(W.bx[s]-W.ax[s], W.bz[s]-W.az[s]);
-  const f={x:Math.sin(car.h), z:-Math.cos(car.h)};
-  const along=W.cum[s]+ns.t*Math.hypot(W.bx[s]-W.ax[s],W.bz[s]-W.az[s]);
-  const towardB = (f.x*sd.x+f.z*sd.z)>=0;
-  const N=towardB?E.b:E.a, O=towardB?E.a:E.b;
-  const dN=towardB?E.len-along:along, dO=E.len-dN;
-  const viaN=dN+R.dist[N], viaO=dO+R.dist[O];
-  const remaining=Math.min(viaN,viaO);
-  // route ribbon from projection
-  if(viaO+25<viaN && E.a!==E.b){
-    route.push(ns.px,ns.pz); if(!towardB) for(let i=li+1;i<n;i++) route.push(p[2*i],p[2*i+1]); else for(let i=li;i>=0;i--) route.push(p[2*i],p[2*i+1]);
-    extendRoute(route, O, 1200);
-    R.nav={type:'uturn', d:0, remaining, name:E.name}; R.route=route; return;
-  }
-  route.push(ns.px,ns.pz);
-  if(towardB) for(let i=li+1;i<n;i++) route.push(p[2*i],p[2*i+1]); else for(let i=li;i>=0;i--) route.push(p[2*i],p[2*i+1]);
-  let cur=N, acc=dN, inE=e, pd, nav=null, steps=0, routeLen=dN;
-  if(!towardB){ const nd=W.nodes[N], q=pointAt(E,true,Math.min(15,E.len)); pd=norm(nd.x-q.x,nd.z-q.z); }
-  else { const nd=W.nodes[N], q=pointAt(E,false,Math.min(15,E.len)); pd=norm(nd.x-q.x,nd.z-q.z); }
-  while(steps++<400){
-    if(cur===R.goal){ if(!nav) nav={type:'goal', d:acc, name:''}; break; }
-    const ne=R.next[cur]; if(ne<0){ if(!nav) nav={type:'goal',d:acc,name:''}; break; }
-    const E2=W.edges[ne], od=leaveDir(E2,cur), ang=sAngle(pd,od), deg=W.nodes[cur].adj.length;
-    if(!nav && deg>=3){
-      if(Math.abs(ang)>0.49) nav={type:'turn', ang, d:acc, name:E2.name};
-      else { // fork check
-        for(const oe of W.nodes[cur].adj){ if(oe===ne||oe===inE) continue; const a2=sAngle(pd,leaveDir(W.edges[oe],cur));
-          if(Math.abs(a2)<1.2 && Math.abs(a2-ang)<0.6){ nav={type:'keep', ang:ang>a2?0.4:-0.4, d:acc, name:E2.name}; break; } }
-      }
-    }
-    if(routeLen<1500){ const fwd=E2.a===cur, q=E2.pts, m=q.length/2; if(fwd) for(let i=1;i<m;i++) route.push(q[2*i],q[2*i+1]); else for(let i=m-2;i>=0;i--) route.push(q[2*i],q[2*i+1]); routeLen+=E2.len; }
-    const nx = E2.a===cur?E2.b:E2.a;
-    pd=arriveDir(E2,nx); acc+=E2.len; inE=ne; cur=nx;
-    if(nav && routeLen>=1500) break;
-    if(!nav && acc>3000){ nav={type:'straight', d:acc, name:''}; break; }
-  }
-  if(!nav) nav={type:'straight', d:acc, name:''};
-  nav.remaining=remaining; nav.road=E.name; nav.key=nav.type+':'+cur+':'+Math.round(nav.d+ (performance.now()/1000|0)*0);
-  R.nav=nav; R.route=route;
+/* ---------- Route following ---------- */
+function setRoute(pts, steps, goalName){
+  const p=[pts[0],pts[1]];
+  for(let i=2;i<pts.length;i+=2) if(Math.hypot(pts[i]-p[p.length-2],pts[i+1]-p[p.length-1])>0.05) p.push(pts[i],pts[i+1]);
+  if(p.length<4) p.push(p[0]+0.5,p[1]);
+  const n=p.length/2, cum=new Float64Array(n);
+  for(let i=1;i<n;i++) cum[i]=cum[i-1]+Math.hypot(p[2*i]-p[2*i-2],p[2*i+1]-p[2*i-1]);
+  Object.assign(drive,{pts:Float64Array.from(p),cum,total:cum[n-1],steps,ci:0,si:0,hint:0,goalName,time:0,odo:0,started:false,
+    finished:false,intro:true,said:new Set(),navT:0,arrT:0,active:true});
+  computeCorners();
+  const e=posAt(drive.total); goalGroup.position.set(e.x,0,e.z); goalGroup.visible=true;
+  car.s=0; car.v=0; car.hold=false; car.look=0; car.px=null; updatePose(true);
 }
-function extendRoute(route, from, maxLen){
-  const W=world, R=race; let cur=from, len=0, guard=0;
-  while(len<maxLen && cur!==R.goal && guard++<300){ const ne=R.next[cur]; if(ne<0) break; const E=W.edges[ne], fwd=E.a===cur, q=E.pts, m=q.length/2;
-    if(fwd) for(let i=1;i<m;i++) route.push(q[2*i],q[2*i+1]); else for(let i=m-2;i>=0;i--) route.push(q[2*i],q[2*i+1]);
-    len+=E.len; cur=fwd?E.b:E.a; }
-}
-function rebuildRouteMesh(){
-  if(routeMesh){ scene.remove(routeMesh); routeMesh.geometry.dispose(); routeMesh=null; }
-  const r=race.route; if(!r || r.length<4) return;
-  // drop duplicate points
-  const p=[r[0],r[1]]; for(let i=2;i<r.length;i+=2){ if(Math.hypot(r[i]-p[p.length-2], r[i+1]-p[p.length-1])>0.3) p.push(r[i],r[i+1]); }
-  if(p.length<4) return;
-  const n=p.length/2, P=new Float32Array(n*6), U=new Float32Array(n*4), I=new Uint32Array((n-1)*6);
-  writeStrip(p,1.7,0.05,5,P,U,I,0,0);
-  const mat = routeMesh ? routeMesh.material : (rebuildRouteMesh.mat || (rebuildRouteMesh.mat = new THREE.MeshBasicMaterial({map:routeTex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-8})));
-  routeMesh = new THREE.Mesh(geom(P,U,I), mat); routeMesh.renderOrder=2; scene.add(routeMesh);
-}
-function turnLabel(nav){
-  const a=Math.abs(nav.ang), lr = nav.ang>0?'右':'左';
-  if(nav.type==='keep') return lr+'側の道へ';
-  if(a<0.96) return '斜め'+lr+'へ';
-  if(a<2.3) return lr+'折';
-  return '大きく'+lr+'へ';
-}
-function speak(t){ if(!voiceOn || !window.speechSynthesis) return; try{ const u=new SpeechSynthesisUtterance(t); u.lang='ja-JP'; u.rate=1.1; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} }
-function updateNavHUD(){
-  const nav=race.nav; if(!nav) return;
-  const el=$('nav'), arrow=$('navArrow'), emo=$('navEmoji');
-  el.classList.toggle('warn', nav.type==='uturn'||nav.type==='off'); el.classList.toggle('goal', nav.type==='goal');
-  let rot=0, text='', dist=fmtDist(nav.d), em='';
-  switch(nav.type){
-    case 'turn': case 'keep': rot=Math.max(-160,Math.min(160,nav.ang*180/Math.PI)); if(nav.type==='keep') rot=nav.ang>0?30:-30;
-      text=turnLabel(nav)+(nav.name?'｜'+nav.name:''); break;
-    case 'straight': text='道なりに直進'; break;
-    case 'goal': em='🏁'; text='ゴール'; break;
-    case 'uturn': em='↩️'; text='Uターンしてください'; dist='逆方向'; break;
-    case 'off': rot=Math.max(-170,Math.min(170,nav.ang*180/Math.PI)); text='道路に戻ってください'; dist='ゴール '+fmtDist(nav.d); break;
-  }
-  arrow.style.transform='rotate('+rot+'deg)';
-  arrow.classList.toggle('hidden', !!em); emo.classList.toggle('hidden', !em); emo.textContent=em;
-  $('navDist').textContent=dist; $('navText').textContent=text;
-  $('remain').textContent=fmtDist(nav.remaining);
-  $('roadName').textContent = nav.road||'';
-  // voice
-  if(race.started){
-    if(nav.type==='turn'||nav.type==='keep'||nav.type==='goal'){
-      for(const th of [300,80]){
-        const key=(nav.type)+'|'+th+'|'+Math.round(nav.ang*10)+'|'+Math.round((race.odo+nav.d)/40);
-        if(nav.d<=th && nav.d>th*0.4 && !race.said.has(key)){ race.said.add(key); speak((th===300?'およそ'+Math.round(nav.d/50)*50+'メートル先、':'まもなく、')+(nav.type==='goal'?'ゴールです':turnLabel(nav)+'です')); break; } }
-    } else if(nav.type==='uturn'){ const key='u'+Math.floor(race.time/8); if(!race.said.has(key)){ race.said.add(key); speak('ルートを外れました。Uターンしてください'); } }
-  }
-}
-
-/* ---------- Physics & loop ---------- */
-function camYaw(){ return car.hd + car.look; }
-function placeCamera(snap){
-  const y=camYaw(), f={x:Math.sin(y), z:-Math.cos(y)}, eye=1.3;
-  camera.position.set(car.px, eye, car.pz);
-  camera.lookAt(car.px+f.x*40, eye-1.0, car.pz+f.z*40);
-}
-let dtGlobal=0.016;
-const wrapA=a=>{ while(a>Math.PI)a-=2*Math.PI; while(a<-Math.PI)a+=2*Math.PI; return a; };
-let tap=null;
-const drag={thr:0,brk:0};
-const CRUISE={auto:14, tap:12};
-function edgeCum(E){ if(E.cumv) return E.cumv; const p=E.pts,n=p.length/2,c=new Float64Array(n); for(let i=1;i<n;i++) c[i]=c[i-1]+Math.hypot(p[2*i]-p[2*i-2],p[2*i+1]-p[2*i-1]); E.cumv=c; return c; }
-function posOn(E,s){
-  const c=edgeCum(E), p=E.pts, n=p.length/2; s=Math.max(0,Math.min(c[n-1],s));
-  let lo=0, hi=n-1; while(hi-lo>1){ const m=(lo+hi)>>1; if(c[m]<=s) lo=m; else hi=m; }
+function posAt(s){
+  const c=drive.cum, p=drive.pts, n=c.length; s=Math.max(0,Math.min(drive.total,s));
+  let lo=0, hi=n-1;
+  const h=drive.hint; if(h<n-1 && c[h]<=s && c[h+1]>=s){ lo=h; hi=h+1; }
+  else { while(hi-lo>1){ const m=(lo+hi)>>1; if(c[m]<=s) lo=m; else hi=m; } }
   const L=c[hi]-c[lo]||1, t=(s-c[lo])/L;
-  return {x:p[2*lo]+(p[2*hi]-p[2*lo])*t, z:p[2*lo+1]+(p[2*hi+1]-p[2*lo+1])*t, tx:(p[2*hi]-p[2*lo])/L, tz:(p[2*hi+1]-p[2*lo+1])/L};
+  return {x:p[2*lo]+(p[2*hi]-p[2*lo])*t, z:p[2*lo+1]+(p[2*hi+1]-p[2*lo+1])*t, tx:(p[2*hi]-p[2*lo])/L, tz:(p[2*hi+1]-p[2*lo+1])/L, i:lo};
 }
-function edgeLen(E){ const c=edgeCum(E); return c[c.length-1]; }
-// true position / heading, and smoothed display pose
+function computeCorners(){
+  const st=4, n=Math.floor(drive.total/st), C=[];
+  if(n>=8){
+    const H=new Float64Array(n);
+    for(let i=0;i<n;i++){ const a=posAt(i*st), b=posAt(i*st+st); H[i]=Math.atan2(b.x-a.x,-(b.z-a.z)); }
+    const th=new Float64Array(n); for(let i=3;i<n-3;i++) th[i]=Math.abs(wrapA(H[i+3]-H[i-3]));
+    for(let i=3;i<n-3;i++){ if(th[i]>0.35 && th[i]>=th[i-1] && th[i]>=th[i+1]){ const s=i*st;
+      if(C.length && s-C[C.length-1].s<16){ if(th[i]>C[C.length-1].th) C[C.length-1]={s,th:th[i]}; } else C.push({s,th:th[i]}); } }
+  }
+  drive.corners=C;
+}
+const LANE=1.7;
 function updatePose(snap){
-  const E=world.edges[car.e], len=edgeLen(E), p=posOn(E,car.s);
-  const ah=posOn(E, car.s+car.dir*6);
-  let hx=(ah.x-p.x), hz=(ah.z-p.z); if(Math.hypot(hx,hz)<0.5){ hx=p.tx*car.dir; hz=p.tz*car.dir; }
+  const p=posAt(car.s); drive.hint=p.i;
+  const a=posAt(car.s+6);
+  let hx=a.x-p.x, hz=a.z-p.z; if(Math.hypot(hx,hz)<0.5){ hx=p.tx; hz=p.tz; }
   car.x=p.x; car.z=p.z; car.h=Math.atan2(hx,-hz);
-  const lo=Math.min(1.8,E.w*0.22), lx=Math.cos(car.h)*-1, lz=Math.sin(car.h)*-1; // left of heading
-  const tx=p.x+lx*lo, tz=p.z+lz*lo;
+  const tx=p.x-Math.cos(car.h)*LANE, tz=p.z-Math.sin(car.h)*LANE;
   if(snap || car.px==null){ car.px=tx; car.pz=tz; car.hd=car.h; }
   else { const k=1-Math.exp(-dtGlobal*(8+Math.abs(car.v)*0.6)), kh=1-Math.exp(-dtGlobal*(5+Math.abs(car.v)*0.05));
     car.px+=(tx-car.px)*k; car.pz+=(tz-car.pz)*k; car.hd=wrapA(car.hd+wrapA(car.h-car.hd)*kh); }
 }
-function nextNodeInfo(){ const E=world.edges[car.e], len=edgeLen(E); return {N:car.dir>0?E.b:E.a, O:car.dir>0?E.a:E.b, d:car.dir>0?len-car.s:car.s, len}; }
-function chooseNext(node,inE){
-  const W=world, ne=race.next[node];
-  if(ne>=0) return ne;
-  // fallback (should not happen): straightest allowed road, never the one we came from unless dead end
-  const adj=W.nodes[node].adj, ind=inE>=0?arriveDir(W.edges[inE],node):{x:0,z:-1}; let best=-1,bd=Infinity;
-  for(const e of adj){ if(e===inE && adj.length>1) continue; const E=W.edges[e]; if(!canGo(E,node) && adj.length>1) continue;
-    const a=Math.abs(sAngle(ind,leaveDir(E,node))); if(a<bd){bd=a;best=e;} }
-  return best;
+function camYaw(){ return car.hd+car.look; }
+function placeCamera(){
+  const y=camYaw(), f={x:Math.sin(y),z:-Math.cos(y)}, eye=1.3;
+  camera.position.set(car.px,eye,car.pz);
+  camera.lookAt(car.px+f.x*40, eye-1.0, car.pz+f.z*40);
+  ground.position.x=car.px; ground.position.z=car.pz;
+  ground.material.map.offset.set(car.px/40, -car.pz/40);
 }
-function updateGoBtn(){ const b=$('goBtn'); if(!b) return; b.textContent=car.hold?'▶ 進む':'⏸ 一時停止'; b.classList.toggle('on',car.hold); }
-function setHold(h){ car.hold=h; updateGoBtn(); }
-function dijkstraMulti(g,srcs){
-  const N=g.nodes.length, dist=new Float64Array(N).fill(Infinity), via=new Int32Array(N).fill(-1), h=new Heap();
-  for(const [n,d] of srcs) if(d<dist[n]){ dist[n]=d; via[n]=-2; h.push(n,d); }
-  while(h.size){ const u=h.pop(), du=h.pk; if(du>dist[u]) continue;
-    for(const e of g.nodes[u].adj){ const E=g.edges[e], v=E.a===u?E.b:E.a, nd=du+E.len; if(nd<dist[v]){dist[v]=nd;via[v]=e;h.push(v,nd);} } }
-  return {dist,via};
-}
-function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.remove('hidden'); clearTimeout(toast.tm); toast.tm=setTimeout(()=>t.classList.add('hidden'),2200); }
 const SPD_MIN=4, SPD_MAX=300; // km/h
 car.setKmh=43;
+
 const kmh2t=k=>Math.log(k/SPD_MIN)/Math.log(SPD_MAX/SPD_MIN), t2kmh=t=>SPD_MIN*Math.pow(SPD_MAX/SPD_MIN,t);
+
 function setSpeedKmh(k){ car.setKmh=Math.max(SPD_MIN,Math.min(SPD_MAX,k)); const r=$('spdRange'); if(r && document.activeElement!==r) r.value=Math.round(kmh2t(car.setKmh)*1000); $('spdSet').textContent=Math.round(car.setKmh)+' km/h'; }
+
 function spdStep(dir){ const k=car.setKmh, st=k<20?2:(k<100?10:20); setSpeedKmh(dir>0?Math.floor(k/st)*st+st:Math.ceil(k/st)*st-st); }
-function handleTap(x,y){
-  if(!world || !race || race.finished) return;
-  const r=renderer.domElement.getBoundingClientRect();
-  ndc.set((x-r.left)/r.width*2-1, -((y-r.top)/r.height)*2+1);
-  raycaster.setFromCamera(ndc,camera);
-  const meshes=[]; for(const c of bld.tiles.values()) if(c.mesh) meshes.push(c.mesh);
-  if(world.demoB) meshes.push(world.demoB);
-  const hit=raycaster.intersectObjects(meshes,false)[0];
-  if(hit && hit.distance<900){ const m=metaOfHit(hit); if(m){ showBInfo(m); return; } }
-  setHold(!car.hold); toast(car.hold?'一時停止しました（タップで再開）':'出発します');
-}
-function metaOfHit(hit){
-  const o=hit.object;
-  const O=o.userData.owner, M=o.userData.meta; if(!O || hit.faceIndex==null) return null;
-  return M[O[hit.faceIndex]]||null;
-}
-function showBInfo(m){
-  const el=$('binfo'); el.innerHTML='';
-  const n=document.createElement('div'); n.className='n'; n.textContent='🏢 '+(m.name||'名称不明の建物');
-  const h=document.createElement('div'); h.className='h'; h.textContent='高さ 約'+Math.round(m.h)+' m';
-  const f=document.createElement('div'); f.className='small'; f.textContent='（およそ'+Math.max(1,Math.round(m.h/3.3))+'階建て相当）';
-  el.append(n,h,f); el.classList.remove('hidden'); clearTimeout(showBInfo.tm); showBInfo.tm=setTimeout(()=>el.classList.add('hidden'),4000);
-}
+
+function updateGoBtn(){ const b=$('goBtn'); b.textContent=car.hold?'▶ 進む':'⏸ 一時停止'; b.classList.toggle('on',car.hold); }
+function setHold(h){ car.hold=h; updateGoBtn(); }
 function step(dt){
-  const W=world, R=race;
   if(input.up) setSpeedKmh(car.setKmh*Math.pow(1.8,dt)); if(input.down) setSpeedKmh(car.setKmh/Math.pow(1.8,dt));
   if(input.left) car.look=wrapA(car.look-1.6*dt);
   if(input.right) car.look=wrapA(car.look+1.6*dt);
-  if(gs.id===null && !input.left && !input.right) car.look*=Math.exp(-dt*2.2); // 指を離すと前方へ戻る
-  const target = car.hold ? 0 : car.setKmh/3.6;
-  if(!R.started && target>0){ R.started=true; }
-  // slow down smoothly before sharp turns and the goal
-  const k=nextNodeInfo(); let vlim=Infinity;
-  const ne=chooseNext(k.N,car.e);
-  if(ne<0 || k.N===R.goal) vlim=Math.sqrt(2*2.5*Math.max(0,k.d));
-  else { const th=Math.abs(sAngle(arriveDir(W.edges[car.e],k.N), leaveDir(W.edges[ne],k.N)));
-    const vt = th<0.4?Infinity:Math.max(5,15*(1-th/Math.PI)); vlim=Math.sqrt(vt*vt+2*5*k.d); }
+  if(gs.id===null && !input.left && !input.right) car.look*=Math.exp(-dt*2.2);
+  const target=car.hold?0:car.setKmh/3.6;
+  if(target>0) drive.started=true;
+  const C=drive.corners; while(drive.ci<C.length && C[drive.ci].s<car.s-5) drive.ci++;
+  const toGoal=drive.total-car.s;
+  let vlim=Math.sqrt(2*2.5*Math.max(0,toGoal));
+  for(let i=drive.ci;i<C.length;i++){ const d=C[i].s-car.s; if(d>1500) break;
+    const vt=Math.max(5,16*(1-C[i].th/Math.PI)), vl=Math.sqrt(vt*vt+2*5*Math.max(0,d)); if(vl<vlim) vlim=vl; }
   let v=car.v;
   if(v<target) v=Math.min(target, v+(3+v*0.07)*dt); else v=Math.max(target, v-(car.hold?7:4+v*0.05)*dt);
   if(v>vlim) v=Math.max(vlim, v-10*dt);
-  if(!car.hold && k.N!==R.goal) v=Math.max(v, Math.min(target,1.1)); // 止まらず必ず前へ
+  if(!car.hold && toGoal>30) v=Math.max(v, Math.min(target,1.1));
+  if(!car.hold && toGoal<=30 && toGoal>0.5) v=Math.max(v,0.8);
   car.v=v;
-  // advance along the route
-  let rem=v*dt, guard=0;
-  while(rem>0 && guard++<30){
-    const E=W.edges[car.e], len=edgeLen(E), toEnd=car.dir>0?len-car.s:car.s;
-    if(rem<toEnd){ car.s+=car.dir*rem; rem=0; break; }
-    rem-=toEnd; const N=car.dir>0?E.b:E.a;
-    if(N===R.goal){ car.s=car.dir>0?len:0; car.v=0; break; }
-    const nx=chooseNext(N,car.e);
-    if(nx<0){ car.s=car.dir>0?len:0; car.v=0; break; }
-    const E2=W.edges[nx]; car.e=nx; car.dir=(E2.a===N)?1:-1; car.s=car.dir>0?0:edgeLen(E2);
-  }
+  car.s=Math.min(drive.total, car.s+v*dt);
   updatePose(false);
-  if(R.started && !R.finished){ R.time+=dt; R.odo+=v*dt; }
-  car.ns=nearestSeg(car.x,car.z,car.e);
-  const g=W.nodes[R.goal];
-  if(!R.finished && (Math.hypot(car.x-g.x,car.z-g.z)<15 || (k.N===R.goal && k.d<1 && car.v<0.5))) finish();
+  if(drive.started){ drive.time+=dt; drive.odo+=v*dt; }
+  if(drive.total-car.s<0.6) finish();
   const fov=68+Math.min(84,v)*0.2; if(Math.abs(camera.fov-fov)>0.1){ camera.fov=fov; camera.updateProjectionMatrix(); }
-  placeCamera(false);
+  placeCamera();
   $('spd').textContent=Math.round(v*3.6);
 }
-/* ---------- Building labels (name + height) ---------- */
+
+/* ---------- navigation text ---------- */
+const MODJ={'left':'左折','right':'右折','slight left':'斜め左へ','slight right':'斜め右へ','sharp left':'大きく左へ','sharp right':'大きく右へ','straight':'直進','uturn':'Uターン'};
+const MODA={'left':-90,'right':90,'slight left':-45,'slight right':45,'sharp left':-135,'sharp right':135,'straight':0,'uturn':180};
+function stepText(st){
+  const m=st.mod||'', lr=m.includes('left')?'左':(m.includes('right')?'右':'');
+  switch(st.type){
+    case 'arrive': return '目的地';
+    case 'on ramp': return (lr?lr+'の':'')+'入口へ';
+    case 'off ramp': return (lr?lr+'の':'')+'出口へ';
+    case 'fork': return lr?lr+'方向へ':'直進';
+    case 'merge': return '合流';
+    case 'roundabout': case 'rotary': case 'roundabout turn': return 'ロータリー';
+    case 'end of road': return MODJ[m]||'突き当たり';
+    default: return MODJ[m]||'直進';
+  }
+}
+function meaningful(st){
+  if(st.type==='arrive') return true;
+  if(st.type==='depart'||st.type==='notification') return false;
+  if((st.type==='new name'||st.type==='continue') && (!st.mod||st.mod==='straight')) return false;
+  return true;
+}
+function stepAngle(st){
+  const m=st.mod||''; if(st.type==='fork'||st.type==='off ramp'||st.type==='on ramp'||st.type==='merge') return m.includes('left')?-30:(m.includes('right')?30:0);
+  return MODA[m]||0;
+}
+function nextStep(){
+  const S=drive.steps; while(drive.si<S.length && S[drive.si].s<=car.s+0.5) drive.si++;
+  for(let i=drive.si;i<S.length;i++){ const d=S[i].s-car.s; if(d>5000) break; if(meaningful(S[i])) return {st:S[i],i,d}; }
+  return null;
+}
+function currentRoad(){ const S=drive.steps; let r=null; for(let i=0;i<S.length && S[i].s<=car.s+0.5;i++) r=S[i]; return r?(r.ref&&r.name?r.name+'（'+r.ref+'）':(r.name||r.ref||'')):''; }
+function updateNavHUD(){
+  const ns=nextStep(), el=$('nav'), arrow=$('navArrow'), emo=$('navEmoji');
+  let rot=0, text='', dist='', em='';
+  if(!ns){ text='道なりに進む'; dist=fmtDist(drive.total-car.s); }
+  else { const st=ns.st; dist=fmtDist(ns.d);
+    if(st.type==='arrive'){ em='🏁'; text='目的地'; }
+    else if(st.mod==='uturn'){ em='↩️'; text='Uターン'; }
+    else { rot=stepAngle(st); const nm=st.ref||st.name; text=stepText(st)+(nm?'｜'+nm:''); } }
+  el.classList.toggle('goal',!!ns&&ns.st.type==='arrive');
+  arrow.style.transform='rotate('+rot+'deg)'; arrow.classList.toggle('hidden',!!em); emo.classList.toggle('hidden',!em); emo.textContent=em;
+  $('navDist').textContent=dist; $('navText').textContent=text;
+  $('remain').textContent=fmtDist(drive.total-car.s);
+  $('roadName').textContent=currentRoad();
+  if(ns && drive.started && !car.hold){
+    for(const th of [300,80]){ const key=ns.i+'|'+th;
+      if(ns.d<=th && ns.d>th*0.4 && !drive.said.has(key)){ drive.said.add(key);
+        speak((th===300?'およそ'+Math.round(ns.d/50)*50+'メートル先、':'まもなく、')+(ns.st.type==='arrive'?'目的地です':stepText(ns.st)+'です')); break; } } }
+}
+function rebuildRouteMesh(){
+  if(routeMesh){ scene.remove(routeMesh); routeMesh.geometry.dispose(); routeMesh=null; }
+  if(!drive.pts) return;
+  const s0=car.s, s1=Math.min(drive.total,car.s+1200); if(s1-s0<2) return;
+  const a=posAt(s0), raw=[a.x,a.z], P=drive.pts, c=drive.cum;
+  for(let i=a.i+1;i<c.length && c[i]<s1;i++) raw.push(P[2*i],P[2*i+1]);
+  const b=posAt(s1); raw.push(b.x,b.z);
+  const p=[raw[0],raw[1]]; for(let i=2;i<raw.length;i+=2) if(Math.hypot(raw[i]-p[p.length-2],raw[i+1]-p[p.length-1])>0.3) p.push(raw[i],raw[i+1]);
+  if(p.length<4) return;
+  const ox=p[0], oz=p[1], n=p.length/2, rel=new Array(p.length);
+  // shift to the left lane
+  for(let i=0;i<n;i++){ const j=Math.min(n-1,i+1), k=Math.max(0,i-1); const d=norm(p[2*j]-p[2*k],p[2*j+1]-p[2*k+1]);
+    rel[2*i]=p[2*i]-ox+d.z*LANE; rel[2*i+1]=p[2*i+1]-oz-d.x*LANE; }
+  const Pp=new Float32Array(n*6), U=new Float32Array(n*4), I=new Uint32Array((n-1)*6);
+  writeStrip(rel,1.5,0.05,5,Pp,U,I,0,0);
+  const mat=rebuildRouteMesh.mat||(rebuildRouteMesh.mat=new THREE.MeshBasicMaterial({map:routeTex,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-8}));
+  routeMesh=new THREE.Mesh(geom(Pp,U,I),mat); routeMesh.position.set(ox,0,oz); routeMesh.renderOrder=2; scene.add(routeMesh);
+}
+
+/* ---------- minimap / overview ---------- */
+function strokeRoute(x,s0,s1,stride){
+  const P=drive.pts, c=drive.cum; let i=posAt(Math.max(0,s0)).i; x.beginPath(); x.moveTo(P[2*i],P[2*i+1]);
+  for(;i<c.length && c[i]<=s1;i+=stride) x.lineTo(P[2*i],P[2*i+1]);
+  const e=posAt(Math.min(s1,drive.total)); x.lineTo(e.x,e.z); x.stroke();
+}
+function drawMinimap(){
+  const c=$('mm'), x=c.getContext('2d'), W=c.width, H=c.height, radiusM=mmZoomFar?1500:450, ppm=(W/2)/radiusM, yaw=camYaw();
+  x.save(); x.clearRect(0,0,W,H); x.beginPath(); x.arc(W/2,H/2,W/2,0,Math.PI*2); x.clip();
+  x.fillStyle='#16221a'; x.fillRect(0,0,W,H);
+  x.translate(W/2,H/2); x.rotate(-yaw); x.scale(ppm,ppm); x.translate(-car.x,-car.z);
+  if(mode==='demo' && world && world.mm){ const mm=world.mm; x.drawImage(mm.canvas,mm.minX,mm.minZ,mm.canvas.width/mm.sc,mm.canvas.height/mm.sc); }
+  else for(const t of tiles.values()) if(t.mmc && t.cx!=null && Math.hypot(t.cx-car.x,t.cz-car.z)<radiusM+3000) x.drawImage(t.mmc,t.bx0,t.bz0,t.bx1-t.bx0,t.bz1-t.bz0);
+  if(drive.pts){ x.strokeStyle='#29d3ff'; x.lineWidth=5/ppm; x.lineCap='round'; x.lineJoin='round'; strokeRoute(x,car.s-radiusM*1.5,car.s+radiusM*3,1); }
+  x.restore();
+  if(drive.pts){ const g=posAt(drive.total); let gx=g.x-car.x, gz=g.z-car.z; const ch=Math.cos(-yaw), sh=Math.sin(-yaw);
+    let sx=(gx*ch-gz*sh)*ppm, sy=(gx*sh+gz*ch)*ppm; const L=Math.hypot(sx,sy), lim=W/2-9; if(L>lim){ sx*=lim/L; sy*=lim/L; }
+    x.fillStyle='#ffd84a'; x.strokeStyle='#000'; x.lineWidth=2; x.beginPath(); x.arc(W/2+sx,H/2+sy,7,0,Math.PI*2); x.fill(); x.stroke(); }
+  x.fillStyle='#ff4040'; x.strokeStyle='#fff'; x.lineWidth=2; x.beginPath(); x.moveTo(W/2,H/2-10); x.lineTo(W/2+7,H/2+8); x.lineTo(W/2,H/2+4); x.lineTo(W/2-7,H/2+8); x.closePath(); x.fill(); x.stroke();
+}
+function drawOverview(){
+  if(!drive.pts) return;
+  const c=$('ovMap'), d=Math.min(window.devicePixelRatio||1,2), rect=c.getBoundingClientRect();
+  c.width=Math.max(200,rect.width*d); c.height=Math.max(100,rect.height*d);
+  const x=c.getContext('2d'), Wd=c.width, H=c.height, P=drive.pts;
+  let a=Infinity,b=Infinity,A=-Infinity,B=-Infinity; for(let i=0;i<P.length;i+=2){ a=Math.min(a,P[i]); A=Math.max(A,P[i]); b=Math.min(b,P[i+1]); B=Math.max(B,P[i+1]); }
+  const span=Math.max(A-a,B-b), pad=span*0.12+100, sc=Math.min(Wd/(A-a+2*pad), H/(B-b+2*pad)), cx=(a+A)/2, cz=(b+B)/2;
+  x.fillStyle='#16221a'; x.fillRect(0,0,Wd,H);
+  x.save(); x.setTransform(sc,0,0,sc,Wd/2-cx*sc,H/2-cz*sc);
+  if(mode==='demo' && world.mm){ const mm=world.mm; x.drawImage(mm.canvas,mm.minX,mm.minZ,mm.canvas.width/mm.sc,mm.canvas.height/mm.sc); }
+  else for(const t of tiles.values()) if(t.mmc && t.cx!=null) x.drawImage(t.mmc,t.bx0,t.bz0,t.bx1-t.bx0,t.bz1-t.bz0);
+  x.strokeStyle='#29d3ff'; x.lineWidth=5/sc; x.lineCap='round'; x.lineJoin='round';
+  strokeRoute(x,0,drive.total,Math.max(1,Math.floor(P.length/2/3000)));
+  x.restore();
+  const Pp=(wx,wz)=>[Wd/2+(wx-cx)*sc, H/2+(wz-cz)*sc];
+  const [sx,sy]=Pp(P[0],P[1]); x.fillStyle='#ff4040'; x.strokeStyle='#fff'; x.lineWidth=3; x.beginPath(); x.arc(sx,sy,6*d,0,7); x.fill(); x.stroke();
+  const e=posAt(drive.total), [gx,gy]=Pp(e.x,e.z); x.fillStyle='#ffd84a'; x.strokeStyle='#000'; x.beginPath(); x.arc(gx,gy,7*d,0,7); x.fill(); x.stroke();
+  x.font=(14*d)+'px sans-serif'; x.fillStyle='#fff'; x.fillText('N↑',8*d,18*d);
+}
+
+/* ---------- intro / arrival ---------- */
+const DIRS=['北','北東','東','南東','南','南西','西','北西'];
+function startDrive(){
+  show(null); $('hud').classList.remove('hidden','arrived'); $('arrive').classList.add('hidden');
+  paused=false; releaseControls(); setHold(false);
+  $('dest').textContent='📍 '+drive.goalName;
+  $('introName').textContent=drive.goalName;
+  const e=posAt(drive.total), dx=e.x-drive.pts[0], dz=e.z-drive.pts[1];
+  let brg=Math.atan2(dx,-dz)*180/Math.PI; if(brg<0) brg+=360;
+  const mins=Math.round(drive.total/(car.setKmh/3.6)/60);
+  $('introInfo').textContent=DIRS[Math.round(brg/45)%8]+'へ 直線 '+fmtDist(Math.hypot(dx,dz))+'　ルート '+fmtDist(drive.total)+'（'+car.setKmh.toFixed(0)+'km/hで約'+(mins<60?mins+'分':(mins/60).toFixed(1)+'時間')+'）';
+  drive.intro=true; $('intro').classList.remove('hidden');
+  requestAnimationFrame(drawOverview);
+  rebuildRouteMesh(); updateNavHUD(); placeCamera();
+}
+function endIntro(){ if(!drive.intro) return; drive.intro=false; $('intro').classList.add('hidden'); setHold(false); }
+function finish(){
+  if(drive.finished) return;
+  drive.finished=true; car.v=0; releaseControls(); drive.arrT=0;
+  if(mode==='real'){ const e=posAt(drive.total); drive.endLL=xz2ll(e.x,e.z); } else car.node=drive.goalNode;
+  $('arrName').textContent=drive.goalName||'目的地';
+  $('arrInfo').textContent='所要時間 '+fmtTime(drive.time)+'　走行距離 '+fmtDist(drive.odo);
+  $('arrive').classList.remove('hidden'); $('hud').classList.add('arrived');
+  speak('目的地に到着しました');
+}
+function nextDestination(){
+  $('arrive').classList.add('hidden'); $('hud').classList.remove('arrived');
+  if(mode==='real'){
+    let s;
+    if(drive.finished && drive.endLL) s={lat:drive.endLL[0],lon:drive.endLL[1],name:drive.goalName||'到着地点'};
+    else { const ll=xz2ll(car.x,car.z); s={lat:ll[0],lon:ll[1],name:'今いる場所'}; }
+    openSetup(s);
+  } else { if(!drive.finished && world) car.node=nearestNode(car.x,car.z); openDemoSearch(); }
+}
+
+/* ---------- labels (building name + height) ---------- */
 const lbl={on:true,t:0,items:[],pool:[]};
+
 function labelPool(i){ while(lbl.pool.length<=i){ const d=document.createElement('div'); d.className='blbl'; d.style.display='none'; $('labels').appendChild(d); lbl.pool.push(d); } return lbl.pool[i]; }
+
 function updateLabels(dt){
   lbl.t-=dt;
   if(lbl.t<=0){ lbl.t=0.3; lbl.items=[];
@@ -1351,8 +1236,8 @@ function updateLabels(dt){
       const consider=m=>{ const dx=m.x-car.x, dz=m.z-car.z, d=Math.hypot(dx,dz); if(d<8||d>220) return;
         if((dx*fx+dz*fz)/d<0.55) return; if(!m.name && m.h<14) return;
         cand.push({m,score:(m.name?0:400)+d-m.h*0.5}); };
-      for(const c of bld.tiles.values()) if(c.meta && Math.hypot(c.cx-car.x,c.cz-car.z)<600) for(const m of c.meta) consider(m);
-      if(world.demoMeta) for(const m of world.demoMeta) consider(m);
+      for(const c of bld.chunks.values()) if(c.meta && Math.hypot(c.cx-car.x,c.cz-car.z)<600) for(const m of c.meta) consider(m);
+      if(mode==='demo' && world && world.demoMeta) for(const m of world.demoMeta) consider(m);
       cand.sort((a,b)=>a.score-b.score); lbl.items=cand.slice(0,8).map(c=>c.m);
     }
   }
@@ -1367,196 +1252,168 @@ function updateLabels(dt){
     d.style.display=''; d.style.transform='translate('+((v.x+1)/2*W)+'px,'+((1-v.y)/2*H)+'px) translate(-50%,-100%)';
   }
 }
-/* ---------- Real buildings (from vector tiles, built in chunks near the car) ---------- */
-const BPAL=['#d9d4ca','#c7ccd3','#e4ddcf','#b4bcc6','#ece7dd','#c2b6a6','#d1c3ad','#a9b3be','#dcd0c0','#bfc6b8'];
-function bldReset(){
-  for(const c of bld.tiles.values()) if(c.mesh){ scene.remove(c.mesh); c.mesh.geometry.dispose(); }
-  bld.tiles.clear(); bld.gen++;
-  const el=$('bldStat'); if(el) el.classList.add('hidden');
+
+function handleTap(x,y){
+  if(!drive.active) return;
+  const r=renderer.domElement.getBoundingClientRect();
+  ndc.set((x-r.left)/r.width*2-1, -((y-r.top)/r.height)*2+1);
+  raycaster.setFromCamera(ndc,camera);
+  const meshes=[]; for(const c of bld.chunks.values()) if(c.mesh) meshes.push(c.mesh);
+  if(mode==='demo' && world && world.demoB) meshes.push(world.demoB);
+  const hit=raycaster.intersectObjects(meshes,false)[0];
+  if(hit && hit.distance<900){ const m=metaOfHit(hit); if(m){ showBInfo(m); return; } }
+  setHold(!car.hold); toast(car.hold?'一時停止しました（タップで再開）':'出発します');
 }
-function decodeBuildings(T){
-  const L=T.L, E=L.ext, S=E/4; T.chunks=Array.from({length:16},()=>[]);
-  for(let k=0;k<featCount(L);k++){ const f=featAt(L,k); if(f.type!==3 || f.tags.hide_3d) continue;
-    const H=+f.tags.render_height||8, M=+f.tags.render_min_height||0; if(M>=H) continue;
-    for(const pg of polysOf(decodeGeom(f.geom))){ const o=pg.outer; let mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9;
-      for(let i=0;i<o.length;i+=2){ mnx=Math.min(mnx,o[i]); mxx=Math.max(mxx,o[i]); mny=Math.min(mny,o[i+1]); mxy=Math.max(mxy,o[i+1]); }
-      const cx=(mnx+mxx)/2, cy=(mny+mxy)/2; if(cx<0||cx>=E||cy<0||cy>=E) continue;
-      T.chunks[Math.floor(cy/S)*4+Math.floor(cx/S)].push({o,h:pg.holes,H,M,id:k}); } }
-  T.L=null;
-  T.centers=[]; for(let j=0;j<4;j++) for(let i=0;i<4;i++){ const c=T.proj([(i+.5)*S,(j+.5)*S]); T.centers.push(c); }
+
+/* ---------- real-map setup: search start / goal anywhere in Japan ---------- */
+const setup={start:null, goal:null, lastQ:0};
+async function geoSearch(q){
+  const wait=1100-(performance.now()-setup.lastQ); if(wait>0) await sleep(wait); setup.lastQ=performance.now();
+  const url='https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=jp&limit=8&accept-language=ja&q='+encodeURIComponent(q);
+  const r=await fetch(url,{headers:{'Accept':'application/json'}}); if(!r.ok) throw new Error('検索サービスの応答 '+r.status);
+  const j=await r.json();
+  return j.map(e=>{ const parts=(e.display_name||'').split(',').map(t=>t.trim());
+    const sub=parts.slice(1).filter(p=>!/^\d{3}-?\d{4}$/.test(p) && p!=='日本').reverse().join(' ');
+    return {lat:+e.lat, lon:+e.lon, name:e.name||parts[0]||q, sub}; });
 }
-function bldTick(dt){
-  if(!world || !world.vt || !bld.on) return;
-  bld.timer-=dt; if(bld.timer>0) return; bld.timer=0.15;
-  for(const [k,c] of bld.tiles){ if(Math.hypot(c.cx-car.x,c.cz-car.z)>BDROP){ if(c.mesh){ scene.remove(c.mesh); c.mesh.geometry.dispose(); } bld.tiles.delete(k); } }
-  // nearest tile whose buildings are not decoded yet, or nearest chunk not built yet
-  let best=null, bd=BLOAD;
-  for(const T of world.vt){
-    if(!T.centers){ const c=T.proj([T.L?T.L.ext/2:2048,T.L?T.L.ext/2:2048]); const d=Math.hypot(c[0]-car.x,c[1]-car.z)-1500; if(d<bd){ bd=d; best={T,decode:true}; } continue; }
-    for(let i=0;i<16;i++){ const key=T.x+','+T.y+','+i; if(bld.tiles.has(key)) continue; const c=T.centers[i], d=Math.hypot(c[0]-car.x,c[1]-car.z)-360; if(d<bd){ bd=d; best={T,i,key,c}; } }
-  }
-  const st=$('bldStat');
-  if(!best){ st.classList.add('hidden'); return; }
-  st.textContent='🏢 建物を生成中…'; st.classList.remove('hidden');
-  if(best.decode){ decodeBuildings(best.T); return; }
-  const mesh=buildBldMesh(best.T, best.T.chunks[best.i]);
-  if(mesh) scene.add(mesh);
-  bld.tiles.set(best.key,{mesh,cx:best.c[0],cz:best.c[1],meta:mesh?mesh.userData.meta:null});
+function renderSel(){
+  $('startSel').textContent=setup.start?'✅ '+setup.start.name:'未設定';
+  $('goalSel').textContent=setup.goal?'🏁 '+setup.goal.name:'未設定';
+  $('startSel').classList.toggle('ok',!!setup.start); $('goalSel').classList.toggle('ok',!!setup.goal);
+  $('routeBtn').disabled=!(setup.start&&setup.goal);
 }
-function poiName(pts){
-  const P=world.poi; if(!P) return '';
-  let a=1e9,b=1e9,A=-1e9,B=-1e9; for(let i=0;i<pts.length;i+=2){ a=Math.min(a,pts[i]); A=Math.max(A,pts[i]); b=Math.min(b,pts[i+1]); B=Math.max(B,pts[i+1]); }
-  let best=null;
-  for(let i=Math.floor(a/50);i<=Math.floor(A/50);i++) for(let j=Math.floor(b/50);j<=Math.floor(B/50);j++){ const l=P.get(i+','+j); if(!l) continue;
-    for(const q of l){ if(q.x<a||q.x>A||q.z<b||q.z>B) continue; let inside=false;
-      for(let k=0,m=pts.length/2-1;k<pts.length/2;m=k++){ const xi=pts[2*k],zi=pts[2*k+1],xj=pts[2*m],zj=pts[2*m+1];
-        if(((zi>q.z)!==(zj>q.z)) && (q.x < (xj-xi)*(q.z-zi)/(zj-zi)+xi)) inside=!inside; }
-      if(inside && (!best || q.rank<best.rank)) best=q; } }
-  return best?best.name:'';
+function openSetup(start){
+  cancelLoading(); $('hud').classList.add('hidden'); $('intro').classList.add('hidden'); releaseControls();
+  if(start) setup.start=start; setup.goal=null;
+  $('startList').innerHTML=''; $('goalList').innerHTML=''; $('goalQ').value='';
+  renderSel(); show('setup');
 }
-function buildBldMesh(T, list){
-  if(!list.length) return null;
-  const polys=[]; let nv=0;
-  for(const b of list){
-    const strip=p=>{ let q=T.proj(p), n=q.length/2; if(n>1 && q[0]===q[2*n-2] && q[1]===q[2*n-1]){ q.length-=2; n--; } return q; };
-    const pts=strip(b.o), n=pts.length/2; if(n<3) continue;
-    const holes=b.h.map(strip).filter(h=>h.length>=6);
-    const toV=p=>{ const a=[]; for(let i=0;i<p.length;i+=2) a.push(new THREE.Vector2(p[i],p[i+1])); return a; };
-    const cv=toV(pts), hv=holes.map(toV); let faces=[]; try{ faces=THREE.ShapeUtils.triangulateShape(cv,hv); }catch(e){}
-    const all=cv.concat(...hv);
-    polys.push({pts,n,faces,all,H:b.H,M:b.M,id:b.id,name:poiName(pts)}); nv+=n*6+faces.length*3;
-  }
-  return makeBuildingMesh(polys);
+async function runGeo(which){
+  const q=$(which+'Q').value.trim(), list=$(which+'List'); if(!q) return;
+  const tk=(runGeo.tk=(runGeo.tk||0)+1);
+  list.innerHTML='<div class="small">検索中…</div>';
+  try{
+    const res=await geoSearch(q); if(tk!==runGeo.tk) return;
+    list.innerHTML='';
+    if(!res.length){ list.innerHTML='<div class="small">見つかりませんでした。別の言葉で試してください</div>'; return; }
+    for(const it of res){ const b=document.createElement('button'); b.className='qi'; b.textContent=it.name;
+      const sm=document.createElement('small'); sm.textContent=it.sub; b.appendChild(sm);
+      b.onclick=()=>{ setup[which]={lat:it.lat,lon:it.lon,name:it.name}; list.innerHTML=''; $(which+'Q').value=''; renderSel(); };
+      list.appendChild(b); }
+  }catch(e){ if(tk===runGeo.tk) list.innerHTML='<div class="small err">検索できませんでした（'+(e.message||'通信エラー')+'）</div>'; }
 }
-/* ---------- Facade textures (procedural: windows / walls) ---------- */
-const FLOOR_H=3.4, COL_W=3.2, TEX_U=COL_W*4, TEX_V=FLOOR_H*4;
-function makeFacadeTex(style){
-  const t=canvasTex(256,256,(g,W,H)=>{
-    const cell=64, rnd=Math.random;
-    const wall = style===0 ? '#cfd6dd' : style===1 ? '#f1eee8' : '#f4efe6';
-    g.fillStyle=wall; g.fillRect(0,0,W,H);
-    for(let i=0;i<2500;i++){ g.fillStyle=rnd()<.5?'rgba(0,0,0,.05)':'rgba(255,255,255,.08)'; g.fillRect(rnd()*W,rnd()*H,2,2); }
-    for(let r=0;r<4;r++) for(let c=0;c<4;c++){
-      const x=c*cell, y=r*cell;
-      if(style===0){ // office / glass curtain wall
-        g.fillStyle='#8f9aa6'; g.fillRect(x,y+50,cell,14);                       // spandrel
-        const gr=g.createLinearGradient(x,y,x+cell,y+50); const b=150+rnd()*60;
-        gr.addColorStop(0,`rgb(${b*0.45|0},${b*0.62|0},${b*0.8|0})`); gr.addColorStop(1,`rgb(${b*0.3|0},${b*0.42|0},${b*0.6|0})`);
-        g.fillStyle=gr; g.fillRect(x+2,y+2,cell-4,46);
-        g.fillStyle='rgba(255,255,255,.18)'; g.beginPath(); g.moveTo(x+2,y+2); g.lineTo(x+26,y+2); g.lineTo(x+2,y+30); g.fill();
-        g.fillStyle='#b9c2cb'; g.fillRect(x+cell/2-1,y+2,2,46);                   // mullion
-      } else if(style===1){ // apartment: windows + balcony rail
-        const dark=55+rnd()*40; g.fillStyle=`rgb(${dark*0.8|0},${dark*0.9|0},${dark|0})`; g.fillRect(x+10,y+8,44,30);
-        g.fillStyle='rgba(255,255,255,.15)'; g.fillRect(x+12,y+10,14,26);
-        if(rnd()<0.5){ g.fillStyle='rgba(230,225,215,.9)'; g.fillRect(x+12,y+10,10,26); } // curtain
-        g.fillStyle='#d9d5cd'; g.fillRect(x,y+42,cell,4);                         // balcony slab
-        g.fillStyle='rgba(120,125,130,.85)'; g.fillRect(x,y+46,cell,2);
-        for(let k=2;k<cell;k+=6) g.fillRect(x+k,y+46,1.5,14);                     // rail bars
-        g.fillRect(x,y+58,cell,2);
-      } else { // house / small building
-        if(rnd()<0.75){ const dark=60+rnd()*40; g.fillStyle='#ffffff'; g.fillRect(x+18,y+14,28,30);
-          g.fillStyle=`rgb(${dark*0.8|0},${dark*0.9|0},${dark|0})`; g.fillRect(x+20,y+16,24,26);
-          g.fillStyle='#ffffff'; g.fillRect(x+31,y+16,2,26); g.fillRect(x+20,y+28,24,2); }
-        g.fillStyle='rgba(0,0,0,.08)'; g.fillRect(x,y+62,cell,2);
-      }
+async function useGPSStart(){
+  $('startSel').textContent='現在地を取得中…';
+  try{ const p=await getPosition(); setup.start={lat:p.lat,lon:p.lon,name:'現在地'}; }
+  catch(e){ toastSetup(e.message); }
+  renderSel();
+}
+function toastSetup(msg){ $('startList').innerHTML=''; const d=document.createElement('div'); d.className='small err'; d.textContent=msg; $('startList').appendChild(d); }
+async function fetchRoute(a,b,signal){
+  const url='https://router.project-osrm.org/route/v1/driving/'+a.lon+','+a.lat+';'+b.lon+','+b.lat+'?overview=full&geometries=geojson&steps=true';
+  const r=await fetch(url,{signal}); const j=await r.json().catch(()=>null);
+  if(!r.ok || !j || j.code!=='Ok' || !j.routes || !j.routes.length) throw new Error('ルートが見つかりませんでした（車で行けない場所の可能性があります）');
+  return j.routes[0];
+}
+async function startRealRoute(){
+  if(!(setup.start&&setup.goal)) return;
+  cancelLoading(); const token=loadToken; loadAbort=new AbortController();
+  show('loading'); setStatus('ルートを検索中…', setup.start.name+' → '+setup.goal.name);
+  try{
+    const route=await fetchRoute(setup.start,setup.goal,loadAbort.signal);
+    if(token!==loadToken) return;
+    if(mode!=='real'){ clearAll(); mode='real'; }
+    // keep the same origin for nearby trips so loaded tiles can be reused
+    if(!origin || Math.hypot((setup.start.lat-origin.lat)*111,(setup.start.lon-origin.lon)*91)>200){ clearTiles(); setOrigin(setup.start.lat,setup.start.lon); }
+    const coords=route.geometry.coordinates, pts=[];
+    for(const c of coords){ const q=ll2xz(c[1],c[0]); pts.push(q[0],q[1]); }
+    const stepsRaw=route.legs[0].steps, sum=stepsRaw.reduce((a,s)=>a+s.distance,0)||1;
+    let acc=0; const tmp=[];
+    for(const st of stepsRaw){ tmp.push({s:acc,type:st.maneuver.type,mod:st.maneuver.modifier||'',name:st.name||'',ref:st.ref||''}); acc+=st.distance; }
+    setRoute(pts,[],setup.goal.name);
+    const k=drive.total/sum; drive.steps=tmp.map(s=>({...s,s:s.s*k}));
+    $('attr').textContent='© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors / ルート: OSRM';
+    setStatus('周辺の地図を読み込み中…', 'ルート '+fmtDist(drive.total));
+    const t0=performance.now(); TL.timer=0;
+    while(performance.now()-t0<15000){
+      if(token!==loadToken) return;
+      tileTick(1);
+      const need=wantedTiles().filter(w=>w.d<900);
+      const done=need.filter(w=>{ const t=tiles.get(tileKey(w.x,w.y)); return t && (t.state==='done'||t.state==='err'); }).length;
+      $('loadSub').textContent='地図タイル '+done+' / '+need.length;
+      if(done>=need.length) break;
+      await sleep(150);
     }
-  });
-  t.wrapS=t.wrapT=THREE.RepeatWrapping; return t;
+    if(token!==loadToken) return;
+    startDrive();
+  }catch(e){ if(e.name==='AbortError' || token!==loadToken) return; setStatus(e.message||'エラーが発生しました','',true); }
 }
-function buildingMats(){
-  if(bld.mats) return bld.mats;
-  bld.mats=[0,1,2].map(st=>new THREE.MeshLambertMaterial({map:makeFacadeTex(st),vertexColors:true,side:THREE.DoubleSide}));
-  bld.mats.push(new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide})); // roofs
-  return bld.mats;
+
+/* ---------- demo flow ---------- */
+function startDemo(){
+  cancelLoading(); clearAll(); mode='demo'; origin=null;
+  show('loading'); setStatus('デモマップを生成中…');
+  const token=loadToken;
+  setTimeout(()=>{ if(token!==loadToken) return;
+    try{ buildDemoWorld(); car.node=nearestNode(0,0); $('attr').textContent='デモマップ（架空の街）'; openDemoSearch(); }
+    catch(e){ setStatus('生成に失敗しました',String(e.message||e),true); } },30);
 }
-function bStyle(b){ return b.H>=28?0:(b.H>=10?(b.id%3===0?0:1):2); }
-// polys: {pts(flat x,z), n, faces, all(Vector2[]), H, M, id, name}
-function makeBuildingMesh(polys){
-  const wc=[0,0,0]; let rc=0;
-  for(const b of polys){ b.st=bStyle(b); wc[b.st]+=b.n*6; rc+=b.faces.length*3; }
-  const total=wc[0]+wc[1]+wc[2]+rc; if(!total) return null;
-  const P=new Float32Array(total*3), C=new Float32Array(total*3), U=new Float32Array(total*2), owner=new Int32Array(total/3);
-  const off=[0,wc[0],wc[0]+wc[1]], roofOff=wc[0]+wc[1]+wc[2], cur=off.slice(); let rv=roofOff;
-  const col=new THREE.Color(), meta=[];
-  polys.forEach((b,bi)=>{
-    let cx=0,cz=0; for(let i=0;i<b.n;i++){cx+=b.pts[2*i];cz+=b.pts[2*i+1];} meta.push({name:b.name||'',h:b.H,x:cx/b.n,z:cz/b.n});
-    col.set(BPAL[b.id%BPAL.length]);
-    const put=(v,x,y,z,s,u,w)=>{ P[v*3]=x; P[v*3+1]=y; P[v*3+2]=z; C[v*3]=Math.min(1,col.r*s); C[v*3+1]=Math.min(1,col.g*s); C[v*3+2]=Math.min(1,col.b*s); U[v*2]=u; U[v*2+1]=w; if(v%3===0) owner[v/3]=bi; };
-    let v=cur[b.st], d=0; const v0=b.M/TEX_V, v1=b.H/TEX_V, sh=b.st===0?1:1.02;
-    for(let i=0;i<b.n;i++){ const j=(i+1)%b.n, ax=b.pts[2*i], az=b.pts[2*i+1], bx=b.pts[2*j], bz=b.pts[2*j+1], L=Math.hypot(bx-ax,bz-az), u0=d/TEX_U, u1=(d+L)/TEX_U; d+=L;
-      put(v++,ax,b.M,az,.9*sh,u0,v0); put(v++,bx,b.M,bz,.9*sh,u1,v0); put(v++,bx,b.H,bz,sh,u1,v1);
-      put(v++,ax,b.M,az,.9*sh,u0,v0); put(v++,bx,b.H,bz,sh,u1,v1); put(v++,ax,b.H,az,sh,u0,v1); }
-    cur[b.st]=v;
-    for(const f of b.faces) for(const k of f){ const p=b.all[k]; if(p) put(rv++,p.x,b.H,p.y,0.95,0,0); else put(rv++,0,-50,0,1,0,0); }
-  });
-  const g=new THREE.BufferGeometry();
-  g.setAttribute('position',new THREE.BufferAttribute(P,3));
-  g.setAttribute('color',new THREE.BufferAttribute(C,3));
-  g.setAttribute('uv',new THREE.BufferAttribute(U,2));
-  g.addGroup(0,wc[0],0); g.addGroup(off[1],wc[1],1); g.addGroup(off[2],wc[2],2); g.addGroup(roofOff,rc,3);
-  g.computeVertexNormals(); g.computeBoundingSphere();
-  const mesh=new THREE.Mesh(g, buildingMats()); mesh.userData={owner,meta}; return mesh;
+function openDemoSearch(){
+  $('hud').classList.add('hidden'); $('intro').classList.add('hidden'); releaseControls();
+  const box=$('dList'); box.innerHTML='';
+  const here=world.nodes[car.node];
+  const items=world.places.map(p=>({...p,d:Math.hypot(p.x-here.x,p.z-here.z)})).sort((a,b)=>a.d-b.d);
+  for(const it of items){ const b=document.createElement('button'); b.className='qi'; b.textContent=it.name+'　'+fmtDist(it.d);
+    b.onclick=()=>demoGo(nearestNode(it.x,it.z),it.name); box.appendChild(b); }
+  show('dsearch');
 }
-function fmtTime(t){ const m=Math.floor(t/60), s=t-m*60; return m+':'+(s<10?'0':'')+s.toFixed(1); }
-function finish(){
-  const R=race; R.finished=true; car.v=0;
-  releaseControls();
-  car.v=0;
-  R.arrT=0; car.look=wrapA(car.look);
-  $('arrName').textContent=R.goalName||'目的地';
-  $('arrInfo').textContent='所要時間 '+fmtTime(R.time)+'　走行距離 '+fmtDist(R.odo);
-  $('arrive').classList.remove('hidden'); $('hud').classList.add('arrived');
-  speak('目的地に到着しました');
+function demoGo(goal,name){
+  const start=car.node>=0?car.node:nearestNode(0,0);
+  if(goal===start){ toast('今いる場所です'); return; }
+  const r=demoRoute(start,goal);
+  setRoute(r.pts,r.steps,name); drive.goalNode=goal;
+  startDrive();
 }
-function drawMinimap(){
-  const c=$('mm'), x=c.getContext('2d'), W=c.width, H=c.height, mm=world.mm, R=race;
-  const radiusM = mmZoomFar?1500:450, ppm=(W/2)/radiusM;
-  x.save(); x.clearRect(0,0,W,H); x.beginPath(); x.arc(W/2,H/2,W/2,0,Math.PI*2); x.clip();
-  x.fillStyle='#16221a'; x.fillRect(0,0,W,H);
-  const yaw=camYaw(); x.translate(W/2,H/2); x.rotate(-yaw);
-  x.save(); x.scale(ppm/mm.sc, ppm/mm.sc); x.drawImage(mm.canvas, -(car.x-mm.minX)*mm.sc, -(car.z-mm.minZ)*mm.sc); x.restore();
-  x.scale(ppm,ppm); x.translate(-car.x,-car.z);
-  const r=R.route; if(r && r.length>=4){ x.strokeStyle='#29d3ff'; x.lineWidth=5/ppm; x.lineCap='round'; x.lineJoin='round'; x.beginPath(); x.moveTo(r[0],r[1]); for(let i=2;i<r.length;i+=2) x.lineTo(r[i],r[i+1]); x.stroke(); }
-  x.restore();
-  // goal marker (clamped)
-  const g=world.nodes[R.goal]; let gx=g.x-car.x, gz=g.z-car.z; const ch=Math.cos(-yaw), sh=Math.sin(-yaw);
-  let sx=(gx*ch-gz*sh)*ppm, sy=(gx*sh+gz*ch)*ppm; const L=Math.hypot(sx,sy), lim=W/2-9; if(L>lim){ sx*=lim/L; sy*=lim/L; }
-  x.fillStyle='#ffd84a'; x.strokeStyle='#000'; x.lineWidth=2; x.beginPath(); x.arc(W/2+sx,H/2+sy,7,0,Math.PI*2); x.fill(); x.stroke();
-  // car
-  x.fillStyle='#ff4040'; x.strokeStyle='#fff'; x.lineWidth=2; x.beginPath(); x.moveTo(W/2,H/2-10); x.lineTo(W/2+7,H/2+8); x.lineTo(W/2,H/2+4); x.lineTo(W/2-7,H/2+8); x.closePath(); x.fill(); x.stroke();
+function demoRandom(){
+  const start=car.node, ds=dijkstra(world,start), [mn,mx]=DIST_RANGE[$('distSel').value]||DIST_RANGE.mid; let cand=[], maxd=0;
+  for(let i=0;i<ds.dist.length;i++){ const d=ds.dist[i]; if(d<Infinity){ if(d>maxd)maxd=d; if(d>=mn&&d<=mx) cand.push(i); } }
+  if(!cand.length) for(let i=0;i<ds.dist.length;i++) if(ds.dist[i]>=maxd*0.7) cand.push(i);
+  const goal=cand[(Math.random()*cand.length)|0];
+  const W=world, E=W.edges[W.nodes[goal].adj[0]];
+  demoGo(goal,(E&&E.name?E.name+' 付近':'デモの目的地'));
 }
+function clearAll(){
+  for(const o of worldObjs) disposeObj(o); worldObjs=[]; world=null;
+  clearTiles(); for(const c of bld.chunks.values()) if(c.mesh) disposeObj(c.mesh); bld.chunks.clear();
+  if(routeMesh){ disposeObj(routeMesh); routeMesh=null; }
+  drive.pts=null; drive.active=false; goalGroup.visible=false; car.node=-1;
+}
+
+/* ---------- main loop ---------- */
 let last=performance.now();
 function loop(now){
   requestAnimationFrame(loop);
   const dt=Math.min(0.05,(now-last)/1000); last=now; dtGlobal=dt;
-  if(world && race){
-    if(race.intro && !paused){ introCam(dt); routeTex.offset.y -= dt*1.5; }
-    else if(race.finished && !paused){ // 到着後：ゆっくり周囲を見回す
-      race.arrT=(race.arrT||0)+dt;
-      if(gs.id===null) car.look=wrapA(car.look+dt*0.22*Math.min(1,race.arrT/2));
-      updatePose(false); placeCamera(false);
-    }
-    else if(!paused && !race.finished){
-      step(dt);
-      race.navT-=dt; if(race.navT<=0){ race.navT=0.15; updateNav(); updateNavHUD(); rebuildRouteMesh(); }
-    }
-    bldTick(dt);
-    updateLabels(dt);
-    drawMinimap();
-    routeTex.offset.y -= dt*1.5;
+  if(drive.active){
+    if(paused){}
+    else if(drive.intro){ updatePose(false); placeCamera(); }
+    else if(drive.finished){ drive.arrT+=dt; if(gs.id===null) car.look=wrapA(car.look+dt*0.22*Math.min(1,drive.arrT/2)); updatePose(false); placeCamera(); }
+    else { step(dt); drive.navT-=dt; if(drive.navT<=0){ drive.navT=0.2; updateNavHUD(); rebuildRouteMesh(); } }
+    tileTick(dt); bldTick(dt); updateLabels(dt); drawMinimap();
+    routeTex.offset.y-=dt*1.5;
     const bm=goalGroup.userData.beam; bm.material.opacity=0.3+0.12*Math.sin(now/300);
-  }
+  } else if(mode==='real') tileTick(dt);
   renderer.render(scene,camera);
 }
 
-/* ---------- Input: tap a road to go there / drag up to move / drag sideways to look ---------- */
-const gs={id:null,x0:0,y0:0,lx:0,t0:0,moved:false};
-function releaseControls(){ for(const k in input) input[k]=false; gs.id=null; drag.thr=drag.brk=0; $('joy').classList.add('hidden'); }
+/* ---------- input ---------- */
+const gs={id:null,x0:0,y0:0,lx:0,t0:0,moved:false,k0:43};
+function releaseControls(){ for(const k in input) input[k]=false; gs.id=null; $('joy').classList.add('hidden'); }
 function dragRange(){ return Math.max(90,Math.min(200,window.innerHeight*0.28)); }
 function gDown(e){
-  if(!race || paused) return;
+  if(!drive.active || paused) return;
   e.preventDefault();
-  if(race.intro){ endIntro(); return; }
+  if(drive.intro){ endIntro(); return; }
   if(gs.id!==null) return;
   gs.id=e.pointerId; gs.x0=gs.lx=e.clientX; gs.y0=e.clientY; gs.t0=performance.now(); gs.moved=false; gs.k0=car.setKmh;
   try{ $('touch').setPointerCapture(e.pointerId); }catch(_){}
@@ -1567,69 +1424,70 @@ function gMove(e){
   if(!gs.moved && Math.hypot(e.clientX-gs.x0,e.clientY-gs.y0)>10) gs.moved=true;
   if(!gs.moved) return;
   car.look=wrapA(car.look+dx*0.0055);
-  if(race.finished) return;
+  if(drive.finished) return;
   const dy=gs.y0-e.clientY, T=dragRange(), dead=24, j=$('joy');
   if(Math.abs(dy)>dead){
-    const ddy=dy-Math.sign(dy)*dead;
-    setSpeedKmh(gs.k0*Math.pow(SPD_MAX/SPD_MIN, ddy/(T*2)));   // 画面の高さ程度で 4→300km/h
+    setSpeedKmh(gs.k0*Math.pow(SPD_MAX/SPD_MIN,(dy-Math.sign(dy)*dead)/(T*2)));
     j.style.left=gs.x0+'px'; j.style.top=gs.y0+'px'; j.classList.remove('hidden');
     const knob=$('joyKnob'); knob.style.transform='translate(0px,'+Math.max(-T,Math.min(T,-dy))+'px)'; knob.classList.toggle('brk',dy<0);
     $('thrFill').style.height=(kmh2t(car.setKmh)*100)+'%';
     $('joyLbl').textContent='設定 '+Math.round(car.setKmh)+' km/h';
-  } else { j.classList.add('hidden'); }
+  } else j.classList.add('hidden');
 }
 function gUp(e){
   if(e.pointerId!==gs.id) return;
   const wasTap=!gs.moved && performance.now()-gs.t0<450;
-  gs.id=null; drag.thr=drag.brk=0; $('joy').classList.add('hidden');
-  if(wasTap && e.type==='pointerup'){ if(race.finished) openSearch(true); else handleTap(e.clientX,e.clientY); }
+  gs.id=null; $('joy').classList.add('hidden');
+  if(wasTap && e.type==='pointerup'){ if(drive.finished) nextDestination(); else handleTap(e.clientX,e.clientY); }
 }
 const tl=$('touch');
 tl.addEventListener('pointerdown',gDown);
-$('intro').addEventListener('pointerdown',e=>{ e.preventDefault(); endIntro(); });
 tl.addEventListener('pointermove',gMove);
 tl.addEventListener('pointerup',gUp); tl.addEventListener('pointercancel',gUp);
 tl.addEventListener('contextmenu',e=>e.preventDefault());
-const KEYS={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',Space:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right'};
+$('intro').addEventListener('pointerdown',e=>{ e.preventDefault(); endIntro(); });
+const KEYS={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',ArrowLeft:'left',KeyA:'left',ArrowRight:'right',KeyD:'right'};
 window.addEventListener('keydown',e=>{ if(e.target.closest && e.target.closest('input,select')) return; const k=KEYS[e.code];
-  if(k){ if(race&&race.intro&&!paused) endIntro(); input[k]=true; e.preventDefault(); }
-  if(e.code==='Escape' && race && !race.finished) togglePause();
-  if(e.code==='KeyP' && race && !race.intro) setHold(!car.hold);
-  if(e.code==='Enter' && race && race.finished && !paused) openSearch(true); });
+  if(k && drive.active){ if(drive.intro&&!paused) endIntro(); input[k]=true; e.preventDefault(); }
+  if(e.code==='Escape' && drive.active) togglePause();
+  if((e.code==='Space'||e.code==='KeyP') && drive.active && !drive.intro && !drive.finished && !paused){ setHold(!car.hold); e.preventDefault(); }
+  if(e.code==='Enter' && drive.active && drive.finished && !paused) nextDestination(); });
 window.addEventListener('keyup',e=>{ const k=KEYS[e.code]; if(k) input[k]=false; });
 window.addEventListener('blur',releaseControls);
-function togglePause(){ if(!race) return; paused=!paused; releaseControls(); show(paused?'pause':null); if(!paused && race.intro) $('intro').classList.remove('hidden'); else if(paused) $('intro').classList.add('hidden'); }
-function toTitle(){ $('arrive').classList.add('hidden'); $('hud').classList.remove('arrived'); cancelLoading(); paused=false; $('hud').classList.add('hidden'); $('intro').classList.add('hidden'); releaseControls(); show('title'); }
+function togglePause(){ if(!drive.active) return; paused=!paused; releaseControls(); show(paused?'pause':null);
+  $('intro').classList.toggle('hidden', paused || !drive.intro); }
+function toTitle(){ cancelLoading(); paused=false; $('hud').classList.add('hidden'); $('intro').classList.add('hidden'); $('arrive').classList.add('hidden');
+  $('hud').classList.remove('arrived'); releaseControls(); drive.active=false; show('title'); }
 
-$('gpsBtn').onclick=startGPS;
-$('placeBtn').onclick=startPlace;
-$('preset').onchange=()=>{ if($('preset').value) $('coordIn').value=''; };
-$('demoBtn').onclick=startDemo;
-$('loadDemo').onclick=startDemo;
-$('loadCancel').onclick=toTitle;
+$('realBtn').onclick=()=>{ bld.on=$('bldChk').checked; if(mode!=='real'){ clearAll(); mode='real'; } openSetup(null); };
+$('demoBtn').onclick=()=>{ bld.on=$('bldChk').checked; startDemo(); };
+$('startGPS').onclick=useGPSStart;
+$('startBtn').onclick=()=>runGeo('start');
+$('goalBtn').onclick=()=>runGeo('goal');
+for(const w of ['start','goal']) $(w+'Q').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); runGeo(w); } });
+$('routeBtn').onclick=startRealRoute;
+$('setupBack').onclick=toTitle;
+$('dRandom').onclick=demoRandom;
+$('dBack').onclick=toTitle;
+$('loadCancel').onclick=()=>{ cancelLoading(); drive.active=false; $('hud').classList.add('hidden');
+  if(mode==='real') show('setup'); else toTitle(); };
 $('menuBtn').onclick=togglePause;
 $('resumeBtn').onclick=togglePause;
-$('pNewGoal').onclick=()=>{ openSearch(true); };
+$('pNewGoal').onclick=()=>{ paused=false; drive.active=false; nextDestination(); };
 $('pTitle').onclick=toTitle;
-$('rNext').onclick=()=>openSearch(true);
-$('qIn').addEventListener('input',()=>runSearch(false));
-$('qIn').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); runSearch(true); } });
-$('qBtn').onclick=()=>runSearch(true);
-$('qRandom').onclick=()=>{ srch.token++; newRace(srch.fromCurrent); };
-$('qBack').onclick=toTitle;
-$('rTitle').onclick=toTitle;
-$('goBtn').onclick=()=>{ if(!race||race.finished) return; if(race.intro){ endIntro(); return; } setHold(!car.hold); };
-$('spdDn').onclick=()=>spdStep(-1);
-$('spdUp').onclick=()=>spdStep(1);
-$('spdRange').addEventListener('input',e=>{ car.setKmh=t2kmh(+e.target.value/1000); $('spdSet').textContent=Math.round(car.setKmh)+' km/h'; });
-for(const id of ['spdCtl']) $(id).addEventListener('pointerdown',e=>e.stopPropagation());
-setSpeedKmh(car.setKmh);
+$('goBtn').onclick=()=>{ if(!drive.active||drive.finished) return; if(drive.intro){ endIntro(); return; } setHold(!car.hold); };
 $('lblBtn').onclick=()=>{ lbl.on=!lbl.on; $('lblBtn').classList.toggle('on',lbl.on); lbl.t=0; };
 $('mmWrap').onclick=()=>{ mmZoomFar=!mmZoomFar; };
 $('voiceBtn').onclick=()=>{ voiceOn=!voiceOn; $('voiceBtn').classList.toggle('on',voiceOn); $('voiceBtn').textContent=voiceOn?'🔊 音声':'🔈 音声';
   if(voiceOn && window.speechSynthesis){ try{ const u=new SpeechSynthesisUtterance('音声案内をオンにしました'); u.lang='ja-JP'; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} } };
-
+$('spdDn').onclick=()=>spdStep(-1);
+$('spdUp').onclick=()=>spdStep(1);
+$('spdRange').addEventListener('input',e=>{ car.setKmh=t2kmh(+e.target.value/1000); $('spdSet').textContent=Math.round(car.setKmh)+' km/h'; });
+$('spdCtl').addEventListener('pointerdown',e=>e.stopPropagation());
+setSpeedKmh(car.setKmh);
+renderSel();
 if(initThree()) requestAnimationFrame(loop);
+
 </script>
 </body>
 </html>
