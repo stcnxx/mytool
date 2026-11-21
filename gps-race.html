@@ -189,7 +189,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 17（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 18（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -650,28 +650,36 @@ function processTile(t,buf){
   t.cx=c[0]; t.cz=c[1]; t.bx0=a[0]; t.bz0=a[1]; t.bx1=b[0]; t.bz1=b[1];
   const mmc=document.createElement('canvas'); mmc.width=mmc.height=256; t.mmc=mmc;
   const layers=buf.length?parseTile(buf,WANT):{};
-  const gm=buildGroundTile(t,layers); scene.add(gm); t.meshes.push(gm);
-  if(!buf.length) return;
-  const T=layers.transportation;
-  const mx=mmc.getContext('2d'); mx.lineCap='round'; mx.lineJoin='round';
   t.deck=new Map();
-  if(T){ const E=T.ext, proj=makeProj(origin,t.x,t.y,E), lines=[], bridges=[];
+  // 1) roads first (heights from the terrain), so the ground can be cut down under them
+  const T=layers.transportation, roads=[];
+  const mx=mmc.getContext('2d'); mx.lineCap='round'; mx.lineJoin='round';
+  if(T){ const E=T.ext, proj=makeProj(origin,t.x,t.y,E);
     for(let k=0;k<featCount(T);k++){ const f=featAt(T,k); if(f.type!==2) continue;
       let w=CLASS_W[f.tags.class]; if(!w) continue; if(f.tags.ramp==1) w=Math.max(6,w*0.6);
       const br=f.tags.brunnel==='bridge'?'bridge':(f.tags.brunnel==='tunnel'?'tunnel':''), layer=Math.max(1,+f.tags.layer||1);
       for(const part of decodeGeom(f.geom)) for(const pc of clipLine(part,E)){
         const n=pc.length, inA=pc[0]>0&&pc[0]<E&&pc[1]>0&&pc[1]<E, inB=pc[n-2]>0&&pc[n-2]<E&&pc[n-1]>0&&pc[n-1]<E;
-        const pts=subdivide(proj(pc),12), ys=deckHeights(pts,br,layer,inA,inB);
-        if(!br) for(let i=0;i<ys.length;i++) ys[i]=Math.max(ys[i],groundAt(pts[2*i],pts[2*i+1]));
-        addDeck(t,pts,ys,br==='tunnel');
-        if(br==='bridge') bridges.push({pts,ys,w});
-        else if(br!=='tunnel') lines.push({pts,ys,w,capA:inA?1:0,capB:inB?1:0});
+        const raw=proj(pc), pts=subdivide(raw,12), ys=deckHeights(pts,br,layer,inA,inB);
+        roads.push({raw,pts,ys,w,br,inA,inB,id:roads.length});
         mx.strokeStyle=w>=10?'#e8c66a':(w>=8?'#c9d1da':'#8a96a3'); mx.lineWidth=Math.max(1.2,w*256/E*0.35);
         if(br==='tunnel') mx.setLineDash([3,3]); else mx.setLineDash([]);
         mx.beginPath(); mx.moveTo(pc[0]*256/E,pc[1]*256/E); for(let i=2;i<n;i+=2) mx.lineTo(pc[i]*256/E,pc[i+1]*256/E); mx.stroke(); } }
-    mx.setLineDash([]);
-    for(const m of buildRoadMeshes(lines,t.cx,t.cz)){ scene.add(m); t.meshes.push(m); }
-    for(const m of buildBridgeMeshes(bridges,t.cx,t.cz)){ scene.add(m); t.meshes.push(m); } }
+    mx.setLineDash([]); }
+  // 2) ground: terrain cut below the roads, asphalt painted under them
+  const gm=buildGroundTile(t,layers,roads.filter(r=>!r.br)); scene.add(gm); t.meshes.push(gm);
+  if(!buf.length) return;
+  // 3) road meshes, viaducts, junction patches
+  const lines=[], bridges=[];
+  for(const r of roads){
+    if(!r.br) for(let i=0;i<r.ys.length;i++) r.ys[i]=Math.max(r.ys[i],groundAt(r.pts[2*i],r.pts[2*i+1]));
+    addDeck(t,r.pts,r.ys,r.br==='tunnel');
+    if(r.br==='bridge') bridges.push({pts:r.pts,ys:r.ys,w:r.w});
+    else if(r.br!=='tunnel') lines.push({pts:r.pts,ys:r.ys,w:r.w,capA:0,capB:0});
+  }
+  for(const m of buildRoadMeshes(lines,t.cx,t.cz)){ scene.add(m); t.meshes.push(m); }
+  for(const m of buildBridgeMeshes(bridges,t.cx,t.cz)){ scene.add(m); t.meshes.push(m); }
+  const jm=buildJunctions(roads.filter(r=>!r.br),t.cx,t.cz); if(jm){ scene.add(jm); t.meshes.push(jm); }
   const Pt=layers.poi; t.poi=new Map();
   if(Pt){ const proj=makeProj(origin,t.x,t.y,Pt.ext);
     for(let k=0;k<featCount(Pt);k++){ const f=featAt(Pt,k); if(f.type!==1) continue; const nm=f.tags['name:ja']||f.tags.name; if(!nm) continue;
@@ -1842,7 +1850,7 @@ function updateCarY(dt,snap){
 }
 
 /* ---------- ground of a vector tile: terrain mesh painted with land use ---------- */
-function buildGroundTile(t,layers){
+function buildGroundTile(t,layers,roads){
   const S=512, c=document.createElement('canvas'); c.width=c.height=S; const g=c.getContext('2d');
   g.fillStyle='#7ea65e'; g.fillRect(0,0,S,S);
   for(let i=0;i<3000;i++){ g.fillStyle=Math.random()<.5?'rgba(40,70,30,.10)':'rgba(200,220,150,.10)'; g.fillRect(Math.random()*S,Math.random()*S,3,3); }
@@ -1855,10 +1863,14 @@ function buildGroundTile(t,layers){
   paint(layers.park,()=> '#8dbd67');
   paint(layers.landcover,tg=>{ const s=(tg.class||'')+(tg.subclass||''); return /wood|forest/.test(s)?'#4e7d3c':(/grass|park|meadow|garden|golf|recreation/.test(s)?'#8dbd67':(/farmland|farm/.test(s)?'#b4c47e':(/sand|beach/.test(s)?'#e6dba8':(/wetland/.test(s)?'#7fa58e':null)))); });
   paint(layers.water,()=> '#4f8fc8');
+  if(roads && roads.length){ const sx=S/(t.bx1-t.bx0), sz=S/(t.bz1-t.bz0); g.strokeStyle='#5b5e64'; g.lineCap='round'; g.lineJoin='round';
+    for(const r of roads){ g.lineWidth=Math.max(1.5,(r.w+3)*sx); g.beginPath(); g.moveTo((r.raw[0]-t.bx0)*sx,(r.raw[1]-t.bz0)*sz);
+      for(let i=2;i<r.raw.length;i+=2) g.lineTo((r.raw[i]-t.bx0)*sx,(r.raw[i+1]-t.bz0)*sz); g.stroke(); } }
   const tex=new THREE.CanvasTexture(c); tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
   const N=96, P0=makeProj(origin,t.x,t.y,4096), pos=new Float32Array((N+1)*(N+1)*3), uv=new Float32Array((N+1)*(N+1)*2), idx=[];
   for(let j=0;j<=N;j++) for(let i=0;i<=N;i++){ const q=P0([i/N*4096,j/N*4096]), o=j*(N+1)+i;
     pos[o*3]=q[0]-t.cx; pos[o*3+1]=hAt(q[0],q[1])-0.05; pos[o*3+2]=q[1]-t.cz; uv[o*2]=i/N; uv[o*2+1]=1-j/N; }
+  if(roads) carveGround(t,pos,N,roads);
   for(let j=0;j<N;j++) for(let i=0;i<N;i++){ const a=j*(N+1)+i, b=a+1, c2=a+N+1, d=c2+1; idx.push(a,c2,b,b,c2,d); }
   const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pos,3)); geo.setAttribute('uv',new THREE.BufferAttribute(uv,2));
   geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere();
@@ -2050,6 +2062,57 @@ function nearRoad(t,x,z,m){
   for(let a=ci-1;a<=ci+1;a++) for(let b=cj-1;b<=cj+1;b++){ const l=t.deck.get(a+','+b); if(!l) continue;
     for(const s of l){ let u=((x-s.ax)*s.ux+(z-s.az)*s.uz)/s.L; u=u<0?0:u>1?1:u; if(Math.hypot(x-s.ax-(s.bx-s.ax)*u, z-s.az-(s.bz-s.az)*u)<m) return true; } }
   return false;
+}
+
+
+/* ---------- cut the ground down under roads so grass never shows through the asphalt ---------- */
+function carveGround(t,pos,N,roads){
+  const W=t.bx1-t.bx0, H=t.bz1-t.bz0, cw=Math.abs(W/N), ch=Math.abs(H/N);
+  for(const r of roads){
+    const p=r.pts, ys=r.ys, reach=r.w/2+Math.max(cw,ch)*1.05;
+    for(let k=0;k<p.length/2-1;k++){
+      const ax=p[2*k],az=p[2*k+1],bx=p[2*k+2],bz=p[2*k+3],ay=ys[k],by=ys[k+1], dx=bx-ax, dz=bz-az, L2=dx*dx+dz*dz||1;
+      const i0=Math.max(0,Math.floor((Math.min(ax,bx)-reach-t.bx0)/W*N)), i1=Math.min(N,Math.ceil((Math.max(ax,bx)+reach-t.bx0)/W*N));
+      const j0=Math.max(0,Math.floor((Math.min(az,bz)-reach-t.bz0)/H*N)), j1=Math.min(N,Math.ceil((Math.max(az,bz)+reach-t.bz0)/H*N));
+      for(let j=j0;j<=j1;j++) for(let i=i0;i<=i1;i++){
+        const o=j*(N+1)+i, vx=pos[o*3]+t.cx, vz=pos[o*3+2]+t.cz;
+        let u=((vx-ax)*dx+(vz-az)*dz)/L2; u=u<0?0:u>1?1:u;
+        const d=Math.hypot(vx-ax-dx*u, vz-az-dz*u); if(d>reach) continue;
+        const ry=ay+(by-ay)*u-0.45; if(pos[o*3+1]>ry) pos[o*3+1]=ry;
+      }
+    }
+  }
+}
+
+/* ---------- junctions: a plain asphalt patch where roads meet or cross (hides crossing edge lines) ---------- */
+function junctionMat(){ return junctionMat.m||(junctionMat.m=new THREE.MeshBasicMaterial({map:roadTex,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-6})); }
+function buildJunctions(roads,ox,oz){
+  const hits=new Map(); // key -> {x,z,w,ids:Set}
+  const add=(x,z,w,id,arms)=>{ const k=Math.round(x*2)+','+Math.round(z*2); let h=hits.get(k); if(!h){ h={x,z,w:0,ids:new Set(),arms:0}; hits.set(k,h); } h.w=Math.max(h.w,w); if(!h.ids.has(id)){ h.ids.add(id); h.arms+=arms; } };
+  // shared vertices
+  for(const r of roads){ const p=r.raw, last=p.length-2; for(let i=0;i<p.length;i+=2) add(p[i],p[i+1],r.w,r.id,(i===0||i===last)?1:2); }
+  // crossings without a shared vertex
+  const G=30, grid=new Map(), segs=[];
+  for(const r of roads){ const p=r.raw; for(let i=0;i<p.length-2;i+=2){ const sidx=segs.length; segs.push([p[i],p[i+1],p[i+2],p[i+3],r]);
+    const a0=Math.floor(Math.min(p[i],p[i+2])/G), a1=Math.floor(Math.max(p[i],p[i+2])/G), b0=Math.floor(Math.min(p[i+1],p[i+3])/G), b1=Math.floor(Math.max(p[i+1],p[i+3])/G);
+    for(let a=a0;a<=a1;a++) for(let b=b0;b<=b1;b++){ const k=a+','+b; let l=grid.get(k); if(!l){l=[];grid.set(k,l);} l.push(sidx); } } }
+  for(const l of grid.values()) for(let x=0;x<l.length;x++) for(let y=x+1;y<l.length;y++){
+    const A=segs[l[x]], B=segs[l[y]]; if(A[4]===B[4]) continue;
+    const ax=A[0],az=A[1],adx=A[2]-ax,adz=A[3]-az,bx=B[0],bz=B[1],bdx=B[2]-bx,bdz=B[3]-bz, den=adx*bdz-adz*bdx; if(Math.abs(den)<1e-9) continue;
+    const u=((bx-ax)*bdz-(bz-az)*bdx)/den, v=((bx-ax)*adz-(bz-az)*adx)/den;
+    if(u<=0.001||u>=0.999||v<=0.001||v>=0.999) continue;
+    const px=ax+adx*u, pz=az+adz*u; add(px,pz,A[4].w,A[4].id,2); add(px,pz,B[4].w,B[4].id,2);
+  }
+  const SEG=18, list=[...hits.values()].filter(h=>h.ids.size>=2 && h.arms>=3);
+  if(!list.length) return null;
+  const P=new Float32Array(list.length*(SEG+1)*3), U=new Float32Array(list.length*(SEG+1)*2), I=new Uint32Array(list.length*SEG*3); let v=0,k=0;
+  for(const h of list){ const r=h.w*0.5+0.6, c=v;
+    const yc=Math.max(hAt(h.x,h.z),groundAt(h.x,h.z))+0.34;
+    P[v*3]=h.x-ox; P[v*3+1]=yc; P[v*3+2]=h.z-oz; U[v*2]=0.3; U[v*2+1]=0.75; v++;
+    for(let i=0;i<SEG;i++){ const a=i/SEG*Math.PI*2, x=h.x+Math.cos(a)*r, z=h.z+Math.sin(a)*r;
+      P[v*3]=x-ox; P[v*3+1]=Math.max(hAt(x,z),groundAt(x,z))+0.34; P[v*3+2]=z-oz; U[v*2]=0.3; U[v*2+1]=0.75; v++; }
+    for(let i=0;i<SEG;i++){ I[k++]=c; I[k++]=c+1+((i+1)%SEG); I[k++]=c+1+i; } }
+  const m=new THREE.Mesh(geom(P,U,I),junctionMat()); m.position.set(ox,0,oz); m.renderOrder=1; return m;
 }
 
 </script>
