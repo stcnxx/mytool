@@ -66,6 +66,11 @@ summary{cursor:pointer;color:#9fc3ff;font-size:14px;padding:4px 0}
 #thrFill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(#ff5a3c,#ffd84a 40%,#3cdc78)}
 #branch{position:absolute;left:50%;top:58%;transform:translateX(-50%);font-size:15px;font-weight:700;background:rgba(28,111,209,.85);padding:6px 14px;border-radius:20px;white-space:nowrap}
 #toast{position:absolute;left:50%;bottom:calc(70px + env(safe-area-inset-bottom));transform:translateX(-50%);font-size:14px;background:rgba(10,16,24,.85);padding:8px 14px;border-radius:12px;white-space:nowrap}
+.sbtn{width:auto;margin-top:0;padding:11px 16px;font-size:15px}
+#qList{max-height:min(44vh,360px);overflow:auto;margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.qi{display:block;width:100%;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid #2c3b4d;background:#121a24;color:#fff;font-size:15px;cursor:pointer}
+.qi:active{background:#1c2a3a}.qi small{display:block;color:#8fa3b8;font-size:12px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qi.off{opacity:.45}
 #labels{position:absolute;inset:0;overflow:hidden}
 .blbl{position:absolute;left:0;top:0;transform:translate(-50%,-100%);background:rgba(10,16,24,.78);border:1px solid rgba(255,216,74,.55);border-radius:8px;padding:2px 8px;font-size:12px;line-height:1.35;text-align:center;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
 .blbl b{display:block;font-size:13px;color:#fff;overflow:hidden;text-overflow:ellipsis}
@@ -136,9 +141,10 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
   <div class="card">
     <h1>GPS<span>ドライブ</span></h1>
     <p>現在地から半径5kmの実際の道路と建物を3Dで再現。目的地が決まったら、道路をタップしたりドラッグしたりして目的地まで進みます。曲がる方向は画面上部に表示されます。</p>
-    <div class="row"><label>目的地の距離</label>
+    <div class="row"><label>おまかせ時の距離</label>
       <select id="distSel"><option value="near">近い（1〜2km）</option><option value="mid" selected>ふつう（2〜3.5km）</option><option value="far">遠い（3.5km〜）</option></select></div>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
+    <div class="row"><input id="destIn" placeholder="目的地（例：東京タワー）※あとで検索も可" autocomplete="off"></div>
     <button class="btn" id="gpsBtn">📍 現在地でスタート</button>
     <details>
       <summary>場所を指定してスタート</summary>
@@ -156,7 +162,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
       <button class="btn sub" id="placeBtn">この場所でスタート</button>
     </details>
     <button class="btn ghost" id="demoBtn">🎮 デモマップで遊ぶ（通信なし）</button>
-    <p class="small" style="margin-top:12px">バージョン 7（2026/11/21）— 表示が変わらない時はページを再読み込みしてください。<br>位置情報と OpenStreetMap の道路データ（Overpass API）を使います。都市部は読み込みに数十秒かかることがあります。</p>
+    <p class="small" style="margin-top:12px">バージョン 8（2026/11/21）— 表示が変わらない時はページを再読み込みしてください。<br>位置情報と OpenStreetMap の道路データ（Overpass API）を使います。都市部は読み込みに数十秒かかることがあります。</p>
   </div>
 </div>
 
@@ -171,12 +177,24 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
   </div>
 </div>
 
+<!-- Destination search -->
+<div id="search" class="overlay hidden">
+  <div class="card">
+    <h2>🔍 目的地を検索</h2>
+    <div class="row"><input id="qIn" placeholder="駅・店・施設名・住所など" enterkeyhint="search" autocomplete="off"><button class="btn sbtn" id="qBtn">検索</button></div>
+    <div id="qStat" class="small" style="margin-top:6px"></div>
+    <div id="qList"></div>
+    <button class="btn sub" id="qRandom">🎲 おまかせで決める</button>
+    <button class="btn ghost" id="qBack">タイトルへ</button>
+  </div>
+</div>
+
 <!-- Pause -->
 <div id="pause" class="overlay dim hidden">
   <div class="card">
     <h2>一時停止</h2>
     <button class="btn" id="resumeBtn">再開</button>
-    <button class="btn sub" id="pNewGoal">新しいゴールで走る</button>
+    <button class="btn sub" id="pNewGoal">🔍 目的地を変える</button>
     <button class="btn ghost" id="pTitle">タイトルへ</button>
   </div>
 </div>
@@ -192,7 +210,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
       <tr><td>最短ルート</td><td id="rBest">-</td></tr>
       <tr><td>平均速度</td><td id="rAvg">-</td></tr>
     </table>
-    <button class="btn" id="rNext">ここから次の目的地へ</button>
+    <button class="btn" id="rNext">🔍 ここから次の目的地を探す</button>
     <button class="btn ghost" id="rTitle">タイトルへ</button>
   </div>
 </div>
@@ -326,7 +344,7 @@ function makeGoal(){
 
 /* ---------- Data loading ---------- */
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
-function show(id){ for(const k of ['title','loading','pause','result']) $(k).classList.toggle('hidden', k!==id); }
+function show(id){ for(const k of ['title','loading','pause','result','search']) $(k).classList.toggle('hidden', k!==id); }
 function setStatus(msg, sub='', isErr=false){
   $('loadMsg').textContent = msg; $('loadMsg').classList.toggle('err', isErr);
   $('loadSub').textContent = sub; $('spin').classList.toggle('hidden', isErr);
@@ -664,7 +682,9 @@ function makeDemoRaw(){
   };
   zs.forEach((_,j)=>{ const hw = j%6===3?'primary':(j%3===0?'tertiary':'residential'); addLine(i=>G[i][j], xs.length, hw, hw==='residential'?'':names[j%names.length]); });
   xs.forEach((_,i)=>{ const hw = i%6===3?'primary':(i%3===0?'tertiary':'residential'); addLine(j=>G[i][j], zs.length, hw, hw==='residential'?'':names[(i+5)%names.length]); });
-  return {nodes, ways};
+  const demoPlaces=(g)=>{ const names=['桜通り駅','中央図書館','みなと公園','市役所','市民病院','青葉小学校','スーパー青葉','海浜水族館','中央郵便局','市民体育館','港町駅','けやき美術館'];
+    return names.map(nm=>{ const n=g.nodes[(Math.random()*g.nodes.length)|0]; return {x:n.x+8,z:n.z+8,name:nm,rank:1}; }); };
+  return {nodes, ways, demoPlaces};
 }
 
 /* ---------- Graph ---------- */
@@ -910,17 +930,19 @@ async function buildWorld(raw, token, isReal){
   world = g; g.origin = raw.origin||null;
   for(const m of buildRoads(g)){ scene.add(m); worldObjs.push(m); }
   g.vt = raw.vt||null; g.poi = raw.poi||null;
+  g.poiList=[]; if(g.poi) for(const l of g.poi.values()) for(const p of l) g.poiList.push(p);
+  if(raw.demoPlaces) g.poiList=raw.demoPlaces(g);
   if(raw.water){ const wm=buildWater(raw.water); if(wm){ scene.add(wm); worldObjs.push(wm); } }
   bld.on = isReal && !!g.vt && $('bldChk').checked;
   if(!bld.on) for(const m of buildScenery(g)){ scene.add(m); worldObjs.push(m); }
   buildMinimap(g);
   $('attr').textContent = isReal ? (g.vt?'© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors':'地図データ © OpenStreetMap contributors') : 'デモマップ（架空の街）';
-  newRace(false);
+  openSearch(false);
 }
 
 /* ---------- Race ---------- */
 function nearestNode(x,z){ let bi=0,bd=Infinity; world.nodes.forEach((n,i)=>{ const d=(n.x-x)**2+(n.z-z)**2; if(d<bd){bd=d;bi=i;} }); return bi; }
-function newRace(fromCurrent){
+function newRace(fromCurrent, dest){
   const W=world;
   const start = fromCurrent ? nearestNode(car.x,car.z) : nearestNode(0,0);
   const ds = dijkstraDir(W,start,false);
@@ -928,10 +950,11 @@ function newRace(fromCurrent){
   let cand=[], maxd=0;
   for(let i=0;i<ds.dist.length;i++){ const d=ds.dist[i]; if(d<Infinity){ if(d>maxd)maxd=d; if(d>=mn&&d<=mx) cand.push(i); } }
   if(!cand.length) for(let i=0;i<ds.dist.length;i++) if(ds.dist[i]<Infinity && ds.dist[i]>=maxd*0.7) cand.push(i);
-  const goal = cand[(Math.random()*cand.length)|0];
+  let goal = cand[(Math.random()*cand.length)|0];
+  if(dest){ let bd=Infinity; W.nodes.forEach((n,i)=>{ if(ds.dist[i]===Infinity) return; const d=(n.x-dest.x)**2+(n.z-dest.z)**2; if(d<bd){bd=d;goal=i;} }); }
   const dg = dijkstraDir(W,goal,true), du = dijkstra(W,goal);
   for(let i=0;i<dg.dist.length;i++) if(dg.dist[i]===Infinity){ dg.dist[i]=du.dist[i]; dg.via[i]=du.via[i]; }
-  race = {start,goal,dist:dg.dist,next:dg.via,best:dg.dist[start],time:0,started:false,finished:false,odo:0,said:new Set(),nav:null,route:[],navT:0,intro:true,introT:0,id:Math.random()};
+  race = {start,goal,dist:dg.dist,next:dg.via,best:dg.dist[start],time:0,started:false,finished:false,odo:0,said:new Set(),nav:null,route:[],navT:0,intro:true,introT:0,id:Math.random(),fixedName:dest?dest.name:''};
   // spawn
   if(!fromCurrent || car.e==null || car.e<0){
     const e0 = dg.via[start]>=0 ? dg.via[start] : W.nodes[start].adj[0], E0=W.edges[e0];
@@ -950,6 +973,66 @@ function newRace(fromCurrent){
   $('hint').classList.add('hidden'); releaseControls();
   startIntro();
 }
+/* ---------- Destination search ---------- */
+const srch={fromCurrent:false, items:[], remote:[], token:0};
+const normQ=t=>(t||'').normalize('NFKC').toLowerCase().replace(/\s+/g,'').replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+function refPoint(){ return srch.fromCurrent ? {x:car.x,z:car.z} : {x:0,z:0}; }
+function openSearch(fromCurrent){
+  srch.fromCurrent=fromCurrent; srch.remote=[]; srch.token++;
+  $('hud').classList.add('hidden'); $('intro').classList.add('hidden'); releaseControls();
+  show('search');
+  const pre=$('destIn').value.trim();
+  if(!fromCurrent && pre){ $('qIn').value=pre; runSearch(true); }
+  else { $('qIn').value=''; runSearch(false); }
+  if(!world.origin && !world.poiList.length) $('qStat').textContent='このマップでは検索できません。おまかせで決めてください。';
+}
+function localSearch(q){
+  const n=normQ(q), r=refPoint(), seen=new Set(), out=[];
+  if(!n) return out;
+  for(const p of world.poiList){ if(!normQ(p.name).includes(n)) continue; const k=p.name+'|'+Math.round(p.x/30)+'|'+Math.round(p.z/30); if(seen.has(k)) continue; seen.add(k);
+    out.push({x:p.x,z:p.z,name:p.name,sub:'地図データ内の場所'}); }
+  out.forEach(o=>o.d=Math.hypot(o.x-r.x,o.z-r.z)); out.sort((a,b)=>a.d-b.d);
+  return out.slice(0,15);
+}
+async function remoteSearch(q,tk){
+  const o=world.origin; if(!o) return;
+  const dLat=RADIUS/o.kz, dLon=RADIUS/o.kx;
+  const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=10&accept-language=ja&bounded=1&viewbox='+
+    [(o.lon-dLon).toFixed(5),(o.lat+dLat).toFixed(5),(o.lon+dLon).toFixed(5),(o.lat-dLat).toFixed(5)].join(',')+'&q='+encodeURIComponent(q);
+  $('qStat').textContent='インターネットで検索中…';
+  try{
+    const res=await fetch(url,{headers:{'Accept':'application/json'}}); const j=await res.json(); if(tk!==srch.token) return;
+    const r=refPoint();
+    srch.remote=j.map(e=>{ const x=(+e.lon-o.lon)*o.kx, z=-(+e.lat-o.lat)*o.kz, parts=(e.display_name||'').split(',').map(t=>t.trim());
+      return {x,z,name:e.name||parts[0]||q,sub:parts.slice(1,4).join(' '),d:Math.hypot(x-r.x,z-r.z)}; });
+    $('qStat').textContent='';
+  }catch(e){ if(tk===srch.token) $('qStat').textContent='インターネット検索に失敗しました（地図内の候補のみ表示）'; }
+  if(tk===srch.token) renderResults();
+}
+function runSearch(remote){
+  const q=$('qIn').value.trim(); srch.token++; srch.remote=[];
+  srch.items=localSearch(q);
+  $('qStat').textContent = q ? '' : '名前を入力して検索、または「おまかせ」で決めます';
+  renderResults();
+  if(remote && q) remoteSearch(q,srch.token);
+}
+function renderResults(){
+  const box=$('qList'); box.innerHTML='';
+  const all=[...srch.items];
+  for(const r of srch.remote) if(!all.some(a=>Math.hypot(a.x-r.x,a.z-r.z)<60 && normQ(a.name)===normQ(r.name))) all.push(r);
+  all.sort((a,b)=>a.d-b.d);
+  for(const it of all.slice(0,20)){
+    const out=Math.hypot(it.x,it.z)>RADIUS*1.02;
+    const b=document.createElement('button'); b.className='qi'+(out?' off':'');
+    b.textContent=it.name+'　'+fmtDist(it.d);
+    const sm=document.createElement('small'); sm.textContent=out?'読み込んだ範囲（半径5km）の外です':(it.sub||''); b.appendChild(sm);
+    b.onclick=()=>{ if(out){ $('qStat').textContent='その場所は範囲外です。半径5km以内から選んでください'; return; } chooseDest(it); };
+    box.appendChild(b);
+  }
+  if(!all.length && $('qIn').value.trim() && !$('qStat').textContent) $('qStat').textContent='見つかりませんでした。「検索」ボタンでインターネットからも探せます';
+}
+function chooseDest(it){ srch.token++; newRace(srch.fromCurrent, it); }
+
 /* ---------- Destination intro ---------- */
 const DIRS=['北','北東','東','南東','南','南西','西','北西'];
 function goalRoadName(){
@@ -973,13 +1056,13 @@ function startIntro(){
   const W=world, R=race, g=W.nodes[R.goal];
   const dx=g.x-car.x, dz=g.z-car.z, straight=Math.hypot(dx,dz);
   let brg=Math.atan2(dx,-dz)*180/Math.PI; if(brg<0) brg+=360;
-  setDestName(goalRoadName());
+  setDestName(R.fixedName||goalRoadName());
   $('introInfo').textContent = DIRS[Math.round(brg/45)%8]+'へ 直線 '+fmtDist(straight)+'　ルート '+fmtDist(R.best);
   R.full = fullRoute();
   $('intro').classList.remove('hidden');
   requestAnimationFrame(drawOverview);
   rebuildRouteMesh();
-  fetchGoalPOI(R);
+  if(!R.fixedName) fetchGoalPOI(R);
 }
 function endIntro(){
   if(!race || !race.intro) return;
@@ -1451,9 +1534,14 @@ $('loadDemo').onclick=startDemo;
 $('loadCancel').onclick=toTitle;
 $('menuBtn').onclick=togglePause;
 $('resumeBtn').onclick=togglePause;
-$('pNewGoal').onclick=()=>{ paused=false; newRace(true); };
+$('pNewGoal').onclick=()=>{ openSearch(true); };
 $('pTitle').onclick=toTitle;
-$('rNext').onclick=()=>newRace(true);
+$('rNext').onclick=()=>openSearch(true);
+$('qIn').addEventListener('input',()=>runSearch(false));
+$('qIn').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); runSearch(true); } });
+$('qBtn').onclick=()=>runSearch(true);
+$('qRandom').onclick=()=>{ srch.token++; newRace(srch.fromCurrent); };
+$('qBack').onclick=toTitle;
 $('rTitle').onclick=toTitle;
 $('goBtn').onclick=()=>{ if(!race||race.finished) return; if(race.intro){ endIntro(); return; } setHold(!car.hold); };
 $('lblBtn').onclick=()=>{ lbl.on=!lbl.on; $('lblBtn').classList.toggle('on',lbl.on); lbl.t=0; };
