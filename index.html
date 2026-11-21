@@ -490,7 +490,7 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-19 08:05</div>
+  <div style="margin-bottom:4px">版：2026-11-21 05:40</div>
   データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
   <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
   <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
@@ -2007,12 +2007,18 @@ function jrFav(area){ const v = load("jrFav_" + area); return Array.isArray(v) ?
 // 遅延データの1件が、ある路線に当たるか
 const delayHit = (list, coRe, keyRe) => list.some(x => coRe.test(x.company || "") && keyRe.test(x.name || ""));
 
+// 平常かどうか：状態の欄があればそれで。無ければ「現在、１５分以上の遅延はありません。」のような打ち消しの文を除いてから、乱れを表すことばを探す
+function odptNormal(status, text){
+  if(status && /\S/.test(status)) return /平常|通常/.test(status);
+  const rest = String(text || "").replace(/[^。]*?(ありません|おりません|ございません)。?/g, "");
+  return !/見合わせ|遅れ|遅延|運休|乱れ|折り返し|運転を中止|ダイヤ/.test(rest);
+}
 async function loadToei(){
   const j = await getJSON("https://api-public.odpt.org/api/v4/odpt:TrainInformation?odpt:operator=odpt.Operator:Toei", { proxy:true });
   const m = {};
   for(const x of (Array.isArray(j) ? j : [])){
     const id = String(x["odpt:railway"] || "").split(".").pop(), status = x["odpt:trainInformationStatus"]?.ja || "", text = x["odpt:trainInformationText"]?.ja || "";
-    const normal = (!status || /平常/.test(status)) && (!text || /平常|通常(どおり|通り)|ありません/.test(text));
+    const normal = odptNormal(status, text);
     m[id] = { status:status || (normal ? "平常運転" : "運行情報あり"), text, normal, at:x["dc:date"] };
   }
   return m;
@@ -2074,7 +2080,7 @@ async function loadOdptInfo(){
   const byRw = {}, byOp = {};
   for(const x of list){
     const status = jaOf(x["odpt:trainInformationStatus"]), text = jaOf(x["odpt:trainInformationText"]);
-    const normal = (!status || /平常/.test(status)) && (!text || /平常|通常(どおり|通り)|(情報|お知らせ)はありません/.test(text));
+    const normal = odptNormal(status, text);
     const v = { status:status || (normal ? "平常運転" : "運行情報あり"), text, normal, resume:x["odpt:resumeEstimate"] || "", op:x["odpt:operator"] || "", rw:x["odpt:railway"] || "" };
     if(v.rw) byRw[v.rw] = v; else if(v.op) byOp[v.op] = v;
   }
