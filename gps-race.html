@@ -143,6 +143,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
       <div><span id="spd">0</span> km/h</div>
       <div>🏁 残り <b id="remain">-</b></div>
       <div id="dest"></div>
+      <div id="envInfo"></div>
       <div id="roadName"></div>
     </div>
     <div id="topBtns">
@@ -171,7 +172,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 13（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、検索：Nominatim、ルート：OSRM</p>
+    <p class="small" style="margin-top:12px">バージョン 14.1（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、検索：Nominatim、ルート：OSRM</p>
   </div>
 </div>
 
@@ -231,12 +232,23 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
   </div>
 </div>
 
+<!-- Exit confirm -->
+<div id="exitDlg" class="overlay dim hidden" style="z-index:30">
+  <div class="card">
+    <h2>アプリを終了しますか？</h2>
+    <p>戻るボタンが押されました。</p>
+    <button class="btn" id="exitStay">続ける</button>
+    <button class="btn ghost" id="exitGo">終了する</button>
+  </div>
+</div>
+
 <!-- Pause -->
 <div id="pause" class="overlay dim hidden">
   <div class="card">
     <h2>一時停止</h2>
     <button class="btn" id="resumeBtn">再開</button>
     <button class="btn sub" id="pNewGoal">🔍 目的地を変える</button>
+    <button class="btn ghost" id="envBtn">🌦 天気・時刻を反映：オン</button>
     <button class="btn ghost" id="pTitle">タイトルへ</button>
   </div>
 </div>
@@ -256,6 +268,7 @@ const DIST_RANGE = {near:[1000,2000],mid:[2000,3500],far:[3500,7000]};
 const td=new TextDecoder();
 let tileTpl=null;
 
+let hemi, sun, precip=null;
 let renderer, scene, camera, ground, goalGroup, routeMesh=null, routeTex, roadTex, raycaster, ndc;
 let mode=null;            // 'real' | 'demo'
 let world=null;           // demo world (road graph)
@@ -315,12 +328,13 @@ function initThree(){
   scene = new THREE.Scene();
   const sky=0xa8d4f0; scene.background=new THREE.Color(sky); scene.fog=new THREE.Fog(sky,180,1100);
   camera = new THREE.PerspectiveCamera(68,1,0.3,2500); camera.position.set(0,30,40); camera.lookAt(0,0,0);
-  scene.add(new THREE.HemisphereLight(0xdfefff,0x4a5a3a,0.85));
-  const sun=new THREE.DirectionalLight(0xffffff,0.7); sun.position.set(300,500,200); scene.add(sun);
+  hemi=new THREE.HemisphereLight(0xdfefff,0x4a5a3a,0.85); scene.add(hemi);
+  sun=new THREE.DirectionalLight(0xffffff,0.7); sun.position.set(300,500,200); scene.add(sun);
   const gTex=makeGroundTex(); gTex.repeat.set(750,750);
   ground=new THREE.Mesh(new THREE.PlaneGeometry(30000,30000), new THREE.MeshBasicMaterial({map:gTex}));
   ground.rotation.x=-Math.PI/2; ground.position.y=-0.2; scene.add(ground);
   roadTex=makeRoadTex(); routeTex=makeRouteTex();
+  precip=makePrecip(); scene.add(precip.rain); scene.add(precip.snow);
   goalGroup=makeGoal(); scene.add(goalGroup); goalGroup.visible=false;
   raycaster=new THREE.Raycaster(); ndc=new THREE.Vector2();
   onResize(); window.addEventListener('resize',onResize);
@@ -538,53 +552,12 @@ function buildWaterMesh(water, ox, oz){
   const m=new THREE.Mesh(g, waterMat()); m.position.set(ox,0,oz); return m;
 }
 function waterMat(){ return waterMat.m||(waterMat.m=new THREE.MeshBasicMaterial({color:0x4f8fc8,side:THREE.DoubleSide})); }
-function disposeObj(o){ scene.remove(o); if(o.geometry) o.geometry.dispose(); }
+function disposeObj(o){ scene.remove(o); if(o.geometry && !o.userData.sharedGeo) o.geometry.dispose(); }
 
 /* ---------- buildings (textures + mesh) ---------- */
 const BPAL=['#d9d4ca','#c7ccd3','#e4ddcf','#b4bcc6','#ece7dd','#c2b6a6','#d1c3ad','#a9b3be','#dcd0c0','#bfc6b8'];
 
 const FLOOR_H=3.4, COL_W=3.2, TEX_U=COL_W*4, TEX_V=FLOOR_H*4;
-
-function makeFacadeTex(style){
-  const t=canvasTex(256,256,(g,W,H)=>{
-    const cell=64, rnd=Math.random;
-    const wall = style===0 ? '#cfd6dd' : style===1 ? '#f1eee8' : '#f4efe6';
-    g.fillStyle=wall; g.fillRect(0,0,W,H);
-    for(let i=0;i<2500;i++){ g.fillStyle=rnd()<.5?'rgba(0,0,0,.05)':'rgba(255,255,255,.08)'; g.fillRect(rnd()*W,rnd()*H,2,2); }
-    for(let r=0;r<4;r++) for(let c=0;c<4;c++){
-      const x=c*cell, y=r*cell;
-      if(style===0){ // office / glass curtain wall
-        g.fillStyle='#8f9aa6'; g.fillRect(x,y+50,cell,14);                       // spandrel
-        const gr=g.createLinearGradient(x,y,x+cell,y+50); const b=150+rnd()*60;
-        gr.addColorStop(0,`rgb(${b*0.45|0},${b*0.62|0},${b*0.8|0})`); gr.addColorStop(1,`rgb(${b*0.3|0},${b*0.42|0},${b*0.6|0})`);
-        g.fillStyle=gr; g.fillRect(x+2,y+2,cell-4,46);
-        g.fillStyle='rgba(255,255,255,.18)'; g.beginPath(); g.moveTo(x+2,y+2); g.lineTo(x+26,y+2); g.lineTo(x+2,y+30); g.fill();
-        g.fillStyle='#b9c2cb'; g.fillRect(x+cell/2-1,y+2,2,46);                   // mullion
-      } else if(style===1){ // apartment: windows + balcony rail
-        const dark=55+rnd()*40; g.fillStyle=`rgb(${dark*0.8|0},${dark*0.9|0},${dark|0})`; g.fillRect(x+10,y+8,44,30);
-        g.fillStyle='rgba(255,255,255,.15)'; g.fillRect(x+12,y+10,14,26);
-        if(rnd()<0.5){ g.fillStyle='rgba(230,225,215,.9)'; g.fillRect(x+12,y+10,10,26); } // curtain
-        g.fillStyle='#d9d5cd'; g.fillRect(x,y+42,cell,4);                         // balcony slab
-        g.fillStyle='rgba(120,125,130,.85)'; g.fillRect(x,y+46,cell,2);
-        for(let k=2;k<cell;k+=6) g.fillRect(x+k,y+46,1.5,14);                     // rail bars
-        g.fillRect(x,y+58,cell,2);
-      } else { // house / small building
-        if(rnd()<0.75){ const dark=60+rnd()*40; g.fillStyle='#ffffff'; g.fillRect(x+18,y+14,28,30);
-          g.fillStyle=`rgb(${dark*0.8|0},${dark*0.9|0},${dark|0})`; g.fillRect(x+20,y+16,24,26);
-          g.fillStyle='#ffffff'; g.fillRect(x+31,y+16,2,26); g.fillRect(x+20,y+28,24,2); }
-        g.fillStyle='rgba(0,0,0,.08)'; g.fillRect(x,y+62,cell,2);
-      }
-    }
-  });
-  t.wrapS=t.wrapT=THREE.RepeatWrapping; return t;
-}
-
-function buildingMats(){
-  if(bld.mats) return bld.mats;
-  bld.mats=[0,1,2].map(st=>new THREE.MeshLambertMaterial({map:makeFacadeTex(st),vertexColors:true,side:THREE.DoubleSide}));
-  bld.mats.push(new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide})); // roofs
-  return bld.mats;
-}
 
 function bStyle(b){ return b.H>=28?0:(b.H>=10?(b.id%3===0?0:1):2); }
 // polys: {pts(flat x,z), n, faces, all(Vector2[]), H, M, id, name}
@@ -672,7 +645,7 @@ async function loadTile(x,y){
   }catch(e){ if(gen!==TL.gen) return; t.state='err'; t.retryAt=performance.now()+5000; }
   finally{ if(gen===TL.gen) TL.busy--; }
 }
-const WANT=new Set(['transportation','water','building','poi']);
+const WANT=new Set(['transportation','water','building','poi','landcover','park']);
 function processTile(t,buf){
   const P0=makeProj(origin,t.x,t.y,4096), c=P0([2048,2048]), a=P0([0,0]), b=P0([4096,4096]);
   t.cx=c[0]; t.cz=c[1]; t.bx0=a[0]; t.bz0=a[1]; t.bx1=b[0]; t.bz1=b[1];
@@ -700,6 +673,7 @@ function processTile(t,buf){
     for(let k=0;k<featCount(Pt);k++){ const f=featAt(Pt,k); if(f.type!==1) continue; const nm=f.tags['name:ja']||f.tags.name; if(!nm) continue;
       for(const part of decodeGeom(f.geom)){ const q=proj(part.slice(0,2)), key=Math.floor(q[0]/50)+','+Math.floor(q[1]/50);
         let l=t.poi.get(key); if(!l){l=[];t.poi.set(key,l);} l.push({x:q[0],z:q[1],name:nm,rank:+f.tags.rank||99}); } } }
+  addGreenery(t,layers);
   if(layers.building){ t.bL=layers.building; t.bproj=makeProj(origin,t.x,t.y,layers.building.ext); }
 }
 function poiName(pts,T){
@@ -931,8 +905,7 @@ function buildRoads(g){
 function buildScenery(g){
   const out=[], segN=g.ax.length; if(!segN) return out;
   const maxB=Math.min(5000, Math.floor(g.totalLen/22)), maxT=Math.min(3000, Math.floor(g.totalLen/40));
-  const tg=new THREE.ConeGeometry(1,1,7); tg.translate(0,0.5,0);
-  const tm=new THREE.InstancedMesh(tg, new THREE.MeshLambertMaterial({color:0x3f7f3a}), maxT);
+  const tm=makeTreeMesh('broad',maxT), tc=makeTreeMesh('conifer',maxT);
   const occ=new Set(), O=8, dummy=new THREE.Object3D(), polys=[];
   const free=(cx,cz,r)=>{ for(let i=Math.floor((cx-r)/O);i<=Math.floor((cx+r)/O);i++) for(let j=Math.floor((cz-r)/O);j<=Math.floor((cz+r)/O);j++) if(occ.has(i*100003+j)) return false; return true; };
   const mark=(cx,cz,r)=>{ for(let i=Math.floor((cx-r)/O);i<=Math.floor((cx+r)/O);i++) for(let j=Math.floor((cz-r)/O);j<=Math.floor((cz+r)/O);j++) occ.add(i*100003+j); };
@@ -961,10 +934,10 @@ function buildScenery(g){
   while(m<maxT && tries++<maxT*4){
     const sp=spot(1.5, 3); if(!sp) continue;
     if(!free(sp.x,sp.z,1.5) || roadClearance(sp.x,sp.z)<1.5) continue; mark(sp.x,sp.z,1.5);
-    const h=5+Math.random()*5; dummy.position.set(sp.x,0,sp.z); dummy.rotation.set(0,0,0); dummy.scale.set(1.8+Math.random(),h,1.8+Math.random()); dummy.updateMatrix();
-    tm.setMatrixAt(m,dummy.matrix); m++;
+    const sc=0.8+Math.random()*0.6; dummy.position.set(sp.x,0,sp.z); dummy.rotation.set(0,Math.random()*6.28,0); dummy.scale.set(sc,sc*(0.9+Math.random()*0.3),sc); dummy.updateMatrix();
+    placeTree(Math.random()<0.25?tc:tm, dummy.matrix); m++;
   }
-  tm.count=m; tm.instanceMatrix.needsUpdate=true; out.push(tm);
+  finishTrees(tm); finishTrees(tc); out.push(tm,tc);
   return out;
 }
 
@@ -1419,9 +1392,11 @@ function loop(now){
     else if(drive.finished){ drive.arrT+=dt; if(gs.id===null) car.look=wrapA(car.look+dt*0.22*Math.min(1,drive.arrT/2)); updatePose(false); placeCamera(); }
     else { step(dt); drive.navT-=dt; if(drive.navT<=0){ drive.navT=0.2; updateNavHUD(); rebuildRouteMesh(); } }
     tileTick(dt); bldTick(dt); updateLabels(dt); drawMinimap();
+    envTick(dt);
     routeTex.offset.y-=dt*1.5;
     const bm=goalGroup.userData.beam; bm.material.opacity=0.3+0.12*Math.sin(now/300);
   } else if(mode==='real') tileTick(dt);
+  if(!drive.active) envTick(dt);
   renderer.render(scene,camera);
 }
 
@@ -1494,6 +1469,7 @@ $('menuBtn').onclick=togglePause;
 $('resumeBtn').onclick=togglePause;
 $('pNewGoal').onclick=()=>{ paused=false; drive.active=false; nextDestination(); };
 $('pTitle').onclick=toTitle;
+$('envBtn').onclick=()=>{ env.on=!env.on; $('envBtn').textContent=env.on?'🌦 天気・時刻を反映：オン':'🌦 天気・時刻を反映：オフ（昼・晴れ）'; env.timer=0; };
 $('goBtn').onclick=()=>{ if(!drive.active||drive.finished) return; if(drive.intro){ endIntro(); return; } setHold(!car.hold); };
 $('lblBtn').onclick=()=>{ lbl.on=!lbl.on; $('lblBtn').classList.toggle('on',lbl.on); lbl.t=0; };
 $('mmWrap').onclick=()=>{ mmZoomFar=!mmZoomFar; };
@@ -1506,6 +1482,276 @@ $('spdCtl').addEventListener('pointerdown',e=>e.stopPropagation());
 setSpeedKmh(car.setKmh);
 renderSel();
 if(initThree()) requestAnimationFrame(loop);
+
+
+/* ---------- Trees ---------- */
+function mergeParts(parts){
+  let n=0; const geos=parts.map(([g,c])=>{ const ng=g.index?g.toNonIndexed():g; n+=ng.attributes.position.count; return [ng,c]; });
+  const P=new Float32Array(n*3), C=new Float32Array(n*3); let o=0;
+  for(const [g,c] of geos){ const a=g.attributes.position.array; P.set(a,o*3);
+    for(let i=0;i<a.length/3;i++){ const k=1+(Math.sin(a[3*i]*7.1+a[3*i+1]*3.3+a[3*i+2]*5.7)*0.08); C[(o+i)*3]=c[0]*k; C[(o+i)*3+1]=c[1]*k; C[(o+i)*3+2]=c[2]*k; }
+    o+=a.length/3; }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(P,3)); g.setAttribute('color',new THREE.BufferAttribute(C,3));
+  g.computeVertexNormals(); return g;
+}
+function lumpy(g,amp){ // deterministic bumps so shared vertices stay joined
+  const a=g.attributes.position.array;
+  for(let i=0;i<a.length;i+=3){ const x=a[i],y=a[i+1],z=a[i+2], k=1+amp*Math.sin(x*9.7+y*5.3+z*7.9)*Math.cos(x*3.1-z*4.3); a[i]=x*k; a[i+1]=y*k; a[i+2]=z*k; }
+  return g;
+}
+function treeGeo(kind){
+  if(treeGeo[kind]) return treeGeo[kind];
+  const trunkC=[0.40,0.28,0.18], parts=[];
+  const trunk=new THREE.CylinderGeometry(0.16,0.26,kind==='broad'?2.6:2.0,6); trunk.translate(0,kind==='broad'?1.3:1.0,0); parts.push([trunk,trunkC]);
+  if(kind==='broad'){
+    const blobs=[[0,3.7,0,1.75,[0.27,0.50,0.22]],[0.85,3.2,0.45,1.25,[0.31,0.56,0.25]],[-0.8,3.3,-0.4,1.2,[0.24,0.46,0.2]],[0.15,4.7,0.1,1.1,[0.34,0.6,0.27]],[-0.2,3.0,0.9,1.0,[0.28,0.52,0.23]]];
+    for(const [x,y,z,r,c] of blobs){ const b=lumpy(new THREE.IcosahedronGeometry(r,1),0.12); b.translate(x,y,z); parts.push([b,c]); }
+  } else {
+    const tiers=[[2.1,1.75,2.2],[3.3,1.35,2.0],[4.4,0.95,1.8],[5.3,0.55,1.4]];
+    tiers.forEach(([y,r,h],i)=>{ const c=new THREE.ConeGeometry(r,h,8); lumpy(c,0.05); c.translate(0,y+h/2-0.3,0); parts.push([c,[0.16+i*0.02,0.36+i*0.03,0.2]]); });
+  }
+  return (treeGeo[kind]=mergeParts(parts));
+}
+function treeMat(){ return treeMat.m||(treeMat.m=new THREE.MeshLambertMaterial({vertexColors:true})); }
+function makeTreeMesh(kind,max){ const m=new THREE.InstancedMesh(treeGeo(kind),treeMat(),Math.max(1,max)); m.count=0; m.userData.sharedGeo=true; return m; }
+let _tc=null;
+function placeTree(mesh,matrix){ const i=mesh.count; if(i>=mesh.instanceMatrix.count) return; mesh.setMatrixAt(i,matrix);
+  _tc=_tc||new THREE.Color(); _tc.setRGB(0.85+Math.random()*0.3,0.85+Math.random()*0.3,0.8+Math.random()*0.25); mesh.setColorAt(i,_tc); mesh.count=i+1; }
+function finishTrees(mesh){ mesh.instanceMatrix.needsUpdate=true; if(mesh.instanceColor) mesh.instanceColor.needsUpdate=true; }
+// parks / woods on real maps: green ground + trees
+function greenMat(kind){ const k='g'+kind; return greenMat[k]||(greenMat[k]=new THREE.MeshBasicMaterial({color:kind==='wood'?0x4f7f3e:0x86b863,side:THREE.DoubleSide})); }
+function addGreenery(t,layers){
+  const tsz=tileSizeM(origin.lat), polys={wood:[],grass:[]};
+  for(const name of ['landcover','park']){ const L=layers[name]; if(!L) continue;
+    for(let k=0;k<featCount(L);k++){ const f=featAt(L,k); if(f.type!==3) continue;
+      const cls=f.tags.class||'', sub=f.tags.subclass||'';
+      const kind = name==='park' ? 'grass' : (/wood|forest/.test(cls+sub) ? 'wood' : (/grass|park|meadow|garden|golf|recreation/.test(cls+sub) ? 'grass' : null));
+      if(!kind) continue;
+      for(const pg of polysOf(decodeGeom(f.geom))) polys[kind].push({pg,E:L.ext}); } }
+  const dummy=new THREE.Object3D(), broad=makeTreeMesh('broad',420), coni=makeTreeMesh('conifer',180);
+  for(const kind of ['wood','grass']){
+    const list=polys[kind]; if(!list.length) continue;
+    const flat=[];
+    for(const {pg,E} of list){
+      const proj=makeProj(origin,t.x,t.y,E);
+      flat.push({outer:proj(pg.outer),holes:pg.holes.map(proj)});
+      // trees: random points inside the polygon (tile px space)
+      const o=pg.outer, m2=(tsz/E)**2, area=Math.abs(ringArea(o))*m2, want=Math.min(kind==='wood'?160:60, Math.floor(area/(kind==='wood'?220:650)));
+      let mnx=1e9,mny=1e9,mxx=-1e9,mxy=-1e9; for(let i=0;i<o.length;i+=2){ mnx=Math.min(mnx,o[i]); mxx=Math.max(mxx,o[i]); mny=Math.min(mny,o[i+1]); mxy=Math.max(mxy,o[i+1]); }
+      for(let n=0,tries=0;n<want && tries<want*4;tries++){
+        const px=mnx+Math.random()*(mxx-mnx), py=mny+Math.random()*(mxy-mny);
+        if(px<0||px>=E||py<0||py>=E || !inRing(o,px,py) || pg.holes.some(h=>inRing(h,px,py))) continue;
+        const q=proj([px,py]), sc=0.8+Math.random()*0.7;
+        dummy.position.set(q[0]-t.cx,0,q[1]-t.cz); dummy.rotation.set(0,Math.random()*6.28,0); dummy.scale.set(sc,sc*(0.9+Math.random()*0.3),sc); dummy.updateMatrix();
+        placeTree(kind==='wood'&&Math.random()<0.45?coni:broad, dummy.matrix); n++;
+      }
+    }
+    const gm=buildFlatMesh(flat,t.cx,t.cz,kind==='wood'?-0.16:-0.17,greenMat(kind)); if(gm){ scene.add(gm); t.meshes.push(gm); }
+  }
+  for(const m of [broad,coni]) if(m.count){ finishTrees(m); m.position.set(t.cx,0,t.cz); scene.add(m); t.meshes.push(m); }
+}
+function inRing(r,x,y){ let ins=false; for(let k=0,m=r.length/2-1;k<r.length/2;m=k++){ const xi=r[2*k],yi=r[2*k+1],xj=r[2*m],yj=r[2*m+1];
+  if(((yi>y)!==(yj>y)) && (x<(xj-xi)*(y-yi)/(yj-yi)+xi)) ins=!ins; } return ins; }
+function buildFlatMesh(polys,ox,oz,y,mat){
+  const P=[];
+  for(const w of polys){
+    const toV=p=>{ const a=[]; let n=p.length/2; if(n>1 && p[0]===p[2*n-2] && p[1]===p[2*n-1]) n--; for(let i=0;i<n;i++) a.push(new THREE.Vector2(p[2*i]-ox,p[2*i+1]-oz)); return a; };
+    const outer=toV(w.outer), holes=w.holes.map(toV).filter(h=>h.length>=3); if(outer.length<3) continue;
+    let faces; try{ faces=THREE.ShapeUtils.triangulateShape(outer,holes); }catch(e){ continue; }
+    const all=outer.concat(...holes);
+    for(const f of faces) for(const k of f){ const q=all[k]; if(q) P.push(q.x,y,q.y); }
+  }
+  if(!P.length) return null;
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3));
+  const m=new THREE.Mesh(g,mat); m.position.set(ox,0,oz); return m;
+}
+
+/* ---------- Facades with lit windows at night ---------- */
+function makeFacadePair(style){
+  const cell=64, W=256, H=256, rnd=Math.random;
+  const base=document.createElement('canvas'), lit=document.createElement('canvas'); base.width=lit.width=W; base.height=lit.height=H;
+  const g=base.getContext('2d'), e=lit.getContext('2d');
+  e.fillStyle='#000'; e.fillRect(0,0,W,H);
+  const wall = style===0 ? '#cfd6dd' : style===1 ? '#f1eee8' : '#f4efe6';
+  g.fillStyle=wall; g.fillRect(0,0,W,H);
+  for(let i=0;i<2500;i++){ g.fillStyle=rnd()<.5?'rgba(0,0,0,.05)':'rgba(255,255,255,.08)'; g.fillRect(rnd()*W,rnd()*H,2,2); }
+  const light=(x,y,w,h,p)=>{ if(rnd()<p){ const warm=rnd(); e.fillStyle=warm<0.7?`rgb(255,${200+rnd()*40|0},${120+rnd()*50|0})`:`rgb(${200+rnd()*40|0},${225+rnd()*25|0},255)`; e.fillRect(x,y,w,h); } };
+  for(let r=0;r<4;r++) for(let c=0;c<4;c++){
+    const x=c*cell, y=r*cell;
+    if(style===0){
+      g.fillStyle='#8f9aa6'; g.fillRect(x,y+50,cell,14);
+      const gr=g.createLinearGradient(x,y,x+cell,y+50), b=150+rnd()*60;
+      gr.addColorStop(0,`rgb(${b*0.45|0},${b*0.62|0},${b*0.8|0})`); gr.addColorStop(1,`rgb(${b*0.3|0},${b*0.42|0},${b*0.6|0})`);
+      g.fillStyle=gr; g.fillRect(x+2,y+2,cell-4,46);
+      g.fillStyle='rgba(255,255,255,.18)'; g.beginPath(); g.moveTo(x+2,y+2); g.lineTo(x+26,y+2); g.lineTo(x+2,y+30); g.fill();
+      g.fillStyle='#b9c2cb'; g.fillRect(x+cell/2-1,y+2,2,46);
+      light(x+2,y+2,cell/2-3,46,0.45); light(x+cell/2+1,y+2,cell/2-3,46,0.45);
+    } else if(style===1){
+      const dark=55+rnd()*40; g.fillStyle=`rgb(${dark*0.8|0},${dark*0.9|0},${dark|0})`; g.fillRect(x+10,y+8,44,30);
+      g.fillStyle='rgba(255,255,255,.15)'; g.fillRect(x+12,y+10,14,26);
+      if(rnd()<0.5){ g.fillStyle='rgba(230,225,215,.9)'; g.fillRect(x+12,y+10,10,26); }
+      g.fillStyle='#d9d5cd'; g.fillRect(x,y+42,cell,4);
+      g.fillStyle='rgba(120,125,130,.85)'; g.fillRect(x,y+46,cell,2);
+      for(let k=2;k<cell;k+=6) g.fillRect(x+k,y+46,1.5,14);
+      g.fillRect(x,y+58,cell,2);
+      light(x+10,y+8,44,30,0.6);
+    } else {
+      if(rnd()<0.75){ const dark=60+rnd()*40; g.fillStyle='#ffffff'; g.fillRect(x+18,y+14,28,30);
+        g.fillStyle=`rgb(${dark*0.8|0},${dark*0.9|0},${dark|0})`; g.fillRect(x+20,y+16,24,26);
+        g.fillStyle='#ffffff'; g.fillRect(x+31,y+16,2,26); g.fillRect(x+20,y+28,24,2);
+        light(x+20,y+16,24,26,0.55); }
+      g.fillStyle='rgba(0,0,0,.08)'; g.fillRect(x,y+62,cell,2);
+    }
+  }
+  const mk=c=>{ const t=new THREE.CanvasTexture(c); t.anisotropy=renderer.capabilities.getMaxAnisotropy(); t.wrapS=t.wrapT=THREE.RepeatWrapping; return t; };
+  return {map:mk(base),lit:mk(lit)};
+}
+function buildingMats(){
+  if(bld.mats) return bld.mats;
+  bld.mats=[0,1,2].map(st=>{ const p=makeFacadePair(st);
+    return new THREE.MeshLambertMaterial({map:p.map,emissive:0xffffff,emissiveMap:p.lit,emissiveIntensity:0,vertexColors:true,side:THREE.DoubleSide}); });
+  bld.mats.push(new THREE.MeshLambertMaterial({vertexColors:true,side:THREE.DoubleSide}));
+  applyEnvNow();
+  return bld.mats;
+}
+
+/* ---------- Weather & time of day ---------- */
+const env={on:true,wx:null,fetching:false,lastT:-1e12,lastLL:null,timer:0,thunderT:8,flash:0,f:{over:0,rain:0,snow:0,fog:0,thunder:false},night:0,light:1};
+function sunPos(ms,lat,lon){
+  const rad=Math.PI/180, d=ms/86400000-10957.5;
+  const g=(357.529+0.98560028*d)*rad, q=280.459+0.98564736*d, L=(q+1.915*Math.sin(g)+0.020*Math.sin(2*g))*rad, e=(23.439-0.00000036*d)*rad;
+  const ra=Math.atan2(Math.cos(e)*Math.sin(L),Math.cos(L)), dec=Math.asin(Math.sin(e)*Math.sin(L));
+  const gmst=((18.697374558+24.06570982441908*d)%24+24)%24, ha=(gmst*15+lon)*rad-ra, la=lat*rad;
+  const alt=Math.asin(Math.sin(la)*Math.sin(dec)+Math.cos(la)*Math.cos(dec)*Math.cos(ha));
+  const az=Math.atan2(-Math.sin(ha)*Math.cos(dec), Math.sin(dec)*Math.cos(la)-Math.cos(dec)*Math.sin(la)*Math.cos(ha));
+  return {alt,az};
+}
+function wxFactors(w){
+  if(!w) return {over:0,rain:0,snow:0,fog:0,thunder:false};
+  const c=w.code; let over=(w.cloud??0)/100, rain=0, snow=0, fog=0, thunder=false;
+  if(c===45||c===48){ fog=1; over=Math.max(over,.7); }
+  if(c>=51&&c<=57){ rain=.3; over=Math.max(over,.8); }
+  if(c>=61&&c<=67){ rain=c>=65?1:(c>=63?.7:.45); over=1; }
+  if(c>=80&&c<=82){ rain=c===82?1:(c===81?.7:.45); over=Math.max(over,.85); }
+  if(c>=71&&c<=77){ snow=c>=75?1:.6; over=1; }
+  if(c===85||c===86){ snow=c===86?1:.6; over=1; }
+  if(c>=95){ rain=1; over=1; thunder=true; }
+  return {over,rain,snow,fog,thunder};
+}
+function wxLabel(c){
+  if(c==null) return ['',''];
+  if(c===0) return ['☀️','快晴']; if(c===1) return ['🌤','晴れ']; if(c===2) return ['⛅','晴れ時々曇り']; if(c===3) return ['☁️','曇り'];
+  if(c===45||c===48) return ['🌫','霧']; if(c>=51&&c<=57) return ['🌦','霧雨']; if(c>=61&&c<=67) return ['🌧',c>=65?'強い雨':'雨'];
+  if(c>=71&&c<=77) return ['❄️',c>=75?'大雪':'雪']; if(c>=80&&c<=82) return ['🌦','にわか雨']; if(c===85||c===86) return ['🌨','にわか雪'];
+  if(c>=95) return ['⛈','雷雨']; return ['🌡',''];
+}
+async function fetchWeather(lat,lon){
+  env.fetching=true;
+  try{
+    const url='https://api.open-meteo.com/v1/forecast?latitude='+lat.toFixed(3)+'&longitude='+lon.toFixed(3)+'&current=temperature_2m,weather_code,cloud_cover,precipitation&timezone=Asia%2FTokyo';
+    const r=await fetch(url); const j=await r.json(); const c=j.current;
+    if(c){ env.wx={code:c.weather_code,temp:c.temperature_2m,cloud:c.cloud_cover,prec:c.precipitation}; env.lastT=performance.now(); env.lastLL=[lat,lon]; env.timer=0; }
+  }catch(e){ env.lastT=performance.now()-9*60000; } // retry in about a minute
+  finally{ env.fetching=false; }
+}
+const mixC=(a,b,t)=>[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];
+const smooth=(a,b,x)=>{ const t=Math.max(0,Math.min(1,(x-a)/(b-a))); return t*t*(3-2*t); };
+function applyEnvNow(){ env.timer=0; }
+function envTick(dt){
+  if(!scene) return;
+  // weather fetch (real map only)
+  if(env.on && mode==='real' && origin && drive.pts && !env.fetching){
+    const ll=xz2ll(car.x,car.z), far=!env.lastLL || Math.hypot((ll[0]-env.lastLL[0])*111,(ll[1]-env.lastLL[1])*91)>15;
+    if(far || performance.now()-env.lastT>10*60000) fetchWeather(ll[0],ll[1]);
+  }
+  const f = env.on && mode==='real' ? wxFactors(env.wx) : {over:0,rain:0,snow:0,fog:0,thunder:false};
+  env.f=f;
+  // thunder flash
+  if(f.thunder){ env.thunderT-=dt; if(env.thunderT<0){ env.flash=1; env.thunderT=6+Math.random()*14; } }
+  env.flash=Math.max(0,env.flash-dt*3);
+  updatePrecip(dt,f);
+  env.timer-=dt; if(env.timer>0 && env.flash<=0) return; env.timer=0.5;
+  const ll = (mode==='real' && origin) ? xz2ll(car.x,car.z) : [35.68,139.76];
+  const sp = sunPos(Date.now(), ll[0], ll[1]);
+  const alt = env.on ? sp.alt : 0.9, az = env.on ? sp.az : 2.6;
+  const day=smooth(-0.12,0.18,alt), dusk=Math.max(0,1-Math.abs(alt-0.02)/0.16)*(1-f.over*0.8);
+  let sky=mixC([0.03,0.05,0.11],[0.66,0.83,0.94],day);
+  sky=mixC(sky,[0.98,0.6,0.38],dusk*0.55);
+  const gray=0.22+0.5*day; sky=mixC(sky,[gray,gray*1.04,gray*1.1],f.over*0.75);
+  if(f.rain||f.snow) sky=mixC(sky,[gray*0.85,gray*0.9,gray*0.95],0.4);
+  const fl=env.flash; if(fl>0) sky=mixC(sky,[0.9,0.92,1],fl*0.7);
+  scene.background.setRGB(sky[0],sky[1],sky[2]); scene.fog.color.setRGB(sky[0],sky[1],sky[2]);
+  let near=180, far=1100;
+  if(f.rain){ near=180-110*f.rain; far=1100-550*f.rain; }
+  if(f.snow){ near=Math.min(near,120-60*f.snow); far=Math.min(far,700-300*f.snow); }
+  if(f.fog){ near=15; far=230; }
+  scene.fog.near=near; scene.fog.far=far;
+  env.light=0.16+0.84*day*(1-0.35*f.over)+fl*0.6;
+  hemi.intensity=0.18+0.72*day*(1-0.3*f.over)+fl*1.2;
+  sun.intensity=0.78*day*(1-0.75*f.over);
+  sun.color.setRGB(1,0.85+0.15*(1-dusk),0.7+0.3*(1-dusk));
+  sun.position.set(Math.sin(az)*Math.cos(alt)*1000, Math.max(0.05,Math.sin(alt))*1000, -Math.cos(az)*Math.cos(alt)*1000);
+  env.night=1-day;
+  const L=Math.min(1.2,env.light), tint=f.snow?[1.08,1.1,1.14]:[1,1,1];
+  const setC=(m,b)=>{ if(m) m.color.setRGB(b[0]*L*tint[0],b[1]*L*tint[1],b[2]*L*tint[2]); };
+  setC(ground.material,[1,1,1]); setC(roadMat.m,[1,1,1]); setC(capMat.m,[1,1,1]);
+  setC(waterMat.m,[0.31,0.56,0.78]); setC(greenMat.gwood,[0.31,0.5,0.24]); setC(greenMat.ggrass,[0.53,0.72,0.39]);
+  if(bld.mats) for(let i=0;i<3;i++){ bld.mats[i].emissiveIntensity=env.night*0.85; }
+  // HUD
+  const d=new Date(), hh=d.getHours(), mm=String(d.getMinutes()).padStart(2,'0');
+  const clock=(env.night>0.5?'🌙':'🕒')+' '+hh+':'+mm;
+  let wtxt='';
+  if(mode==='real' && env.on && env.wx){ const [ic,lb]=wxLabel(env.wx.code); wtxt=ic+' '+lb+' '+Math.round(env.wx.temp)+'℃　'; }
+  else if(mode==='real' && env.on) wtxt='天気を取得中…　';
+  else if(!env.on) wtxt='天気・時刻オフ　';
+  $('envInfo').textContent=wtxt+clock;
+}
+function makePrecip(){
+  const N=2200;
+  const rg=new THREE.BufferGeometry(), rp=new Float32Array(N*6); rg.setAttribute('position',new THREE.BufferAttribute(rp,3));
+  const rain=new THREE.LineSegments(rg,new THREE.LineBasicMaterial({color:0xb8c6d6,transparent:true,opacity:0.55,fog:false}));
+  const sg=new THREE.BufferGeometry(), spos=new Float32Array(N*3); sg.setAttribute('position',new THREE.BufferAttribute(spos,3));
+  const snow=new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:0.14,transparent:true,opacity:0.9,fog:false}));
+  rain.frustumCulled=snow.frustumCulled=false; rain.visible=snow.visible=false;
+  const o=new Float32Array(N*3); for(let i=0;i<N;i++){ o[3*i]=(Math.random()-.5)*50; o[3*i+1]=Math.random()*22; o[3*i+2]=(Math.random()-.5)*50; }
+  return {N,rain,snow,o};
+}
+function updatePrecip(dt,f){
+  const P=precip; if(!P) return;
+  P.rain.visible=f.rain>0.01; P.snow.visible=f.snow>0.01;
+  if(!P.rain.visible && !P.snow.visible) return;
+  const cx=camera.position.x, cz=camera.position.z, o=P.o, N=P.N;
+  const fall = P.rain.visible ? 18 : 1.6, vx = car.v*Math.sin(car.h)*0.0, cnt=Math.floor(N*Math.max(f.rain,f.snow));
+  for(let i=0;i<N;i++){
+    o[3*i+1]-=fall*dt*(0.8+((i*7)%10)/25);
+    if(P.snow.visible){ o[3*i]+=Math.sin(i+performance.now()/900)*0.4*dt; }
+    if(o[3*i+1]<0){ o[3*i+1]+=22; o[3*i]=(Math.random()-.5)*50; o[3*i+2]=(Math.random()-.5)*50; }
+  }
+  if(P.rain.visible){ const a=P.rain.geometry.attributes.position.array;
+    for(let i=0;i<N;i++){ a[6*i]=o[3*i]; a[6*i+1]=o[3*i+1]; a[6*i+2]=o[3*i+2]; a[6*i+3]=o[3*i]; a[6*i+4]=o[3*i+1]+0.7; a[6*i+5]=o[3*i+2]; }
+    P.rain.geometry.attributes.position.needsUpdate=true; P.rain.geometry.setDrawRange(0,cnt*2); P.rain.position.set(cx,0,cz); }
+  if(P.snow.visible){ const a=P.snow.geometry.attributes.position.array; a.set(o); P.snow.geometry.attributes.position.needsUpdate=true; P.snow.geometry.setDrawRange(0,cnt); P.snow.position.set(cx,0,cz); }
+}
+
+
+/* ---------- Android back button: never drop out of the app by accident ---------- */
+let backGuard=false, allowExit=false;
+function armBack(){ if(backGuard||allowExit) return; try{ history.pushState({gpsdrive:1},''); backGuard=true; }catch(e){} }
+document.addEventListener('pointerdown',armBack,true);
+document.addEventListener('keydown',armBack,true);
+window.addEventListener('popstate',()=>{ if(allowExit) return; backGuard=false; handleBack(); armBack(); });
+const isOpen=id=>!$(id).classList.contains('hidden');
+function handleBack(){
+  if(isOpen('exitDlg')){ $('exitDlg').classList.add('hidden'); return; }       // 2回目の戻る：ダイアログを閉じるだけ
+  if(isOpen('pause')){ togglePause(); return; }                               // 一時停止メニュー → 走行に戻る
+  if(drive.active && isOpen('hud')){ togglePause(); return; }                  // 走行中・案内画面 → 一時停止メニュー
+  if(isOpen('setup')||isOpen('dsearch')||isOpen('loading')){ toTitle(); return; } // 設定・読込 → タイトル
+  $('exitDlg').classList.remove('hidden');                                     // タイトル → 終了の確認
+}
+$('exitStay').onclick=()=>$('exitDlg').classList.add('hidden');
+$('exitGo').onclick=()=>{ allowExit=true; $('exitDlg').classList.add('hidden'); history.go(backGuard?-2:-1); };
+window.addEventListener('beforeunload',e=>{ if(drive.active && !allowExit){ e.preventDefault(); e.returnValue=''; } });
+armBack();
 
 </script>
 </body>
