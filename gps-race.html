@@ -66,6 +66,13 @@ summary{cursor:pointer;color:#9fc3ff;font-size:14px;padding:4px 0}
 #thrFill{position:absolute;left:0;right:0;bottom:0;height:0;background:linear-gradient(#ff5a3c,#ffd84a 40%,#3cdc78)}
 #branch{position:absolute;left:50%;top:58%;transform:translateX(-50%);font-size:15px;font-weight:700;background:rgba(28,111,209,.85);padding:6px 14px;border-radius:20px;white-space:nowrap}
 #toast{position:absolute;left:50%;bottom:calc(70px + env(safe-area-inset-bottom));transform:translateX(-50%);font-size:14px;background:rgba(10,16,24,.85);padding:8px 14px;border-radius:12px;white-space:nowrap}
+#labels{position:absolute;inset:0;overflow:hidden}
+.blbl{position:absolute;left:0;top:0;transform:translate(-50%,-100%);background:rgba(10,16,24,.78);border:1px solid rgba(255,216,74,.55);border-radius:8px;padding:2px 8px;font-size:12px;line-height:1.35;text-align:center;white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.blbl b{display:block;font-size:13px;color:#fff;overflow:hidden;text-overflow:ellipsis}
+.blbl span{color:#ffd84a;font-weight:700}
+.blbl:after{content:"";position:absolute;left:50%;bottom:-6px;margin-left:-5px;border:5px solid transparent;border-top-color:rgba(255,216,74,.7);border-bottom:0}
+#binfo{position:absolute;left:50%;bottom:calc(70px + env(safe-area-inset-bottom));transform:translateX(-50%);background:rgba(10,16,24,.9);border:1px solid #ffd84a;border-radius:14px;padding:10px 16px;text-align:center;min-width:200px;max-width:calc(100% - 30px)}
+#binfo .n{font-size:17px;font-weight:800}#binfo .h{font-size:22px;color:#ffd84a;font-weight:800}
 #bldStat{position:absolute;left:max(10px,env(safe-area-inset-left));bottom:calc(26px + env(safe-area-inset-bottom));font-size:12px;background:rgba(10,16,24,.6);padding:3px 10px;border-radius:12px}
 .chk{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:14px;color:#b8c4d2}.chk input{width:20px;height:20px}
 #dest{max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ffe48a}
@@ -100,12 +107,13 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
   <div id="topBtns">
     <button class="hbtn" id="menuBtn">≡ メニュー</button>
     <button class="hbtn" id="voiceBtn">🔈 音声</button>
-    <button class="hbtn" id="autoBtn">🧭 自動で進む</button>
-    <button class="hbtn" id="uturnBtn">↩ Uターン</button>
+    <button class="hbtn" id="goBtn">⏸ 一時停止</button>
+    <button class="hbtn on" id="lblBtn">🏢 建物名</button>
   </div>
   <div id="roadName"></div>
-  <div id="hint">行きたい道路をタップ<br><span class="small">または 上にドラッグで前進・左右にドラッグで向きを変える</span></div>
-  <div id="branch" class="hidden"></div>
+  <div id="labels"></div>
+  <div id="hint" class="hidden"></div>
+  <div id="binfo" class="hidden"></div>
   <div id="toast" class="hidden"></div>
   <div id="joy" class="hidden"><div id="joyBase"></div><div id="thrBar"><div id="thrFill"></div></div><div id="joyKnob"></div><div id="joyLbl"></div></div>
   <div id="attr"></div>
@@ -118,7 +126,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <div id="introName">-</div>
     <div id="introInfo">-</div>
     <canvas id="ovMap"></canvas>
-    <div class="how"><div><b>👆</b>道路をタップ<br>そこまで移動</div><div><b>↑</b>上ドラッグ<br>前進（距離で速度）</div><div><b>↔</b>左右ドラッグ<br>向き・曲がる方向</div><div><b>🧭</b>自動で<br>目的地へ</div></div>
+    <div class="how"><div><b>🚗</b>自動で目的地へ<br>道なりに進む</div><div><b>↕</b>上下ドラッグ<br>速く／遅く</div><div><b>↔</b>左右ドラッグ<br>見回す</div><div><b>👆</b>タップ<br>停止・建物情報</div></div>
     <div class="tapgo">画面をタップしてスタート</div>
   </div>
 </div>
@@ -148,7 +156,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
       <button class="btn sub" id="placeBtn">この場所でスタート</button>
     </details>
     <button class="btn ghost" id="demoBtn">🎮 デモマップで遊ぶ（通信なし）</button>
-    <p class="small" style="margin-top:12px">バージョン 6（2026/11/21）— 表示が変わらない時はページを再読み込みしてください。<br>位置情報と OpenStreetMap の道路データ（Overpass API）を使います。都市部は読み込みに数十秒かかることがあります。</p>
+    <p class="small" style="margin-top:12px">バージョン 7（2026/11/21）— 表示が変わらない時はページを再読み込みしてください。<br>位置情報と OpenStreetMap の道路データ（Overpass API）を使います。都市部は読み込みに数十秒かかることがあります。</p>
   </div>
 </div>
 
@@ -513,7 +521,8 @@ async function loadAreaVector(lat,lon,token){
   if(token!==loadToken) return;
   if(!ok) throw new Error('地図タイルを取得できませんでした');
   setStatus('道路データを解析中…'); await sleep(20);
-  const want=new Set(['transportation','transportation_name','water','building']);
+  const want=new Set(['transportation','transportation_name','water','building','poi']);
+  const poi=new Map();
   const lines=[], names=[], water=[], vt=[];
   for(let i=0;i<list.length;i++){
     if(!res[i] || !res[i].length) continue;
@@ -524,7 +533,8 @@ async function loadAreaVector(lat,lon,token){
         let hw=CLASS2HW[f.tags.class]; if(!hw) continue;
         if((f.tags.ramp===1||f.tags.ramp===true) && hw!=='residential') hw+='_link';
         const br=(f.tags.brunnel==='bridge'||f.tags.brunnel==='tunnel')?f.tags.brunnel:'';
-        for(const part of decodeGeom(f.geom)) for(const pc of clipLine(part,E)) lines.push({pts:proj(pc),hw,br}); } }
+        const ow=f.tags.oneway==1?1:(f.tags.oneway==-1?-1:0);
+        for(const part of decodeGeom(f.geom)) for(const pc of clipLine(part,E)) lines.push({pts:proj(pc),hw,br,ow}); } }
     const N=layers.transportation_name;
     if(N){ const proj=makeProj(o,t.x,t.y,N.ext);
       for(let k=0;k<featCount(N);k++){ const f=featAt(N,k); if(f.type!==2) continue; const nm=f.tags['name:ja']||f.tags.name; if(!nm) continue;
@@ -533,6 +543,10 @@ async function loadAreaVector(lat,lon,token){
     if(Wt){ const proj=makeProj(o,t.x,t.y,Wt.ext);
       for(let k=0;k<featCount(Wt);k++){ const f=featAt(Wt,k); if(f.type!==3) continue;
         for(const pg of polysOf(decodeGeom(f.geom))) water.push({outer:proj(pg.outer),holes:pg.holes.map(proj)}); } }
+    const Pt=layers.poi;
+    if(Pt){ const proj=makeProj(o,t.x,t.y,Pt.ext);
+      for(let k=0;k<featCount(Pt);k++){ const f=featAt(Pt,k); if(f.type!==1) continue; const nm=f.tags['name:ja']||f.tags.name; if(!nm) continue;
+        for(const part of decodeGeom(f.geom)){ const q=proj(part.slice(0,2)); const key=Math.floor(q[0]/50)+','+Math.floor(q[1]/50); let l=poi.get(key); if(!l){l=[];poi.set(key,l);} l.push({x:q[0],z:q[1],name:nm,rank:+f.tags.rank||99}); } } }
     if(layers.building) vt.push({x:t.x,y:t.y,L:layers.building,proj:makeProj(o,t.x,t.y,layers.building.ext),chunks:null});
     if(i%4===3){ $('loadSub').textContent='解析 '+(i+1)+' / '+list.length; await sleep(0); if(token!==loadToken) return; }
   }
@@ -541,7 +555,7 @@ async function loadAreaVector(lat,lon,token){
   if(token!==loadToken) return;
   assignNames(lines,names);
   const raw=nodeLines(lines);
-  raw.origin=o; raw.water=water; raw.vt=vt;
+  raw.origin=o; raw.water=water; raw.vt=vt; raw.poi=poi;
   await buildWorld(raw, token, true);
 }
 function assignNames(lines,names){
@@ -565,7 +579,7 @@ function nodeLines(lines){
   const L=[];
   for(const ln of lines){ const ids=[]; const p=ln.pts;
     for(let i=0;i<p.length;i+=2){ const id=getNode(p[i],p[i+1],0.8); if(ids[ids.length-1]!==id) ids.push(id); }
-    if(ids.length>=2) L.push({ids,hw:ln.hw,br:ln.br,name:ln.name||''}); }
+    if(ids.length>=2) L.push({ids,hw:ln.hw,br:ln.br,ow:ln.ow||0,name:ln.name||''}); }
   const cnt=new Map(); for(const l of L) for(const id of l.ids) cnt.set(id,(cnt.get(id)||0)+1);
   const G=25, sg=new Map(), sl=[], si=[];
   L.forEach((l,li)=>{ for(let i=0;i<l.ids.length-1;i++){ const a=l.ids[i], b=l.ids[i+1], s=sl.length; sl.push(li); si.push(i);
@@ -603,7 +617,7 @@ function nodeLines(lines){
   for(const l of L){ const refs=[l.ids[0]];
     for(let i=0;i<l.ids.length-1;i++,s++){ const sp=splits.get(s); if(sp){ sp.sort((a,b)=>a.t-b.t); for(const e of sp) if(refs[refs.length-1]!==e.id) refs.push(e.id); }
       if(refs[refs.length-1]!==l.ids[i+1]) refs.push(l.ids[i+1]); }
-    if(refs.length>=2) ways.push({refs,hw:l.hw,name:l.name}); }
+    if(refs.length>=2) ways.push({refs,hw:l.hw,name:l.name,ow:l.ow}); }
   return {nodes,ways};
 }
 function buildWater(water){
@@ -625,7 +639,8 @@ function osmToRaw(data, lat0, lon0){
   const nodes = new Map(), ways = [];
   for(const el of data.elements){
     if(el.type==='node') nodes.set(el.id,{x:(el.lon-lon0)*kx, z:-(el.lat-lat0)*kz});
-    else if(el.type==='way' && el.nodes && el.tags) ways.push({refs:el.nodes, hw:el.tags.highway, name:el.tags.name||el.tags.ref||''});
+    else if(el.type==='way' && el.nodes && el.tags) { const t=el.tags, o=t.oneway; const ow=(o==='yes'||o==='1'||o==='true')?1:(o==='-1'?-1:((o!=='no' && (t.highway==='motorway'||t.junction==='roundabout'))?1:0));
+      ways.push({refs:el.nodes, hw:t.highway, name:t.name||t.ref||'', ow}); }
   }
   return {nodes, ways, origin:{lat:lat0,lon:lon0,kx,kz}};
 }
@@ -672,7 +687,7 @@ function buildGraph(raw){
         }
         if(pts.length>=4 && len>0.5){
           const a=gnode(r[start]), b=gnode(r[i]);
-          if(a!==b || len>8){ const e=edges.length; edges.push({a,b,pts,len,w:ROAD_W[w.hw]||6,hw:w.hw,name:w.name});
+          if(a!==b || len>8){ const e=edges.length; edges.push({a,b,pts,len,w:ROAD_W[w.hw]||6,hw:w.hw,name:w.name,ow:w.ow||0});
             nodes[a].adj.push(e); if(a!==b) nodes[b].adj.push(e); }
         }
         start = i;
@@ -745,6 +760,18 @@ class Heap{
   pop(){const a=this.ids,b=this.ks,id=a[0];this.pk=b[0];const lid=a.pop(),lk=b.pop(),n=a.length;
     if(n>0){let i=0;for(;;){const l=2*i+1;if(l>=n)break;const r=l+1;const m=(r<n&&b[r]<b[l])?r:l;if(b[m]>=lk)break;a[i]=a[m];b[i]=b[m];i=m;}a[i]=lid;b[i]=lk;}
     return id;}
+}
+// directed: may we drive along E leaving node "from"?
+function canGo(E,from){ if(!E.ow || E.a===E.b) return true; return E.ow===1 ? from===E.a : from===E.b; }
+// toGoal=true: distances TO src (reverse search), false: FROM src
+function dijkstraDir(g,src,toGoal){
+  const N=g.nodes.length, dist=new Float64Array(N).fill(Infinity), via=new Int32Array(N).fill(-1), h=new Heap();
+  dist[src]=0; h.push(src,0);
+  while(h.size){ const u=h.pop(), du=h.pk; if(du>dist[u]) continue;
+    for(const e of g.nodes[u].adj){ const E=g.edges[e], v=E.a===u?E.b:E.a;
+      if(toGoal ? !canGo(E,v) : !canGo(E,u)) continue;
+      const nd=du+E.len; if(nd<dist[v]){dist[v]=nd;via[v]=e;h.push(v,nd);} } }
+  return {dist,via};
 }
 function dijkstra(g,src){
   const N=g.nodes.length, dist=new Float64Array(N).fill(Infinity), via=new Int32Array(N).fill(-1), h=new Heap();
@@ -828,6 +855,7 @@ function buildScenery(g){
     if(L<6) return null; const t=Math.random(), ux=dx/L, uz=dz/L, side=Math.random()<.5?1:-1, off=E.w/2+minOff+size/2;
     return {x:g.ax[s]+dx*t-uz*off*side, z:g.az[s]+dz*t+ux*off*side, ux, uz};
   };
+  const demoH=[], demoMeta=[];
   let n=0, tries=0;
   while(n<maxB && tries++<maxB*5){
     const w=8+Math.random()*16, d=8+Math.random()*14, sp=spot(3+Math.random()*4, d); if(!sp) continue;
@@ -836,8 +864,10 @@ function buildScenery(g){
     const cen=Math.hypot(sp.x,sp.z), tall = cen<1500 ? 1 : 0.55;
     const h=5+Math.random()*Math.random()*55*tall;
     dummy.position.set(sp.x,0,sp.z); dummy.rotation.set(0,Math.atan2(-sp.uz,sp.ux),0); dummy.scale.set(w,h,d); dummy.updateMatrix();
+    demoH.push(h); if(h>=16) demoMeta.push({name:'',h,x:sp.x,z:sp.z});
     bm.setMatrixAt(n,dummy.matrix); col.set(pal[(Math.random()*pal.length)|0]); bm.setColorAt(n,col); n++;
   }
+  bm.userData.h=demoH; g.demoB=bm; g.demoMeta=demoMeta;
   bm.count=n; bm.instanceMatrix.needsUpdate=true; if(bm.instanceColor) bm.instanceColor.needsUpdate=true; out.push(bm);
   let m=0; tries=0;
   while(m<maxT && tries++<maxT*4){
@@ -879,7 +909,7 @@ async function buildWorld(raw, token, isReal){
   clearWorld();
   world = g; g.origin = raw.origin||null;
   for(const m of buildRoads(g)){ scene.add(m); worldObjs.push(m); }
-  g.vt = raw.vt||null;
+  g.vt = raw.vt||null; g.poi = raw.poi||null;
   if(raw.water){ const wm=buildWater(raw.water); if(wm){ scene.add(wm); worldObjs.push(wm); } }
   bld.on = isReal && !!g.vt && $('bldChk').checked;
   if(!bld.on) for(const m of buildScenery(g)){ scene.add(m); worldObjs.push(m); }
@@ -893,13 +923,14 @@ function nearestNode(x,z){ let bi=0,bd=Infinity; world.nodes.forEach((n,i)=>{ co
 function newRace(fromCurrent){
   const W=world;
   const start = fromCurrent ? nearestNode(car.x,car.z) : nearestNode(0,0);
-  const ds = dijkstra(W,start);
+  const ds = dijkstraDir(W,start,false);
   const [mn,mx] = DIST_RANGE[$('distSel').value]||DIST_RANGE.mid;
   let cand=[], maxd=0;
   for(let i=0;i<ds.dist.length;i++){ const d=ds.dist[i]; if(d<Infinity){ if(d>maxd)maxd=d; if(d>=mn&&d<=mx) cand.push(i); } }
   if(!cand.length) for(let i=0;i<ds.dist.length;i++) if(ds.dist[i]<Infinity && ds.dist[i]>=maxd*0.7) cand.push(i);
   const goal = cand[(Math.random()*cand.length)|0];
-  const dg = dijkstra(W,goal);
+  const dg = dijkstraDir(W,goal,true), du = dijkstra(W,goal);
+  for(let i=0;i<dg.dist.length;i++) if(dg.dist[i]===Infinity){ dg.dist[i]=du.dist[i]; dg.via[i]=du.via[i]; }
   race = {start,goal,dist:dg.dist,next:dg.via,best:dg.dist[start],time:0,started:false,finished:false,odo:0,said:new Set(),nav:null,route:[],navT:0,intro:true,introT:0,id:Math.random()};
   // spawn
   if(!fromCurrent || car.e==null || car.e<0){
@@ -907,7 +938,7 @@ function newRace(fromCurrent){
     car.e=e0; car.dir = E0.a===start?1:-1; const s0=Math.min(2,E0.len/2); car.s = car.dir>0?s0:E0.len-s0;
     car.look=0; car.first=true;
   }
-  car.v=0; car.mode='manual'; tap=null; pinGroup.visible=false; updateModeBtn();
+  car.v=0; car.mode='auto'; car.hold=false; tap=null; pinGroup.visible=false; updateGoBtn();
   updatePose(true);
   const gn=W.nodes[goal]; goalGroup.position.set(gn.x,0,gn.z); goalGroup.visible=true;
   carGroup.visible=false;
@@ -953,7 +984,7 @@ function startIntro(){
 function endIntro(){
   if(!race || !race.intro) return;
   race.intro=false; $('intro').classList.add('hidden');
-  if(!race.started && car.mode==='manual') $('hint').classList.remove('hidden');
+  setHold(false);
   updatePose(true); placeCamera(true);
 }
 function drawOverview(){
@@ -1130,26 +1161,16 @@ function updatePose(snap){
 }
 function nextNodeInfo(){ const E=world.edges[car.e], len=edgeLen(E); return {N:car.dir>0?E.b:E.a, O:car.dir>0?E.a:E.b, d:car.dir>0?len-car.s:car.s, len}; }
 function chooseNext(node,inE){
-  const W=world, adj=W.nodes[node].adj;
-  if(car.mode==='auto'){ return race.next[node]; }
-  if(car.mode==='tap' && tap){ const v=tap.via[node]; if(v===-2) return tap.e; if(v>=0) return v; }
-  const want=car.h+car.look, wv={x:Math.sin(want),z:-Math.cos(want)};
-  let best=-1, bd=Infinity;
-  for(const e of adj){ if(e===inE && adj.length>1) continue; const a=Math.abs(sAngle(wv,leaveDir(W.edges[e],node))); if(a<bd){bd=a;best=e;} }
+  const W=world, ne=race.next[node];
+  if(ne>=0) return ne;
+  // fallback (should not happen): straightest allowed road, never the one we came from unless dead end
+  const adj=W.nodes[node].adj, ind=inE>=0?arriveDir(W.edges[inE],node):{x:0,z:-1}; let best=-1,bd=Infinity;
+  for(const e of adj){ if(e===inE && adj.length>1) continue; const E=W.edges[e]; if(!canGo(E,node) && adj.length>1) continue;
+    const a=Math.abs(sAngle(ind,leaveDir(E,node))); if(a<bd){bd=a;best=e;} }
   return best;
 }
-function uTurn(){
-  car.dir*=-1; car.v=Math.min(car.v,2);
-  car.look=wrapA(car.look-Math.PI); car.hd=wrapA(car.hd+Math.PI);
-  updatePose(false);
-}
-function setMode(m){ car.mode=m; if(m!=='tap'){ tap=null; pinGroup.visible=false; } updateModeBtn(); }
-function updateModeBtn(){ const b=$('autoBtn'); if(!b) return; b.classList.toggle('on',car.mode==='auto'); b.textContent=car.mode==='auto'?'⏸ 自動を止める':'🧭 自動で進む'; }
-function faceTowards(dist){ // turn around if the other way is shorter
-  const E=world.edges[car.e], k=nextNodeInfo();
-  if(k.len-k.d+dist[k.O]+3 < k.d+dist[k.N]) uTurn();
-}
-function startAuto(){ setMode('auto'); faceTowards(race.dist); $('hint').classList.add('hidden'); }
+function updateGoBtn(){ const b=$('goBtn'); if(!b) return; b.textContent=car.hold?'▶ 進む':'⏸ 一時停止'; b.classList.toggle('on',car.hold); }
+function setHold(h){ car.hold=h; updateGoBtn(); }
 function dijkstraMulti(g,srcs){
   const N=g.nodes.length, dist=new Float64Array(N).fill(Infinity), via=new Int32Array(N).fill(-1), h=new Heap();
   for(const [n,d] of srcs) if(d<dist[n]){ dist[n]=d; via[n]=-2; h.push(n,d); }
@@ -1158,81 +1179,98 @@ function dijkstraMulti(g,srcs){
   return {dist,via};
 }
 function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.remove('hidden'); clearTimeout(toast.tm); toast.tm=setTimeout(()=>t.classList.add('hidden'),2200); }
+const CRUISE_V=12; // ≒43km/h
 function handleTap(x,y){
   if(!world || !race || race.finished) return;
   const r=renderer.domElement.getBoundingClientRect();
   ndc.set((x-r.left)/r.width*2-1, -((y-r.top)/r.height)*2+1);
   raycaster.setFromCamera(ndc,camera);
-  const o=raycaster.ray.origin, d=raycaster.ray.direction;
-  if(d.y>-0.003){ toast('道路をタップすると、その場所まで進みます'); return; }
-  const t=-o.y/d.y; if(t>1500){ toast('もう少し手前の道路をタップしてください'); return; }
-  const px=o.x+d.x*t, pz=o.z+d.z*t, tol=Math.max(10,t*0.05);
-  let ns=nearestSeg(px,pz,-1,1); if(!ns || ns.d>tol){ const n2=nearestSeg(px,pz,-1,2); ns=(n2&&n2.d<=tol*1.5)?n2:null; }
-  if(!ns){ toast('そこには道路がありません'); return; }
-  const W=world, E=W.edges[ns.e], sT=W.cum[ns.s]+ns.t*Math.hypot(W.bx[ns.s]-W.ax[ns.s],W.bz[ns.s]-W.az[ns.s]);
-  const m=dijkstraMulti(W,[[E.a,sT],[E.b,edgeLen(E)-sT]]);
-  tap={e:ns.e,s:sT,dist:m.dist,via:m.via};
-  pinGroup.position.set(ns.px,0,ns.pz); pinGroup.visible=true;
-  setMode('tap'); tap=tap||null;
-  if(car.e===tap.e){ const dT=car.dir>0?sT-car.s:car.s-sT; if(dT<0) uTurn(); }
-  else faceTowards(tap.dist);
-  $('hint').classList.add('hidden');
+  const meshes=[]; for(const c of bld.tiles.values()) if(c.mesh) meshes.push(c.mesh);
+  if(world.demoB) meshes.push(world.demoB);
+  const hit=raycaster.intersectObjects(meshes,false)[0];
+  if(hit && hit.distance<900){ const m=metaOfHit(hit); if(m){ showBInfo(m); return; } }
+  setHold(!car.hold); toast(car.hold?'一時停止しました（タップで再開）':'出発します');
+}
+function metaOfHit(hit){
+  const o=hit.object;
+  if(o.isInstancedMesh){ const h=o.userData.h; return h && hit.instanceId!=null ? {name:'',h:h[hit.instanceId]} : null; }
+  const R=o.userData.ranges, M=o.userData.meta; if(!R) return null;
+  const v=hit.faceIndex*3; let lo=0, hi=R.length-1; while(lo<hi){ const m=(lo+hi+1)>>1; if(R[m]<=v) lo=m; else hi=m-1; }
+  return M[lo];
+}
+function showBInfo(m){
+  const el=$('binfo'); el.innerHTML='';
+  const n=document.createElement('div'); n.className='n'; n.textContent='🏢 '+(m.name||'名称不明の建物');
+  const h=document.createElement('div'); h.className='h'; h.textContent='高さ 約'+Math.round(m.h)+' m';
+  const f=document.createElement('div'); f.className='small'; f.textContent='（およそ'+Math.max(1,Math.round(m.h/3.3))+'階建て相当）';
+  el.append(n,h,f); el.classList.remove('hidden'); clearTimeout(showBInfo.tm); showBInfo.tm=setTimeout(()=>el.classList.add('hidden'),4000);
 }
 function step(dt){
   const W=world, R=race;
-  // speed target
-  let target=0, brk=Math.max(input.down?1:0, drag.brk);
-  const thr=Math.max(input.up?1:0, drag.thr);
-  if(thr>0 && car.mode!=='manual') setMode('manual');
-  if(car.mode==='manual') target=thr*VMAX; else target=CRUISE[car.mode];
-  if(car.mode==='manual' && thr>0 && car.v<1 && Math.abs(car.look)>1.9) uTurn();
+  const thr=Math.max(input.up?1:0, drag.thr), brk=Math.max(input.down?1:0, drag.brk);
   if(input.left) car.look=wrapA(car.look-1.6*dt);
   if(input.right) car.look=wrapA(car.look+1.6*dt);
-  if(!R.started && (thr>0 || car.mode!=='manual')){ R.started=true; $('hint').classList.add('hidden'); }
-  // look ahead: slow down for turns / stop points
+  if(gs.id===null && !input.left && !input.right) car.look*=Math.exp(-dt*2.2); // 指を離すと前方へ戻る
+  let target = car.hold ? 0 : CRUISE_V + thr*(VMAX-CRUISE_V);
+  if(brk>0) target = car.hold ? 0 : CRUISE_V*(1-brk);
+  if(!R.started && target>0){ R.started=true; }
+  // slow down smoothly before sharp turns and the goal
   const k=nextNodeInfo(); let vlim=Infinity;
   const ne=chooseNext(k.N,car.e);
-  if(ne<0) vlim=Math.sqrt(2*3*Math.max(0,k.d-1));
+  if(ne<0 || k.N===R.goal) vlim=Math.sqrt(2*2.5*Math.max(0,k.d));
   else { const th=Math.abs(sAngle(arriveDir(W.edges[car.e],k.N), leaveDir(W.edges[ne],k.N)));
-    const vt = th<0.35?Infinity:Math.max(3.5,15*(1-th/Math.PI)); vlim=Math.sqrt(vt*vt+2*3*k.d); }
-  if(car.mode==='tap' && tap && car.e===tap.e){ const dT=car.dir>0?tap.s-car.s:car.s-tap.s;
-    if(dT<0.6){ car.v=0; setMode('manual'); toast('到着しました'); } else vlim=Math.min(vlim,Math.sqrt(2*2.5*(dT-0.3))); }
+    const vt = th<0.4?Infinity:Math.max(5,15*(1-th/Math.PI)); vlim=Math.sqrt(vt*vt+2*2.5*k.d); }
   let v=car.v;
-  if(brk>0) v=Math.max(0,v-9*brk*dt);
-  else if(v<target) v=Math.min(target, v+3.5*dt);
-  else v=Math.max(target, v-4*dt);
-  if(v>vlim) v=Math.max(vlim, v-7*dt);
+  if(v<target) v=Math.min(target, v+3*dt); else v=Math.max(target, v-(brk>0||car.hold?6:3.5)*dt);
+  if(v>vlim) v=Math.max(vlim, v-6*dt);
+  if(!car.hold && k.N!==R.goal) v=Math.max(v, Math.min(target,3)); // 止まらず必ず前へ
   car.v=v;
-  // advance along the graph
+  // advance along the route
   let rem=v*dt, guard=0;
-  while(rem>0 && guard++<20){
+  while(rem>0 && guard++<30){
     const E=W.edges[car.e], len=edgeLen(E), toEnd=car.dir>0?len-car.s:car.s;
     if(rem<toEnd){ car.s+=car.dir*rem; rem=0; break; }
     rem-=toEnd; const N=car.dir>0?E.b:E.a;
+    if(N===R.goal){ car.s=car.dir>0?len:0; car.v=0; break; }
     const nx=chooseNext(N,car.e);
     if(nx<0){ car.s=car.dir>0?len:0; car.v=0; break; }
-    const oldH=car.h, E2=W.edges[nx];
-    car.e=nx; car.dir=(E2.a===N)?1:-1; car.s=car.dir>0?0:edgeLen(E2);
-    const nh=Math.atan2(leaveDir(E2,N).x,-leaveDir(E2,N).z), dH=wrapA(nh-oldH);
-    if(Math.abs(car.look)>0.1 && Math.sign(car.look)===Math.sign(dH)){ const c=Math.sign(dH)*Math.min(Math.abs(car.look),Math.abs(dH)); car.look-=c; car.hd=wrapA(car.hd+c); }
+    const E2=W.edges[nx]; car.e=nx; car.dir=(E2.a===N)?1:-1; car.s=car.dir>0?0:edgeLen(E2);
   }
   updatePose(false);
   if(R.started && !R.finished){ R.time+=dt; R.odo+=v*dt; }
   car.ns=nearestSeg(car.x,car.z,car.e);
-  // goal
   const g=W.nodes[R.goal];
-  if(!R.finished && Math.hypot(car.x-g.x,car.z-g.z)<15) finish();
-  // branch preview (manual)
-  const bEl=$('branch');
-  if(car.mode==='manual' && W.nodes[k.N].adj.length>=3 && k.d<250 && ne>=0){
-    const th=sAngle(arriveDir(W.edges[car.e],k.N), leaveDir(W.edges[ne],k.N));
-    bEl.textContent='次の交差点：'+(Math.abs(th)<0.45?'直進 ↑':(th>0?'右へ ↱':'左へ ↰'))+'　'+fmtDist(k.d);
-    bEl.classList.remove('hidden');
-  } else bEl.classList.add('hidden');
-  pinGroup.userData.cone.position.y=7+Math.sin(performance.now()/250)*0.8;
+  if(!R.finished && (Math.hypot(car.x-g.x,car.z-g.z)<15 || (k.N===R.goal && k.d<1 && car.v<0.5))) finish();
   const fov=68+Math.min(25,v)*0.4; if(Math.abs(camera.fov-fov)>0.1){ camera.fov=fov; camera.updateProjectionMatrix(); }
   placeCamera(false);
   $('spd').textContent=Math.round(v*3.6);
+}
+/* ---------- Building labels (name + height) ---------- */
+const lbl={on:true,t:0,items:[],pool:[]};
+function labelPool(i){ while(lbl.pool.length<=i){ const d=document.createElement('div'); d.className='blbl'; d.style.display='none'; $('labels').appendChild(d); lbl.pool.push(d); } return lbl.pool[i]; }
+function updateLabels(dt){
+  lbl.t-=dt;
+  if(lbl.t<=0){ lbl.t=0.3; lbl.items=[];
+    if(lbl.on){
+      const yaw=camYaw(), fx=Math.sin(yaw), fz=-Math.cos(yaw), cand=[];
+      const consider=m=>{ const dx=m.x-car.x, dz=m.z-car.z, d=Math.hypot(dx,dz); if(d<8||d>220) return;
+        if((dx*fx+dz*fz)/d<0.55) return; if(!m.name && m.h<14) return;
+        cand.push({m,score:(m.name?0:400)+d-m.h*0.5}); };
+      for(const c of bld.tiles.values()) if(c.meta && Math.hypot(c.cx-car.x,c.cz-car.z)<600) for(const m of c.meta) consider(m);
+      if(world.demoMeta) for(const m of world.demoMeta) consider(m);
+      cand.sort((a,b)=>a.score-b.score); lbl.items=cand.slice(0,8).map(c=>c.m);
+    }
+  }
+  const W=window.innerWidth, H=window.innerHeight, v=new THREE.Vector3();
+  for(let i=0;i<Math.max(lbl.items.length,lbl.pool.length);i++){
+    const m=lbl.items[i], d=labelPool(i);
+    if(!m){ d.style.display='none'; continue; }
+    v.set(m.x,m.h+2,m.z).project(camera);
+    if(v.z>1 || v.x<-1.1 || v.x>1.1 || v.y<-1 || v.y>1.2){ d.style.display='none'; continue; }
+    if(d._m!==m){ d._m=m; d.innerHTML=''; if(m.name){ const b=document.createElement('b'); b.textContent=m.name; d.appendChild(b); }
+      const sp=document.createElement('span'); sp.textContent=Math.round(m.h)+' m'; d.appendChild(sp); }
+    d.style.display=''; d.style.transform='translate('+((v.x+1)/2*W)+'px,'+((1-v.y)/2*H)+'px) translate(-50%,-100%)';
+  }
 }
 /* ---------- Real buildings (from vector tiles, built in chunks near the car) ---------- */
 const BPAL=['#d9d4ca','#c7ccd3','#e4ddcf','#b4bcc6','#ece7dd','#c2b6a6','#d1c3ad','#a9b3be','#dcd0c0','#bfc6b8'];
@@ -1268,7 +1306,18 @@ function bldTick(dt){
   if(best.decode){ decodeBuildings(best.T); return; }
   const mesh=buildBldMesh(best.T, best.T.chunks[best.i]);
   if(mesh) scene.add(mesh);
-  bld.tiles.set(best.key,{mesh,cx:best.c[0],cz:best.c[1]});
+  bld.tiles.set(best.key,{mesh,cx:best.c[0],cz:best.c[1],meta:mesh?mesh.userData.meta:null});
+}
+function poiName(pts){
+  const P=world.poi; if(!P) return '';
+  let a=1e9,b=1e9,A=-1e9,B=-1e9; for(let i=0;i<pts.length;i+=2){ a=Math.min(a,pts[i]); A=Math.max(A,pts[i]); b=Math.min(b,pts[i+1]); B=Math.max(B,pts[i+1]); }
+  let best=null;
+  for(let i=Math.floor(a/50);i<=Math.floor(A/50);i++) for(let j=Math.floor(b/50);j<=Math.floor(B/50);j++){ const l=P.get(i+','+j); if(!l) continue;
+    for(const q of l){ if(q.x<a||q.x>A||q.z<b||q.z>B) continue; let inside=false;
+      for(let k=0,m=pts.length/2-1;k<pts.length/2;m=k++){ const xi=pts[2*k],zi=pts[2*k+1],xj=pts[2*m],zj=pts[2*m+1];
+        if(((zi>q.z)!==(zj>q.z)) && (q.x < (xj-xi)*(q.z-zi)/(zj-zi)+xi)) inside=!inside; }
+      if(inside && (!best || q.rank<best.rank)) best=q; } }
+  return best?best.name:'';
 }
 function buildBldMesh(T, list){
   if(!list.length) return null;
@@ -1280,29 +1329,30 @@ function buildBldMesh(T, list){
     const toV=p=>{ const a=[]; for(let i=0;i<p.length;i+=2) a.push(new THREE.Vector2(p[i],p[i+1])); return a; };
     const cv=toV(pts), hv=holes.map(toV); let faces=[]; try{ faces=THREE.ShapeUtils.triangulateShape(cv,hv); }catch(e){}
     const all=cv.concat(...hv);
-    polys.push({pts,n,faces,all,H:b.H,M:b.M,id:b.id}); nv+=n*6+faces.length*3;
+    polys.push({pts,n,faces,all,H:b.H,M:b.M,id:b.id,name:poiName(pts)}); nv+=n*6+faces.length*3;
   }
   if(!polys.length) return null;
   const P=new Float32Array(nv*3), C=new Float32Array(nv*3), col=new THREE.Color(); let v=0;
-  for(const b of polys){
+  const ranges=new Int32Array(polys.length), meta=[];
+  polys.forEach((b,bi)=>{ ranges[bi]=v; let cx=0,cz=0; for(let i=0;i<b.n;i++){cx+=b.pts[2*i];cz+=b.pts[2*i+1];} meta.push({name:b.name,h:b.H,x:cx/b.n,z:cz/b.n});
     col.set(BPAL[b.id%BPAL.length]);
     const put=(x,y,z,s)=>{ P[v*3]=x; P[v*3+1]=y; P[v*3+2]=z; C[v*3]=Math.min(1,col.r*s); C[v*3+1]=Math.min(1,col.g*s); C[v*3+2]=Math.min(1,col.b*s); v++; };
     for(let i=0;i<b.n;i++){ const j=(i+1)%b.n, ax=b.pts[2*i], az=b.pts[2*i+1], bx=b.pts[2*j], bz=b.pts[2*j+1];
       put(ax,b.M,az,.82); put(bx,b.M,bz,.82); put(bx,b.H,bz,1); put(ax,b.M,az,.82); put(bx,b.H,bz,1); put(ax,b.H,az,1); }
     for(const f of b.faces) for(const k of f){ const p=b.all[k]; if(p) put(p.x,b.H,p.y,1.08); else put(0,-50,0,1); }
-  }
+  });
   const g=new THREE.BufferGeometry();
   g.setAttribute('position',new THREE.BufferAttribute(P.subarray(0,v*3),3));
   g.setAttribute('color',new THREE.BufferAttribute(C.subarray(0,v*3),3));
   g.computeVertexNormals(); g.computeBoundingSphere();
   if(!bld.mat) bld.mat=new THREE.MeshLambertMaterial({vertexColors:true, side:THREE.DoubleSide});
-  return new THREE.Mesh(g, bld.mat);
+  const mesh=new THREE.Mesh(g, bld.mat); mesh.userData={ranges,meta}; return mesh;
 }
 function fmtTime(t){ const m=Math.floor(t/60), s=t-m*60; return m+':'+(s<10?'0':'')+s.toFixed(1); }
 function finish(){
   const R=race; R.finished=true; car.v=0;
   releaseControls();
-  setMode('manual');
+  car.v=0;
   $('rName').textContent=R.goalName||'目的地'; $('rTime').textContent=fmtTime(R.time); $('rOdo').textContent=fmtDist(R.odo); $('rBest').textContent=fmtDist(R.best);
   $('rAvg').textContent=R.time>0?Math.round(R.odo/R.time*3.6)+' km/h':'-';
   speak('目的地に到着しました');
@@ -1336,6 +1386,7 @@ function loop(now){
       race.navT-=dt; if(race.navT<=0){ race.navT=0.15; updateNav(); updateNavHUD(); rebuildRouteMesh(); }
     }
     bldTick(dt);
+    updateLabels(dt);
     drawMinimap();
     routeTex.offset.y -= dt*1.5;
     const bm=goalGroup.userData.beam; bm.material.opacity=0.3+0.12*Math.sin(now/300);
@@ -1350,7 +1401,7 @@ function dragRange(){ return Math.max(90,Math.min(200,window.innerHeight*0.28));
 function gDown(e){
   if(!race || race.finished || paused) return;
   e.preventDefault();
-  if(race.intro){ endIntro(); }
+  if(race.intro){ endIntro(); return; }
   if(gs.id!==null) return;
   gs.id=e.pointerId; gs.x0=gs.lx=e.clientX; gs.y0=e.clientY; gs.t0=performance.now(); gs.moved=false;
   try{ $('touch').setPointerCapture(e.pointerId); }catch(_){}
@@ -1367,7 +1418,7 @@ function gMove(e){
     j.style.left=gs.x0+'px'; j.style.top=gs.y0+'px'; j.classList.remove('hidden');
     const knob=$('joyKnob'); knob.style.transform='translate(0px,'+Math.max(-T,Math.min(T*0.5,-dy))+'px)'; knob.classList.toggle('brk',drag.brk>0);
     $('thrFill').style.height=(drag.thr*100)+'%';
-    $('joyLbl').textContent=drag.brk>0?'止まる':Math.round(drag.thr*VMAX*3.6)+' km/h';
+    $('joyLbl').textContent=drag.brk>0?(Math.round(CRUISE_V*(1-drag.brk)*3.6)+' km/h'):Math.round((CRUISE_V+drag.thr*(VMAX-CRUISE_V))*3.6)+' km/h';
   } else { drag.thr=drag.brk=0; j.classList.add('hidden'); }
 }
 function gUp(e){
@@ -1386,8 +1437,7 @@ const KEYS={ArrowUp:'up',KeyW:'up',ArrowDown:'down',KeyS:'down',Space:'down',Arr
 window.addEventListener('keydown',e=>{ if(e.target.closest && e.target.closest('input,select')) return; const k=KEYS[e.code];
   if(k){ if(race&&race.intro&&!paused) endIntro(); input[k]=true; e.preventDefault(); }
   if(e.code==='Escape' && race && !race.finished) togglePause();
-  if(e.code==='KeyU' && race && !race.intro) uTurn();
-  if(e.code==='KeyG' && race && !race.intro) (car.mode==='auto'?setMode('manual'):startAuto()); });
+  if(e.code==='KeyP' && race && !race.intro) setHold(!car.hold); });
 window.addEventListener('keyup',e=>{ const k=KEYS[e.code]; if(k) input[k]=false; });
 window.addEventListener('blur',releaseControls);
 function togglePause(){ if(!race) return; paused=!paused; releaseControls(); show(paused?'pause':null); if(!paused && race.intro) $('intro').classList.remove('hidden'); else if(paused) $('intro').classList.add('hidden'); }
@@ -1405,8 +1455,8 @@ $('pNewGoal').onclick=()=>{ paused=false; newRace(true); };
 $('pTitle').onclick=toTitle;
 $('rNext').onclick=()=>newRace(true);
 $('rTitle').onclick=toTitle;
-$('autoBtn').onclick=()=>{ if(!race||race.finished) return; if(race.intro) endIntro(); if(car.mode==='auto') setMode('manual'); else startAuto(); };
-$('uturnBtn').onclick=()=>{ if(!race||race.finished) return; if(race.intro) endIntro(); setMode('manual'); uTurn(); };
+$('goBtn').onclick=()=>{ if(!race||race.finished) return; if(race.intro){ endIntro(); return; } setHold(!car.hold); };
+$('lblBtn').onclick=()=>{ lbl.on=!lbl.on; $('lblBtn').classList.toggle('on',lbl.on); lbl.t=0; };
 $('mmWrap').onclick=()=>{ mmZoomFar=!mmZoomFar; };
 $('voiceBtn').onclick=()=>{ voiceOn=!voiceOn; $('voiceBtn').classList.toggle('on',voiceOn); $('voiceBtn').textContent=voiceOn?'🔊 音声':'🔈 音声';
   if(voiceOn && window.speechSynthesis){ try{ const u=new SpeechSynthesisUtterance('音声案内をオンにしました'); u.lang='ja-JP'; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} } };
