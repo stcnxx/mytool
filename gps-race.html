@@ -98,11 +98,28 @@ summary{cursor:pointer;color:#9fc3ff;font-size:14px;padding:4px 0}
 .how{display:flex;justify-content:space-around;font-size:12px;color:#b8c4d2;margin-top:6px;text-align:center}
 .how b{display:block;font-size:20px;color:#fff}
 .tapgo{margin-top:10px;text-align:center;font-weight:800;font-size:17px;color:#0d1117;background:#ffd84a;border-radius:12px;padding:12px;animation:bl 1.4s infinite}
-@media (max-height:500px){#ovMap{height:110px}#introName{font-size:20px}#mm{width:110px;height:110px}#topBtns{top:calc(max(10px,env(safe-area-inset-top)) + 118px)}#nav{min-width:200px}#navDist{font-size:22px}#navIcon{width:48px;height:48px}}
-@media (max-width:520px){#nav{top:calc(max(10px,env(safe-area-inset-top)) + 150px);max-width:calc(100% - 20px)}#topBtns{top:calc(max(10px,env(safe-area-inset-top)) + 228px)}}
 .resultBig{font-size:24px;font-weight:800;color:#ffd84a;margin:6px 0}
 table.res{width:100%;font-size:15px;color:#cdd8e4;border-collapse:collapse}
 table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:700}
+
+/* v13 compact HUD */
+#nav{left:max(10px,env(safe-area-inset-left));top:max(10px,env(safe-area-inset-top));transform:none;gap:8px;padding:5px 10px 5px 5px;border-radius:12px;min-width:0;max-width:calc(100% - 170px);background:rgba(10,16,24,.7)}
+#navIcon{width:40px;height:40px;font-size:26px;border-radius:9px}
+#navArrow{width:30px;height:30px}
+#navDist{font-size:19px}
+#navText{font-size:12px}
+#rcol{position:absolute;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));width:128px;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+#rcol #mmWrap{position:static;align-self:flex-end}
+#mm{width:128px;height:128px}
+#rcol #stats{position:static;font-size:11px;line-height:1.45;padding:6px 8px;border-radius:10px;min-width:0;background:rgba(10,16,24,.6)}
+#stats b{font-size:13px}
+#spd{font-size:20px}
+#dest{max-width:none}
+#rcol #roadName{position:static;transform:none;font-size:11px;padding:3px 0 0;margin-top:3px;border-top:1px solid rgba(255,255,255,.15);border-radius:0;background:none;white-space:normal;color:#cfe3ff}
+#rcol #topBtns{position:static;flex-direction:column;gap:4px;align-items:stretch}
+.hbtn{font-size:11px;padding:5px 7px;border-radius:9px;background:rgba(10,16,24,.32);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.88);text-align:left}
+.hbtn.on{background:rgba(28,111,209,.42)}
+@media (max-height:500px){#ovMap{height:110px}#introName{font-size:20px}#mm{width:100px;height:100px}#rcol{width:110px}}
 
 .sect{margin-top:12px;padding-top:10px;border-top:1px solid #2c3b4d}
 .lab{font-size:13px;color:#9fc3ff;font-weight:700}
@@ -118,21 +135,23 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
 <div id="touch"></div>
 
 <div id="hud" class="hidden">
-  <div id="stats">
-    <div><span id="spd">0</span> km/h</div>
-    <div>🏁 残り <b id="remain">-</b></div>
-    <div id="dest"></div>
-  </div>
   <div id="nav"><div id="navIcon"><svg id="navArrow" viewBox="0 0 48 48"><path d="M24 4 L40 24 H30 V44 H18 V24 H8 Z" fill="#fff"/></svg><span id="navEmoji" class="hidden"></span></div>
     <div style="min-width:0"><div id="navDist">-</div><div id="navText">ルート案内</div></div></div>
-  <div id="mmWrap"><canvas id="mm"></canvas></div>
-  <div id="topBtns">
-    <button class="hbtn" id="menuBtn">≡ メニュー</button>
-    <button class="hbtn" id="voiceBtn">🔈 音声</button>
-    <button class="hbtn" id="goBtn">⏸ 一時停止</button>
-    <button class="hbtn on" id="lblBtn">🏢 建物名</button>
+  <div id="rcol">
+    <div id="mmWrap"><canvas id="mm"></canvas></div>
+    <div id="stats">
+      <div><span id="spd">0</span> km/h</div>
+      <div>🏁 残り <b id="remain">-</b></div>
+      <div id="dest"></div>
+      <div id="roadName"></div>
+    </div>
+    <div id="topBtns">
+      <button class="hbtn" id="menuBtn">≡ メニュー</button>
+      <button class="hbtn" id="voiceBtn">🔈 音声</button>
+      <button class="hbtn" id="goBtn">⏸ 一時停止</button>
+      <button class="hbtn on" id="lblBtn">🏢 建物名</button>
+    </div>
   </div>
-  <div id="roadName"></div>
   <div id="labels"></div>
   <div id="toast" class="hidden"></div>
   <div id="binfo" class="hidden"></div>
@@ -152,7 +171,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 12（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、検索：Nominatim、ルート：OSRM</p>
+    <p class="small" style="margin-top:12px">バージョン 13（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、検索：Nominatim、ルート：OSRM</p>
   </div>
 </div>
 
@@ -581,8 +600,8 @@ function makeBuildingMesh(polys,ox=0,oz=0){
     let cx=0,cz=0; for(let i=0;i<b.n;i++){cx+=b.pts[2*i];cz+=b.pts[2*i+1];} meta.push({name:b.name||'',h:b.H,x:cx/b.n,z:cz/b.n});
     col.set(BPAL[b.id%BPAL.length]);
     const put=(v,x,y,z,s,u,w)=>{ P[v*3]=x-ox; P[v*3+1]=y; P[v*3+2]=z-oz; C[v*3]=Math.min(1,col.r*s); C[v*3+1]=Math.min(1,col.g*s); C[v*3+2]=Math.min(1,col.b*s); U[v*2]=u; U[v*2+1]=w; if(v%3===0) owner[v/3]=bi; };
-    let v=cur[b.st], d=0; const v0=b.M/TEX_V, v1=b.H/TEX_V, sh=b.st===0?1:1.02;
-    for(let i=0;i<b.n;i++){ const j=(i+1)%b.n, ax=b.pts[2*i], az=b.pts[2*i+1], bx=b.pts[2*j], bz=b.pts[2*j+1], L=Math.hypot(bx-ax,bz-az), u0=d/TEX_U, u1=(d+L)/TEX_U; d+=L;
+    let v=cur[b.st]; const fl=Math.max(1,Math.round((b.H-b.M)/FLOOR_H)), v0=0, v1=fl/4, sh=b.st===0?1:1.02;
+    for(let i=0;i<b.n;i++){ const j=(i+1)%b.n, ax=b.pts[2*i], az=b.pts[2*i+1], bx=b.pts[2*j], bz=b.pts[2*j+1], L=Math.hypot(bx-ax,bz-az), cols=Math.round(L/COL_W), u0=0, u1=cols/4;
       put(v++,ax,b.M,az,.9*sh,u0,v0); put(v++,bx,b.M,bz,.9*sh,u1,v0); put(v++,bx,b.H,bz,sh,u1,v1);
       put(v++,ax,b.M,az,.9*sh,u0,v0); put(v++,bx,b.H,bz,sh,u1,v1); put(v++,ax,b.H,az,sh,u0,v1); }
     cur[b.st]=v;
