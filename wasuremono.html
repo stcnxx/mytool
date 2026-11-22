@@ -118,7 +118,12 @@ input::placeholder{color:var(--muted)}
 .ghost{border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:13px;color:var(--fg);background:var(--surface)}
 .ghost:hover{border-color:var(--muted)}
 .ver{margin:0;text-align:center;font-family:var(--f-num);font-size:11px;color:var(--faint)}
-.hint{color:var(--muted);font-size:12px;text-align:center;margin:0;line-height:1.8}
+.foot{display:flex;flex-direction:column;align-items:center;gap:6px}
+.helplink{color:var(--accent);font-size:13px;text-decoration:underline;text-underline-offset:3px;padding:6px 10px}
+.help{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:14px}
+.sheet .help h3{margin:0 0 4px;font-size:14px;font-weight:700;color:var(--accent);letter-spacing:.02em}
+.help p{margin:0;color:var(--muted);font-size:13.5px;line-height:1.75}
+.help b{color:var(--fg);font-weight:500}
 
 /* modal */
 .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
@@ -175,10 +180,29 @@ input::placeholder{color:var(--muted)}
     <button class="ghost" id="clearChecks" type="button">チェックをすべて外す</button>
     <button class="ghost" id="resetDefault" type="button">このセットを初期状態に戻す</button>
   </div>
-  <p class="hint">⠿ をドラッグで並べ替え<br>削除・初期化は2回押しで確定</p>
-  <p class="ver">Ver. 16</p>
+  <div class="foot">
+    <button type="button" class="helplink" id="helpBtn" aria-haspopup="dialog">使い方・ヘルプ</button>
+    <span class="ver">Ver. 17</span>
+  </div>
 </div>
 
+<div class="modal" id="helpPanel" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="hTitle">
+    <div class="mhead">
+      <h2 id="hTitle">使い方</h2>
+      <button class="close" type="button" id="closeHelp" aria-label="閉じる"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <ul class="help">
+      <li><h3>チェックする</h3><p>各行の右のボタンを押すたびに ✓ が1つ増えます。<b>確認回数</b>（初期値2回）に達すると「確認完了」になります。</p></li>
+      <li><h3>間違えたとき</h3><p>チェックボタンを<b>長押し</b>すると、赤いバーが伸びきったところで ✓ が1つ減ります。</p></li>
+      <li><h3>並べ替え</h3><p>行の左端の <b>⠿</b> をドラッグして上下に動かします。</p></li>
+      <li><h3>追加・削除</h3><p>リスト下の入力欄に名前を入れ、アイコンを選んで「追加」。削除はリスト右上の「削除・編集」を押してから、各行の「削除」を<b>2回押し</b>で確定します。</p></li>
+      <li><h3>やり直す</h3><p>「チェックをすべて外す」「このセットを初期状態に戻す」も<b>2回押し</b>で確定します。</p></li>
+      <li><h3>セットと確認回数</h3><p>上部のタブでセットを切り替えます。「＋ セット管理」から新規作成・複製・名前変更・削除、初期状態の登録、確認回数（1〜5回）の変更ができます。</p></li>
+      <li><h3>データの保存先</h3><p>内容はこのファイルではなく、<b>開いたブラウザの中</b>に保存されます。別のブラウザや端末とは共有されず、閲覧データを消すと消えます。新しい版に差し替えるときは、同じ場所・同じ名前で上書きしてください。</p></li>
+    </ul>
+  </div>
+</div>
 <div class="modal" id="setPanel" hidden>
   <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mTitle">
     <div class="mhead">
@@ -477,7 +501,13 @@ function openPanel(){ disarmAll(); lastFocus=document.activeElement; renderPanel
 function closePanel(){ if(panel.hidden) return; disarmAll(); panel.hidden=true; document.body.classList.remove('locked'); const b=$('panelBtn')||lastFocus; if(b) b.focus({preventScroll:true}); }
 $('closePanel').addEventListener('click',closePanel);
 panel.addEventListener('click',e=>{ if(e.target===panel) closePanel(); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closePanel(); });
+const help=$('helpPanel');
+function openHelp(){ disarmAll(); help.hidden=false; document.body.classList.add('locked'); $('closeHelp').focus({preventScroll:true}); }
+function closeHelp(){ if(help.hidden) return; help.hidden=true; document.body.classList.remove('locked'); $('helpBtn').focus({preventScroll:true}); }
+$('helpBtn').addEventListener('click',openHelp);
+$('closeHelp').addEventListener('click',closeHelp);
+help.addEventListener('click',e=>{ if(e.target===help) closeHelp(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closePanel(); closeHelp(); } });
 
 function createSet(copy){
   const inp=$('newSetName'); const name=inp.value.trim();
