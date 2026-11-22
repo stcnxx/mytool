@@ -189,7 +189,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 23（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 25（2026/11/23）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -284,7 +284,7 @@ const DIST_RANGE = {near:[1000,2000],mid:[2000,3500],far:[3500,7000]};
 const td=new TextDecoder();
 let tileTpl=null;
 
-let hemi, sun, precip=null, farScene, farCam, farHemi, farSun;
+let plainRoadTex, hemi, sun, precip=null, farScene, farCam, farHemi, farSun;
 let renderer, scene, camera, ground, goalGroup, routeMesh=null, routeTex, roadTex, raycaster, ndc;
 let mode=null;            // 'real' | 'demo'
 let world=null;           // demo world (road graph)
@@ -354,7 +354,7 @@ function initThree(){
   const gTex=makeGroundTex(); gTex.repeat.set(750,750);
   ground=new THREE.Mesh(new THREE.PlaneGeometry(30000,30000), new THREE.MeshBasicMaterial({map:gTex}));
   ground.rotation.x=-Math.PI/2; ground.position.y=-0.2; farScene.add(ground);
-  roadTex=makeRoadTex(); routeTex=makeRouteTex();
+  roadTex=makeRoadTex(); routeTex=makeRouteTex(); plainRoadTex=makePlainRoadTex();
   precip=makePrecip(); scene.add(precip.rain); scene.add(precip.snow);
   goalGroup=makeGoal(); scene.add(goalGroup); goalGroup.visible=false;
   raycaster=new THREE.Raycaster(); ndc=new THREE.Vector2();
@@ -560,8 +560,8 @@ function buildRoadMeshes(lines, ox, oz){
     const d=new THREE.Mesh(geom(DP,DU,DI), capMat()); d.position.set(ox,0,oz); d.renderOrder=1; out.push(d); }
   return out;
 }
-function roadMat(){ return roadMat.m||(roadMat.m=new THREE.MeshBasicMaterial({map:roadTex,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2})); }
-function capMat(){ return capMat.m||(capMat.m=new THREE.MeshBasicMaterial({map:roadTex,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4})); }
+function roadMat(){ return roadMat.m||(roadMat.m=new THREE.MeshBasicMaterial({map:plainRoadTex,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2})); }
+function capMat(){ return capMat.m||(capMat.m=new THREE.MeshBasicMaterial({map:plainRoadTex,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-4})); }
 function buildWaterMesh(water, ox, oz){
   const P=[];
   for(const w of water){
@@ -688,6 +688,7 @@ function processTile(t,buf){
   for(const m of safe('roads',()=>buildRoadMeshes(lines,t.cx,t.cz))||[]){ scene.add(m); t.meshes.push(m); }
   for(const m of safe('bridges',()=>buildBridgeMeshes(bridges,t.cx,t.cz))||[]){ scene.add(m); t.meshes.push(m); }
   const jm=safe('junctions',()=>buildJunctions(roads.filter(r=>!r.br),t.cx,t.cz)); if(jm){ scene.add(jm); t.meshes.push(jm); }
+  const mk=safe('markings',()=>buildMarkings(roads.filter(r=>r.br!=='tunnel'),t.cx,t.cz)); if(mk){ scene.add(mk); t.meshes.push(mk); }
   const Pt=layers.poi; t.poi=new Map();
   if(Pt){ const proj=makeProj(origin,t.x,t.y,Pt.ext);
     for(let k=0;k<featCount(Pt);k++){ const f=featAt(Pt,k); if(f.type!==1) continue; const nm=f.tags['name:ja']||f.tags.name; if(!nm) continue;
@@ -1697,7 +1698,7 @@ function envTick(dt){
   env.night=1-day;
   const L=Math.min(1.2,env.light), tint=f.snow?[1.08,1.1,1.14]:[1,1,1];
   const setC=(m,b)=>{ if(m) m.color.setRGB(b[0]*L*tint[0],b[1]*L*tint[1],b[2]*L*tint[2]); };
-  setC(ground.material,[1,1,1]); setC(roadMat.m,[1,1,1]); setC(capMat.m,[1,1,1]);
+  setC(ground.material,[1,1,1]); setC(roadMat.m,[1,1,1]); setC(capMat.m,[1,1,1]); setC(junctionMat.m,[1,1,1]); setC(bridgeTopMat.m,[1,1,1]); setC(markMat.m,[0.93,0.93,0.93]);
   setC(waterMat.m,[0.31,0.56,0.78]); setC(greenMat.gwood,[0.31,0.5,0.24]); setC(greenMat.ggrass,[0.53,0.72,0.39]);
   // 夜の窓明かり：夕方〜22時は多め、深夜は少なめ
   const hr=new Date().getHours()+new Date().getMinutes()/60, late = hr>=23||hr<5 ? 0.45 : (hr>=22 ? 0.6 : 0.75);
@@ -1890,8 +1891,8 @@ function buildGroundTile(t,layers,roads){
   paint(layers.park,()=> '#8dbd67');
   paint(layers.landcover,tg=>{ const s=(tg.class||'')+(tg.subclass||''); return /wood|forest/.test(s)?'#4e7d3c':(/grass|park|meadow|garden|golf|recreation/.test(s)?'#8dbd67':(/farmland|farm/.test(s)?'#b4c47e':(/sand|beach/.test(s)?'#e6dba8':(/wetland/.test(s)?'#7fa58e':null)))); });
   paint(layers.water,()=> '#4f8fc8');
-  if(roads && roads.length){ const sx=S/(t.bx1-t.bx0), sz=S/(t.bz1-t.bz0); g.strokeStyle='#5b5e64'; g.lineCap='round'; g.lineJoin='round';
-    for(const r of roads){ g.lineWidth=Math.max(1.5,(r.w+3)*sx); g.beginPath(); g.moveTo((r.raw[0]-t.bx0)*sx,(r.raw[1]-t.bz0)*sz);
+  if(roads && roads.length){ const sx=S/(t.bx1-t.bx0), sz=S/(t.bz1-t.bz0); g.strokeStyle='#45484e'; g.lineCap='round'; g.lineJoin='round';
+    for(const r of roads){ g.lineWidth=Math.max(1.2,(r.w+1.5)*sx); g.beginPath(); g.moveTo((r.raw[0]-t.bx0)*sx,(r.raw[1]-t.bz0)*sz);
       for(let i=2;i<r.raw.length;i+=2) g.lineTo((r.raw[i]-t.bx0)*sx,(r.raw[i+1]-t.bz0)*sz); g.stroke(); } }
   const tex=new THREE.CanvasTexture(c); tex.anisotropy=renderer.capabilities.getMaxAnisotropy();
   const N=96, P0=makeProj(origin,t.x,t.y,4096), pos=new Float32Array((N+1)*(N+1)*3), uv=new Float32Array((N+1)*(N+1)*2), idx=[];
@@ -2052,7 +2053,7 @@ function groundAt(x,z){
 
 /* ---------- viaducts: road on top, plain concrete underneath and on the sides, with piers ---------- */
 function concreteMat(){ return concreteMat.m||(concreteMat.m=new THREE.MeshLambertMaterial({color:0x9b9a94,side:THREE.DoubleSide})); }
-function bridgeTopMat(){ return bridgeTopMat.m||(bridgeTopMat.m=new THREE.MeshBasicMaterial({map:roadTex,side:THREE.FrontSide,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2})); }
+function bridgeTopMat(){ return bridgeTopMat.m||(bridgeTopMat.m=new THREE.MeshBasicMaterial({map:plainRoadTex,side:THREE.FrontSide,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-2})); }
 function buildBridgeMeshes(list,ox,oz){
   if(!list.length) return [];
   const top=buildRoadMeshes(list.map(b=>({pts:b.pts,ys:b.ys,w:b.w,capA:0,capB:0})),ox,oz)[0];
@@ -2112,7 +2113,7 @@ function carveGround(t,pos,N,roads){
 }
 
 /* ---------- junctions: a plain asphalt patch where roads meet or cross (hides crossing edge lines) ---------- */
-function junctionMat(){ return junctionMat.m||(junctionMat.m=new THREE.MeshBasicMaterial({map:roadTex,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-6})); }
+function junctionMat(){ return junctionMat.m||(junctionMat.m=new THREE.MeshBasicMaterial({map:plainRoadTex,polygonOffset:true,polygonOffsetFactor:-3,polygonOffsetUnits:-6})); }
 function buildJunctions(roads,ox,oz){
   const hits=new Map(); // key -> {x,z,w,ids:Set}
   const add=(x,z,w,id,arms)=>{ const k=Math.round(x*2)+','+Math.round(z*2); let h=hits.get(k); if(!h){ h={x,z,w:0,ids:new Set(),arms:0}; hits.set(k,h); } h.w=Math.max(h.w,w); if(!h.ids.has(id)){ h.ids.add(id); h.arms+=arms; } };
@@ -2133,11 +2134,11 @@ function buildJunctions(roads,ox,oz){
   const SEG=18, list=[...hits.values()].filter(h=>h.ids.size>=2 && h.arms>=3);
   if(!list.length) return null;
   const P=new Float32Array(list.length*(SEG+1)*3), U=new Float32Array(list.length*(SEG+1)*2), I=new Uint32Array(list.length*SEG*3); let v=0,k=0;
-  for(const h of list){ const r=h.w*0.5+0.6, c=v;
-    const yc=Math.max(hAt(h.x,h.z),groundAt(h.x,h.z))+0.34;
+  for(const h of list){ const r=h.w*0.5*0.95, c=v;
+    const yc=roadY(h.x,h.z,null,null,hAt(h.x,h.z))+0.33;
     P[v*3]=h.x-ox; P[v*3+1]=yc; P[v*3+2]=h.z-oz; U[v*2]=0.3; U[v*2+1]=0.75; v++;
     for(let i=0;i<SEG;i++){ const a=i/SEG*Math.PI*2, x=h.x+Math.cos(a)*r, z=h.z+Math.sin(a)*r;
-      P[v*3]=x-ox; P[v*3+1]=Math.max(hAt(x,z),groundAt(x,z))+0.34; P[v*3+2]=z-oz; U[v*2]=0.3; U[v*2+1]=0.75; v++; }
+      P[v*3]=x-ox; P[v*3+1]=Math.max(yc-0.33,roadY(x,z,null,null,yc))+0.33; P[v*3+2]=z-oz; U[v*2]=0.3; U[v*2+1]=0.75; v++; }
     for(let i=0;i<SEG;i++){ I[k++]=c; I[k++]=c+1+((i+1)%SEG); I[k++]=c+1+i; } }
   const m=new THREE.Mesh(geom(P,U,I),junctionMat()); m.position.set(ox,0,oz); m.renderOrder=1; return m;
 }
@@ -2165,6 +2166,49 @@ function liftBridgesOverRoads(roads){
       for(let j=0;j<n;j++) if(need[j]>-1e8) req=Math.max(req, need[j]-RAMP*Math.abs(cum[i]-cum[j]));
       br.ys[i]=req; }
   }
+}
+
+
+/* ---------- road markings drawn separately, and only where no other road covers that spot ---------- */
+function makePlainRoadTex(){
+  const t=canvasTex(128,256,(g,w,h)=>{ g.fillStyle='#45484e'; g.fillRect(0,0,w,h);
+    for(let i=0;i<1500;i++){ g.fillStyle=Math.random()<.5?'rgba(0,0,0,.18)':'rgba(255,255,255,.07)'; g.fillRect(Math.random()*w,Math.random()*h,2,2); } });
+  t.wrapS=THREE.ClampToEdgeWrapping; t.wrapT=THREE.RepeatWrapping; return t;
+}
+function markMat(){ return markMat.m||(markMat.m=new THREE.MeshBasicMaterial({color:0xededed,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-5})); }
+function buildMarkings(roads,ox,oz){
+  const G=20, grid=new Map();
+  for(const r of roads){ const p=r.pts; for(let i=0;i<p.length/2-1;i++){
+    const ax=p[2*i],az=p[2*i+1],bx=p[2*i+2],bz=p[2*i+3];
+    const i0=Math.floor((Math.min(ax,bx)-r.w)/G), i1=Math.floor((Math.max(ax,bx)+r.w)/G), j0=Math.floor((Math.min(az,bz)-r.w)/G), j1=Math.floor((Math.max(az,bz)+r.w)/G);
+    for(let a=i0;a<=i1;a++) for(let b=j0;b<=j1;b++){ const k=a+','+b; let l=grid.get(k); if(!l){l=[];grid.set(k,l);} l.push([ax,az,r.ys[i],bx,bz,r.ys[i+1],r.w,r.id]); } } }
+  const covered=(x,z,y,id)=>{ const l=grid.get(Math.floor(x/G)+','+Math.floor(z/G)); if(!l) return false;
+    for(const s of l){ if(s[7]===id) continue; const dx=s[3]-s[0], dz=s[4]-s[1], L2=dx*dx+dz*dz||1; let u=((x-s[0])*dx+(z-s[1])*dz)/L2; u=u<0?0:u>1?1:u;
+      if(Math.hypot(x-s[0]-dx*u, z-s[1]-dz*u) < s[6]/2+0.1 && Math.abs(s[2]+(s[5]-s[2])*u-y)<2.5) return true; }
+    return false; };
+  const P=[];
+  const quad=(x0,z0,y0,x1,z1,y1,nx,nz,hw)=>{ P.push(x0+nx*hw-ox,y0,z0+nz*hw-oz, x0-nx*hw-ox,y0,z0-nz*hw-oz, x1-nx*hw-ox,y1,z1-nz*hw-oz,
+                                                  x0+nx*hw-ox,y0,z0+nz*hw-oz, x1-nx*hw-ox,y1,z1-nz*hw-oz, x1+nx*hw-ox,y1,z1+nz*hw-oz); };
+  for(const r of roads){
+    if(r.w<6) continue;
+    // 3 m steps with interpolated heights
+    const X=[],Z=[],Y=[], p=r.pts;
+    for(let i=0;i<p.length/2-1;i++){ const ax=p[2*i],az=p[2*i+1],bx=p[2*i+2],bz=p[2*i+3], L=Math.hypot(bx-ax,bz-az), n=Math.max(1,Math.ceil(L/3));
+      for(let k=0;k<n;k++){ const f=k/n; X.push(ax+(bx-ax)*f); Z.push(az+(bz-az)*f); Y.push(r.ys[i]+(r.ys[i+1]-r.ys[i])*f); } }
+    X.push(p[p.length-2]); Z.push(p[p.length-1]); Y.push(r.ys[r.ys.length-1]);
+    const off=r.w/2-0.45; let cum=0;
+    for(let i=0;i<X.length-1;i++){
+      const dx=X[i+1]-X[i], dz=Z[i+1]-Z[i], L=Math.hypot(dx,dz); if(L<0.05) continue;
+      const nx=-dz/L, nz=dx/L, mx=(X[i]+X[i+1])/2, mz=(Z[i]+Z[i+1])/2, my=(Y[i]+Y[i+1])/2, y0=Y[i]+0.31, y1=Y[i+1]+0.31;
+      for(const o of [off,-off]) if(!covered(mx+nx*o,mz+nz*o,my,r.id))
+        quad(X[i]+nx*o,Z[i]+nz*o,y0, X[i+1]+nx*o,Z[i+1]+nz*o,y1, nx,nz,0.08);
+      if(r.w>=8 && (cum%10)<5 && !covered(mx,mz,my,r.id)) quad(X[i],Z[i],y0,X[i+1],Z[i+1],y1,nx,nz,0.08);
+      cum+=L;
+    }
+  }
+  if(!P.length) return null;
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); g.computeBoundingSphere();
+  const m=new THREE.Mesh(g,markMat()); m.position.set(ox,0,oz); m.renderOrder=1; return m;
 }
 
 </script>
