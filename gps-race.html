@@ -189,7 +189,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 18（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 19（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -620,6 +620,9 @@ function tileTick(dt){
   TL.timer-=dt; if(TL.timer>0) return; TL.timer=0.3;
   for(const [k,t] of tiles){ if(t.state==='loading') continue; if(t.cx!=null && Math.hypot(t.cx-car.x,t.cz-car.z)>4500){ unloadTile(t); tiles.delete(k); } }
   const now=performance.now();
+  // watchdog: a request that hangs must not block everything
+  let stale=false; for(const t of tiles.values()) if(t.state==='loading' && now-t.t0>30000) stale=true;
+  if(stale){ for(const [k,t] of tiles) if(t.state==='loading') tiles.delete(k); TL.gen++; TL.busy=0; }
   for(const w of wantedTiles()){ if(TL.busy>=4) break; const t=tiles.get(tileKey(w.x,w.y));
     if(t && !(t.state==='err' && now>t.retryAt)) continue; loadTile(w.x,w.y); }
   const st=$('bldStat'); if(TL.busy>0){ st.textContent='🗺 地図を読み込み中…'; st.classList.remove('hidden'); }
@@ -629,19 +632,20 @@ function unloadTile(t){
   for(const [k,c] of bld.chunks) if(c.tile===t){ if(c.mesh) disposeObj(c.mesh); bld.chunks.delete(k); }
 }
 function clearTiles(){ TL.gen++; TL.busy=0; for(const t of tiles.values()) unloadTile(t); tiles.clear(); }
+async function fetchT(url,ms){ const ac=new AbortController(), tm=setTimeout(()=>ac.abort(),ms); try{ return await fetch(url,{signal:ac.signal}); } finally{ clearTimeout(tm); } }
 async function loadTile(x,y){
-  const gen=TL.gen, t={x,y,state:'loading',meshes:[]}; tiles.set(tileKey(x,y),t); TL.busy++;
+  const gen=TL.gen, t={x,y,state:'loading',meshes:[],t0:performance.now()}; tiles.set(tileKey(x,y),t); TL.busy++;
   try{
     const tpl=await getTileTpl();
     const demP=loadDem(13,x>>1,y>>1);
-    const r=await fetch(tpl.replace('{z}',TZ).replace('{x}',x).replace('{y}',y));
-    await demP;
+    const r=await fetchT(tpl.replace('{z}',TZ).replace('{x}',x).replace('{y}',y),20000);
+    await Promise.race([demP, sleep(6000)]);   // 標高が遅くても地図は出す
     let buf;
     if(r.status===204||r.status===404) buf=new Uint8Array(0);
     else { if(!r.ok) throw new Error('HTTP '+r.status); buf=await gunzipMaybe(new Uint8Array(await r.arrayBuffer())); }
     if(gen!==TL.gen) return;
-    processTile(t,buf); t.state='done';
-  }catch(e){ if(gen!==TL.gen) return; t.state='err'; t.retryAt=performance.now()+5000; }
+    processTile(t,buf); t.state='done'; TL.lastOk=performance.now();
+  }catch(e){ console.warn('tile',x,y,e); unloadTile(t); if(gen!==TL.gen) return; t.state='err'; t.retryAt=performance.now()+4000; TL.errs=(TL.errs||0)+1; }
   finally{ if(gen===TL.gen) TL.busy--; }
 }
 const WANT=new Set(['transportation','water','building','poi','landcover','park','landuse']);
@@ -667,25 +671,28 @@ function processTile(t,buf){
         mx.beginPath(); mx.moveTo(pc[0]*256/E,pc[1]*256/E); for(let i=2;i<n;i+=2) mx.lineTo(pc[i]*256/E,pc[i+1]*256/E); mx.stroke(); } }
     mx.setLineDash([]); }
   // 2) ground: terrain cut below the roads, asphalt painted under them
-  const gm=buildGroundTile(t,layers,roads.filter(r=>!r.br)); scene.add(gm); t.meshes.push(gm);
+  let gm=safe('ground',()=>buildGroundTile(t,layers,roads.filter(r=>!r.br)));
+  if(!gm) gm=safe('ground-plain',()=>buildGroundTile(t,{},null));
+  if(gm){ scene.add(gm); t.meshes.push(gm); }
   if(!buf.length) return;
   // 3) road meshes, viaducts, junction patches
   const lines=[], bridges=[];
   for(const r of roads){
+    if(!r.ys || r.ys.length*2!==r.pts.length || r.ys.some(v=>!isFinite(v))) r.ys=r.pts.filter((_,i)=>i%2===0).map(()=>0);
     if(!r.br) for(let i=0;i<r.ys.length;i++) r.ys[i]=Math.max(r.ys[i],groundAt(r.pts[2*i],r.pts[2*i+1]));
     addDeck(t,r.pts,r.ys,r.br==='tunnel');
     if(r.br==='bridge') bridges.push({pts:r.pts,ys:r.ys,w:r.w});
     else if(r.br!=='tunnel') lines.push({pts:r.pts,ys:r.ys,w:r.w,capA:0,capB:0});
   }
-  for(const m of buildRoadMeshes(lines,t.cx,t.cz)){ scene.add(m); t.meshes.push(m); }
-  for(const m of buildBridgeMeshes(bridges,t.cx,t.cz)){ scene.add(m); t.meshes.push(m); }
-  const jm=buildJunctions(roads.filter(r=>!r.br),t.cx,t.cz); if(jm){ scene.add(jm); t.meshes.push(jm); }
+  for(const m of safe('roads',()=>buildRoadMeshes(lines,t.cx,t.cz))||[]){ scene.add(m); t.meshes.push(m); }
+  for(const m of safe('bridges',()=>buildBridgeMeshes(bridges,t.cx,t.cz))||[]){ scene.add(m); t.meshes.push(m); }
+  const jm=safe('junctions',()=>buildJunctions(roads.filter(r=>!r.br),t.cx,t.cz)); if(jm){ scene.add(jm); t.meshes.push(jm); }
   const Pt=layers.poi; t.poi=new Map();
   if(Pt){ const proj=makeProj(origin,t.x,t.y,Pt.ext);
     for(let k=0;k<featCount(Pt);k++){ const f=featAt(Pt,k); if(f.type!==1) continue; const nm=f.tags['name:ja']||f.tags.name; if(!nm) continue;
       for(const part of decodeGeom(f.geom)){ const q=proj(part.slice(0,2)), key=Math.floor(q[0]/50)+','+Math.floor(q[1]/50);
         let l=t.poi.get(key); if(!l){l=[];t.poi.set(key,l);} l.push({x:q[0],z:q[1],name:nm,rank:+f.tags.rank||99}); } } }
-  addGreenery(t,layers);
+  safe('trees',()=>addGreenery(t,layers));
   if(layers.building){ t.bL=layers.building; t.bproj=makeProj(origin,t.x,t.y,layers.building.ext); }
 }
 function poiName(pts,T){
@@ -1757,7 +1764,7 @@ function loadDem(z,x,y){
   d={state:'loading',data:null}; dem.set(k,d);
   d.p=(async()=>{
     try{
-      const r=await fetch(DEM_URL.replace('{z}',z).replace('{x}',x).replace('{y}',y)); if(!r.ok) throw new Error(r.status);
+      const r=await fetchT(DEM_URL.replace('{z}',z).replace('{x}',x).replace('{y}',y),15000); if(!r.ok) throw new Error(r.status);
       const bmp=await createImageBitmap(await r.blob());
       const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d',{willReadFrequently:true}); g.drawImage(bmp,0,0);
       const px=g.getImageData(0,0,256,256).data, a=new Float32Array(65536);
@@ -2114,6 +2121,8 @@ function buildJunctions(roads,ox,oz){
     for(let i=0;i<SEG;i++){ I[k++]=c; I[k++]=c+1+((i+1)%SEG); I[k++]=c+1+i; } }
   const m=new THREE.Mesh(geom(P,U,I),junctionMat()); m.position.set(ox,0,oz); m.renderOrder=1; return m;
 }
+
+function safe(name,fn){ try{ return fn(); }catch(e){ console.warn('tile stage failed:',name,e); TL.errs=(TL.errs||0)+1; return null; } }
 
 </script>
 </body>
