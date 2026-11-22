@@ -216,6 +216,8 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opacity .2s}
 .chosen-tag{display:inline-block;font-size:.7rem;padding:1px 6px;border-radius:6px;border:1px solid var(--line);color:var(--muted);vertical-align:1px}
 .locbtn{flex:none;margin-left:auto;padding:2px 10px;font-size:.78rem;border-radius:8px;white-space:nowrap;align-self:center}
+#srcSheet{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 16px 16px;text-shadow:none}#srcSheet[hidden]{display:none}
+.src-body{overflow:auto;font-size:.8rem;line-height:1.6;-webkit-overflow-scrolling:touch}.src-body h4{margin:10px 0 4px;font-size:.85rem;color:#0f2a5c}.src-body h4:first-child{margin-top:2px}.src-body ul{margin:0;padding-left:1.2em}.src-body li{margin:3px 0}.src-body a{color:#1d4ed8}
 .wcs-box{background:#fff;color:#0f172a;border-radius:14px;width:100%;max-width:420px;padding:14px;max-height:80vh;display:flex;flex-direction:column}
 .wcs-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .wcs-box input{font:inherit;border:1px solid #cbd5e1;border-radius:10px;padding:8px 10px;width:100%}
@@ -490,18 +492,40 @@ footer{background:none!important}
 </main>
 
 <footer>
-  <div style="margin-bottom:4px">版：2026-11-21 05:40</div>
-  データ：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）／
-  <a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>／
-  <a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（逆ジオコーダ）／
-  <a href="https://www.p2pquake.net/" target="_blank" rel="noopener">P2P地震情報</a>／
-  <a href="https://www3.nhk.or.jp/toppage/rss/index.html" target="_blank" rel="noopener">NHKニュース</a>・<a href="https://news.yahoo.co.jp/rss" target="_blank" rel="noopener">Yahoo!ニュース</a>（RSS）／
-  <a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>・<a href="https://www.odpt.org/" target="_blank" rel="noopener">公共交通オープンデータセンター</a>（都営の運行情報）／
-  <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>（地図）／Open-Meteo Geocoding（場所・世界時計の都市検索）／<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>（海外の地名）／<a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS</a>（海外の地震）／<a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>（海外の雨雲）／<a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Terrain Tiles</a>（海外の地形）／
-  <a href="https://ja.wikipedia.org/" target="_blank" rel="noopener">ウィキペディア</a>（誕生日・記念日）。天体は現在地と時刻から計算し、地形は<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院の標高タイル</a>（海外は Mapzen Terrain Tiles）、地名・山の名前は<a href="https://www.wikidata.org/" target="_blank" rel="noopener">ウィキデータ</a>から描いています。
-  情報は参考用です。避難等の判断は自治体・気象庁の発表に従ってください。<br>
-  URLの末尾に <code>?demo</code> を付けると、通信せずにサンプルデータだけで表示します。
+  <a href="#" id="srcOpen">データソースと注意事項等</a>
+  <div style="margin-top:4px">版：2026-11-22 10:23</div>
 </footer>
+<div id="srcSheet" hidden>
+  <div class="wcs-box">
+    <div class="wcs-head"><b>データソースと注意事項等</b><button id="srcClose">閉じる</button></div>
+    <div class="src-body">
+      <h4>注意</h4>
+      <ul>
+        <li>情報は参考用です。避難などの判断は、自治体・気象庁の発表に従ってください。</li>
+        <li>鉄道：このページの公共交通データは、公共交通オープンデータセンターで提供されているものです。事業者から提供されたデータを元にしていますが、必ずしも正確・完全なものとは限りません。表示内容について、事業者へ直接問い合わせることはしないでください。</li>
+        <li>鉄道：遅れを自動で確認する路線は <span id="srcScope">表示中の地域の主な路線</span> です。</li>
+        <li>鉄道：非公式の遅延情報は、反映に数分〜10分ほどかかります。公共交通オープンデータに無い路線（JRなど）は、路線のボタンから公式の運行情報で確認してください。</li>
+        <li>URLの末尾に <code>?demo</code> を付けると、通信せずにサンプルデータだけで表示します。</li>
+      </ul>
+      <h4>データソース</h4>
+      <ul>
+        <li>天気：<a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>（CC BY 4.0）・<a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a></li>
+        <li>警報・地震：<a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>・<a href="https://www.p2pquake.net/" target="_blank" rel="noopener">P2P地震情報</a>・<a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS</a>（海外）</li>
+        <li>雨雲：<a href="https://www.jma.go.jp/" target="_blank" rel="noopener">気象庁</a>・<a href="https://www.rainviewer.com/" target="_blank" rel="noopener">RainViewer</a>（海外）</li>
+        <li>場所・地名：<a href="https://maps.gsi.go.jp/" target="_blank" rel="noopener">国土地理院</a>・<a href="https://www.bigdatacloud.com/" target="_blank" rel="noopener">BigDataCloud</a>・Open-Meteo Geocoding（場所・世界時計の都市検索）</li>
+        <li>地図：<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></li>
+        <li>鉄道：<a href="https://www.odpt.org/" target="_blank" rel="noopener">公共交通オープンデータセンター</a>（運行情報・時刻表・列車の位置）・<a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>（非公式）・<a href="https://express.heartrails.com/" target="_blank" rel="noopener">HeartRails Express</a>（近くの駅）</li>
+        <li>ニュース：<a href="https://www3.nhk.or.jp/toppage/rss/index.html" target="_blank" rel="noopener">NHKニュース</a>・<a href="https://news.yahoo.co.jp/rss" target="_blank" rel="noopener">Yahoo!ニュース</a>（RSS）</li>
+        <li>飛行機：<a href="https://adsb.lol/" target="_blank" rel="noopener">adsb.lol</a>・<a href="https://airplanes.live/" target="_blank" rel="noopener">airplanes.live</a>・<a href="https://opensky-network.org/" target="_blank" rel="noopener">OpenSky Network</a>・<a href="https://www.adsbdb.com/" target="_blank" rel="noopener">adsbdb</a>（路線）</li>
+        <li>人工衛星：<a href="https://celestrak.org/" target="_blank" rel="noopener">CelesTrak</a></li>
+        <li>地形：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank" rel="noopener">国土地理院の標高タイル</a>・<a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">Terrain Tiles</a>（海外）</li>
+        <li>地名・山の名前：<a href="https://www.wikidata.org/" target="_blank" rel="noopener">ウィキデータ</a>・<a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></li>
+        <li>誕生日・記念日：<a href="https://ja.wikipedia.org/" target="_blank" rel="noopener">ウィキペディア</a></li>
+        <li>天体（太陽・月・星）：現在地と時刻から計算</li>
+      </ul>
+    </div>
+  </div>
+</div>
 
 <script>
 "use strict";
@@ -2200,13 +2224,13 @@ function renderNext(){
       }
       h += `</div>`;
     }
-    h += `<div class="tr-note" style="margin-top:6px">時刻表${N.liveOK ? "と列車の位置" : ""}は<a href="https://www.odpt.org/" target="_blank" rel="noopener">公共交通オープンデータセンター</a>から。事業者から提供されたデータを元にしていますが、必ずしも正確・完全なものとは限りません。表示内容について事業者への問い合わせはしないでください。</div></div>`;
+    h += `</div>`;
     box.innerHTML = h;
   }catch(e){ box.innerHTML = ""; }
 }
 // 残り分数は20秒ごとに更新、列車の位置は1分ごとに取り直す（画面を見ているときだけ）
 setInterval(() => { if(document.visibilityState !== "visible" || !NEXT || NEXT.pending || !NEXT.st || !NEXT.st.length) return; renderNext(); if(Date.now() - (NEXT.liveAt || 0) > 60e3) loadLive(); }, 20e3);
-let LAST_TRAINS = null;
+let LAST_TRAINS = null, TR_SCOPE = "";
 const TR_ADD_BTN = `<div class="tr-sec"><a class="tr-ln tr-add" href="#" data-tradd="1" style="max-width:260px">＋ 常に表示する路線を選ぶ</a></div>`;
 // 首都圏（1都3県）にいるか
 // 地名がまだ分からないときは座標（1都3県のおおよその範囲）で判断
@@ -2401,12 +2425,10 @@ function renderTrains(){
     for(const v of bad) if(v.s.text) html += `<div class="tr-txt">${esc(v.o.n)}：${esc(v.s.text)}</div>`;
     for(const v of otherOd) if(v.text) html += `<div class="tr-txt">${esc(v.rw ? (ODPT_T.rw[v.rw] || {}).t || odptName(v.rw) : odptName(v.op))}：${esc(odptText(v))}</div>`;
   }
-  if(!T.pending && !T.delay) html += `<div class="tr-note" style="margin-top:6px">${T.odpt ? "公共交通オープンデータに無い路線（JRなど）は" : T.toei ? "都営以外の路線（東京メトロ・JRなど）は" : "いまは遅れの情報を自動で確認できないため、"}ボタンから公式の運行情報で確認してください。</div>`;
   html += "</div>";
   const scope = cap ? "東京メトロ全線・都営全線・ゆりかもめ・りんかい線・東京モノレール・JR東日本の首都圏の路線"
     : (T.near && T.near.length ? `表示中の場所の近く（約5km）の駅を通る路線（${T.near.length}路線）と、${area}の鉄道会社の遅れ` : `${area}の鉄道会社`);
-  html += `<div class="tr-note">対象：${esc(scope)}。<br>${T.delay ? TR_WARN.replace('class="tr-wi"', 'width="12" height="12" style="vertical-align:-1px"') + " 遅れの情報は" : "遅れの情報の取得元："}<a href="https://rti-giken.jp/fhc/api/train_tetsudo/" target="_blank" rel="noopener">鉄道遅延情報のJSON</a>（非公式。反映に数分〜10分ほどかかります）`
-    + (T.odpt ? `、${!cap ? "一部の路線" : ODPT_KEY_OK ? "東京メトロ・都営など" : "都営"}は<a href="https://www.odpt.org/" target="_blank" rel="noopener">公共交通オープンデータセンター</a>` : cap ? `、都営は<a href="https://ckan.odpt.org/dataset/r_train_status-toei" target="_blank" rel="noopener">東京都交通局のオープンデータ</a>（CC BY 4.0）` : "") + (cap ? "" : `、近くの駅は<a href="https://express.heartrails.com/" target="_blank" rel="noopener">HeartRails Express</a>`) + `から。ボタンを押すと運行情報を開きます。</div>`;
+  TR_SCOPE = scope; const sc = $("#srcScope"); if(sc) sc.textContent = scope;
   $("#trains").innerHTML = html;
   $("#trainTime").textContent = T.pending ? "" : `${pad(T.at.getHours())}:${pad(T.at.getMinutes())} 確認`;
   markDemo("train", "#trainH", !!T.demo);
@@ -2452,6 +2474,10 @@ function jrSetup(){
   document.addEventListener("click", e => { const a = e.target.closest("[data-tradd]"); if(!a) return; e.preventDefault(); jrOpen(); });
   $("#jrsClose").onclick = () => { ovClose("jr"); $("#jrSheet").hidden = true; renderTrains(); if(trPins().length && !LAST_TRAINS) loadTrains(); };
   $("#jrSheet").addEventListener("click", e => { if(e.target.id === "jrSheet") ovClose("jr"); });
+  // データソースと注意事項等
+  $("#srcOpen").onclick = e => { e.preventDefault(); if(TR_SCOPE) $("#srcScope").textContent = TR_SCOPE; $("#srcSheet").hidden = false; ovOpen("src", () => { $("#srcSheet").hidden = true; }); };
+  $("#srcClose").onclick = () => ovClose("src");
+  $("#srcSheet").addEventListener("click", e => { if(e.target.id === "srcSheet") ovClose("src"); });
 }
 
 /* ====================================================================
