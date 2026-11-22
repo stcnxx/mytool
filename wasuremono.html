@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>忘れ物チェック</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<style>
+/* Layout: one narrow column — set chips → set name → round gauges → list (handle · icon · name · one check button) → add bar → tools. Destructive actions confirm with a second tap. */
+:root{
+  --bg:#09090c;
+  --surface:#131319;
+  --surface-2:#1b1b23;
+  --line:#26262f;
+  --fg:#ecebe6;
+  --muted:#8a8996;
+  --faint:#3a3a46;
+  --accent:#e2b26a;
+  --r1:#e2b26a;
+  --r2:#e98a74;
+  --r3:#9d93e8;
+  --r4:#6cc3b0;
+  --r5:#d98bc0;
+  --danger:#e66a6a;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--fg)}
+body{margin:0;font-family:var(--f-body);font-size:15px;-webkit-tap-highlight-color:transparent}
+body.locked{overflow:hidden}
+.wrap{max-width:560px;margin:0 auto;padding-block:20px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:18px}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+
+/* set chips */
+.chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:flex;align-items:center;gap:7px;height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--muted);font-size:13.5px;white-space:nowrap}
+.chip .cn{font-family:var(--f-num);font-size:11px;color:var(--muted)}
+.chip[aria-pressed="true"]{color:var(--bg);background:var(--accent);border-color:var(--accent);font-weight:700}
+.chip[aria-pressed="true"] .cn{color:color-mix(in srgb,var(--bg) 65%,var(--accent))}
+.chip.tool{padding:0 12px;color:var(--fg)}
+
+/* title + gauges */
+header{display:flex;flex-direction:column;gap:12px}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{margin:0;font-size:24px;font-weight:700;letter-spacing:.04em;overflow-wrap:anywhere}
+.sub{margin:4px 0 0;color:var(--muted);font-size:12.5px}
+.count{font-family:var(--f-num);font-size:30px;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.count small{font-size:14px;color:var(--muted)}
+.bars{display:flex;flex-direction:column;gap:6px}
+.bar{display:grid;grid-template-columns:52px 1fr 44px;align-items:center;gap:10px;font-size:12px;color:var(--muted)}
+.bar .track{display:block;height:4px;border-radius:2px;background:var(--surface-2);overflow:hidden}
+.bar .fill{display:block;height:100%;width:0;border-radius:2px;transition:width .3s ease}
+.bar .n{font-family:var(--f-num);text-align:right;font-variant-numeric:tabular-nums}
+.bar.done{color:var(--fg)}
+
+/* list */
+.listbar{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted)}
+.editbtn{flex:none;white-space:nowrap;height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-size:13px;color:var(--fg)}
+.editbtn[aria-pressed="true"]{border-color:var(--danger);color:var(--danger)}
+ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+li.item{display:grid;grid-template-columns:28px 40px minmax(0,1fr) auto;align-items:center;gap:8px;
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:8px 8px 8px 4px;
+  transition:border-color .2s, background .2s;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+li.item.full{background:color-mix(in srgb,var(--surface) 65%,var(--bg))}
+li.item.full .name{color:var(--muted)}
+li.item.dragging{position:relative;z-index:5;background:var(--surface-2);border-color:var(--accent);box-shadow:0 10px 30px rgba(0,0,0,.55)}
+.handle{height:40px;display:grid;place-items:center;color:var(--muted);cursor:grab;touch-action:none}
+.handle:active{cursor:grabbing}
+.ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:var(--surface-2);color:var(--ic,var(--muted));transition:color .2s}
+.ic svg{width:22px;height:22px}
+.main{min-width:0;display:flex;flex-direction:column;gap:2px}
+.name{font-size:16px;font-weight:500;overflow-wrap:anywhere}
+.state{font-size:11.5px;color:var(--muted)}
+
+/* the one check button */
+.chk{position:relative;overflow:hidden;display:flex;align-items:center;gap:3px;height:46px;min-width:58px;padding:0 11px;border-radius:12px;
+  background:var(--surface-2);border:1px solid var(--line);touch-action:manipulation;justify-content:center;transition:border-color .2s,background .2s}
+.chk:active{background:color-mix(in srgb,var(--surface-2) 80%,var(--fg))}
+.mk{width:17px;height:17px;display:grid;place-items:center}
+.mk svg{width:17px;height:17px}
+.mk.off{color:var(--faint)}
+.chk.full{border-color:color-mix(in srgb,var(--c) 55%,var(--line))}
+.chk::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--danger);transform:scaleX(0);transform-origin:left}
+.chk.holding::after{transform:scaleX(1);transition:transform .6s linear}
+.chk.bump{animation:bump .22s ease}
+@keyframes bump{50%{transform:scale(1.06)}}
+.chk.nope{animation:nope .3s ease}
+@keyframes nope{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.del{height:40px;padding:0 12px;border-radius:10px;color:var(--danger);border:1px solid color-mix(in srgb,var(--danger) 45%,transparent);font-size:13px;display:flex;align-items:center;gap:5px}
+.editing .chk{display:none}
+ul:not(.editing) .del{display:none}
+
+.empty{color:var(--muted);text-align:center;padding:28px 12px;border:1px dashed var(--line);border-radius:14px;font-size:13.5px}
+
+/* forms */
+.add{display:flex;flex-direction:column;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px}
+.addrow{display:flex;gap:8px}
+input[type=text]{flex:1;min-width:0;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--fg);font:inherit;padding:10px 12px}
+input::placeholder{color:var(--muted)}
+.btn{background:var(--accent);color:var(--bg);border-radius:10px;padding:0 16px;min-height:42px;font-weight:700;white-space:nowrap}
+.btn.sec{background:var(--surface-2);color:var(--fg);border:1px solid var(--line);font-weight:500}
+.btn.danger{background:none;color:var(--danger);border:1px solid color-mix(in srgb,var(--danger) 45%,transparent);font-weight:500}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.icons{display:flex;flex-wrap:wrap;gap:6px}
+.icons button{width:36px;height:36px;border-radius:9px;display:grid;place-items:center;color:var(--muted);border:1px solid transparent}
+.icons button svg{width:19px;height:19px}
+.icons button[aria-pressed="true"]{color:var(--accent);border-color:var(--accent);background:var(--surface-2)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
+.ghost{border:1px solid var(--line);border-radius:999px;padding:8px 14px;font-size:13px;color:var(--fg);background:var(--surface)}
+.ghost:hover{border-color:var(--muted)}
+.ver{margin:0;text-align:center;font-family:var(--f-num);font-size:11px;color:var(--faint)}
+.hint{color:var(--muted);font-size:12px;text-align:center;margin:0;line-height:1.8}
+
+/* modal */
+.modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.72);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+  padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet{width:100%;max-width:520px;max-height:100%;overflow-y:auto;display:flex;flex-direction:column;gap:16px;
+  background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:18px 16px 20px;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.mhead{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mhead h2{margin:0;font-size:17px;font-weight:700;letter-spacing:.04em}
+.close{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;color:var(--muted);background:var(--surface-2)}
+.close:hover{color:var(--fg)}
+.sheet h3{margin:0;font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.08em}
+.field{display:flex;flex-direction:column;gap:8px}
+.field input{width:100%}
+.prow{display:flex;gap:8px;flex-wrap:wrap}
+.prow .btn{flex:1 1 auto}
+.sheet hr{border:0;border-top:1px solid var(--line);margin:0}
+.stepper{display:flex;align-items:center;gap:10px}
+.stepper button{width:42px;height:42px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);font-size:20px;line-height:1}
+.stepper button:disabled{opacity:.35;cursor:not-allowed}
+.stepper output{font-family:var(--f-num);font-size:22px;min-width:3.5em;text-align:center}
+.stepper output small{font-family:var(--f-body);font-size:13px;color:var(--muted)}
+
+.del.arm{background:var(--danger);color:var(--bg);border-color:var(--danger)}
+.ghost.arm{border-color:var(--danger);color:var(--danger)}
+.btn.arm{background:var(--danger);color:var(--bg);border-color:var(--danger)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="chips" id="chips" role="group" aria-label="セットを切り替え"></div>
+
+  <header>
+    <h1 id="setTitle">忘れ物チェック</h1>
+    <div class="bars" id="bars"></div>
+  </header>
+
+  <div class="listbar">
+    <span id="listHint">ボタンでチェック／長押しで取り消し</span>
+    <button type="button" class="editbtn" id="editBtn" aria-pressed="false">削除・編集</button>
+  </div>
+  <ul id="list"></ul>
+
+  <div class="add" id="addForm">
+    <div class="addrow">
+      <input id="newName" type="text" placeholder="アイテムを追加（例：充電器）" maxlength="40" autocomplete="off" enterkeyhint="done">
+      <button class="btn" type="button" id="addBtn">追加</button>
+    </div>
+    <div class="icons" id="iconPick" role="group" aria-label="アイコン"></div>
+  </div>
+
+  <div class="tools">
+    <button class="ghost" id="clearChecks" type="button">チェックをすべて外す</button>
+    <button class="ghost" id="resetDefault" type="button">このセットを初期状態に戻す</button>
+  </div>
+  <p class="hint">⠿ をドラッグで並べ替え<br>削除・初期化は2回押しで確定</p>
+  <p class="ver">Ver. 15</p>
+</div>
+
+<div class="modal" id="setPanel" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <div class="mhead">
+      <h2 id="mTitle">セット管理</h2>
+      <button class="close" type="button" id="closePanel" aria-label="閉じる"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div class="field">
+      <h3>新しいセットを作る</h3>
+      <input type="text" id="newSetName" placeholder="セット名（例：週末旅行）" maxlength="20">
+      <div class="prow">
+        <button class="btn" type="button" id="mkEmpty">空で作成</button>
+        <button class="btn sec" type="button" id="mkCopy">今のセットを複製</button>
+      </div>
+    </div>
+    <hr>
+    <div class="field">
+      <h3 id="curLabel">このセット</h3>
+      <input type="text" id="renameInput" maxlength="20" aria-label="セット名">
+      <div class="prow">
+        <button class="btn sec" type="button" id="renameBtn">名前を変更</button>
+        <button class="btn sec" type="button" id="saveDefBtn">今の内容を初期状態に登録</button>
+        <button class="btn danger" type="button" id="delSetBtn">セットを削除</button>
+      </div>
+    </div>
+    <hr>
+    <div class="field">
+      <h3>確認回数（全セット共通）</h3>
+      <div class="stepper">
+        <button type="button" id="rDown" aria-label="回数を減らす">−</button>
+        <output id="rOut">2<small> 回</small></output>
+        <button type="button" id="rUp" aria-label="回数を増やす">＋</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+(function(){
+const P = {
+  passport:'<rect x="5" y="2.5" width="14" height="19" rx="2"/><circle cx="12" cy="10" r="3.5"/><path d="M8.5 10h7M12 6.5c1.2 1 1.2 6 0 7M12 6.5c-1.2 1-1.2 6 0 7M9 17.5h6"/>',
+  doc:'<path d="M14 2.5H7A1.5 1.5 0 0 0 5.5 4v16A1.5 1.5 0 0 0 7 21.5h10a1.5 1.5 0 0 0 1.5-1.5V7z"/><path d="M14 2.5V7h4.5M9 12h6M9 16h6"/>',
+  laptop:'<rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/>',
+  phone:'<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/>',
+  workphone:'<rect x="4" y="2.5" width="10" height="17" rx="2.2"/><path d="M8 16.5h2"/><rect x="13" y="13" width="8.5" height="7" rx="1.2"/><path d="M15.5 13v-1.3h3.5V13M13 16h8.5"/>',
+  wallet:'<path d="M4 7.5h15a1.5 1.5 0 0 1 1.5 1.5v9a1.5 1.5 0 0 1-1.5 1.5H5.5A1.5 1.5 0 0 1 4 18V6a1.5 1.5 0 0 1 1.5-1.5H17v3"/><path d="M20.5 11.5h-4a1.75 1.75 0 0 0 0 3.5h4"/>',
+  card:'<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 9.5h19M6 15h4"/>',
+  wifi:'<rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 16.5h.01M10.5 16.5h.01"/><path d="M8.5 9.5a5 5 0 0 1 7 0M6 7a8.5 8.5 0 0 1 12 0"/>',
+  pill:'<rect x="3" y="8.5" width="18" height="7" rx="3.5" transform="rotate(-40 12 12)"/><path d="M9.5 9 15 14.5" transform="rotate(5 12 12)"/>',
+  homekey:'<path d="M3 11 12 4l9 7"/><path d="M5.5 9.5V20h13V9.5"/><circle cx="12" cy="13" r="1.8"/><path d="M12 14.8v2.7"/>',
+  key:'<circle cx="8" cy="15" r="4"/><path d="m11 12 8.5-8.5M16 6l2.5 2.5M14 8l2 2"/>',
+  jacket:'<path d="M8.5 3 4 5.5V21h16V5.5L15.5 3 12 8z"/><path d="M12 8v13M8.5 3 9 11l-2 2M15.5 3 15 11l2 2"/>',
+  shirt:'<path d="M8 3 3 6l2 4 2-1v12h10V9l2 1 2-4-5-3c0 2-1.8 3-4 3S8 5 8 3z"/>',
+  pants:'<path d="M6 3h12l1 18h-5l-2-11-2 11H5z"/><path d="M6 6.5h12"/>',
+  belt:'<rect x="2" y="9.5" width="20" height="5" rx="1"/><rect x="8" y="7.5" width="6" height="9" rx="1.2"/><path d="M11 12h4.5"/>',
+  shoe:'<path d="M3 18V8h5.5c.5 2 2 3.5 4 3.8l5 .7c2 .3 3.5 2 3.5 4V18z"/><path d="M3 15h18M10 9.5 9 11M12.5 11l-1 1.5"/>',
+  clothes:'<path d="M12 7.5a2 2 0 1 0-2-2"/><path d="M12 7.5v1L2.8 15.6c-.8.6-.4 1.9.6 1.9h17.2c1 0 1.4-1.3.6-1.9L12 8.5"/>',
+  toothbrush:'<path d="M4 20 13.5 10.5"/><path d="M12 9l3-3 3 3-3 3z"/><path d="M15 6l1.5-1.5M16.5 7.5 18 6M18 9l1.5-1.5"/>',
+  floss:'<rect x="5" y="8" width="14" height="13" rx="3"/><path d="M5 12h14M12 8V3M9 3h6"/>',
+  mask:'<path d="M5 8.5c3-1.5 11-1.5 14 0v6c-2 3-12 3-14 0z"/><path d="M5 9.5H3.5a1.5 1.5 0 0 0 0 4H5M19 9.5h1.5a1.5 1.5 0 0 1 0 4H19M8 11h8M8.5 13.5h7"/>',
+  bandage:'<rect x="2.5" y="8" width="19" height="8" rx="4" transform="rotate(-35 12 12)"/><rect x="9" y="9.5" width="6" height="5" rx="1" transform="rotate(-35 12 12)"/>',
+  bugspray:'<rect x="7" y="9" width="10" height="12.5" rx="2"/><path d="M9.5 9V6.5h5V9M12 6.5V4.5h3"/><path d="M18 3.5l2-1M18.5 5.5h2.2M18 7.5l2 1"/><ellipse cx="12" cy="15.5" rx="1.6" ry="2.2"/><path d="M10.4 14.3 9 13.3M13.6 14.3l1.4-1M10.4 16.7 9 17.7M13.6 16.7l1.4 1"/>',
+  adapter:'<rect x="5" y="9" width="14" height="10" rx="2.5"/><path d="M9.5 9V4.5M14.5 9V4.5M12 19v2.5M9 14h6M13 12l2 2-2 2"/>',
+  razor:'<path d="M5 4.5h14v4H5z"/><path d="M7 8.5v1.5M10 8.5v1.5M14 8.5v1.5M17 8.5v1.5"/><path d="M12 8.5v4"/><rect x="10.3" y="12.5" width="3.4" height="9" rx="1.7"/>',
+  nailclip:'<path d="M3 13.5c4-.5 10-.5 18 0v1.5c-7 1.5-13 1.5-18 0z"/><path d="M4 13.4 17 9l2.5 1.2"/><circle cx="18.5" cy="14.3" r=".6"/><path d="M8 11.8l3.5 1.4"/>',
+  wipes:'<rect x="3" y="9" width="18" height="11" rx="2.5"/><path d="M9 9V7c0-1 1-2 3-2s3 1 3 2v2M9 14.5h6"/>',
+  mint:'<rect x="5" y="3" width="14" height="18" rx="3"/><circle cx="12" cy="10" r="2.5"/><path d="M8.5 16h7"/>',
+  bizcard:'<rect x="2.5" y="6" width="19" height="12" rx="1.5"/><circle cx="8" cy="11" r="2"/><path d="M5.5 15.5c.6-1.3 1.5-2 2.5-2s1.9.7 2.5 2M13.5 10h5M13.5 13h4"/>',
+  earbuds:'<circle cx="7" cy="7.5" r="3.5"/><path d="M8.5 10.7v9"/><circle cx="17" cy="7.5" r="3.5"/><path d="M15.5 10.7v9"/>',
+  badge:'<path d="M9 2.5 12 7l3-4.5"/><rect x="5" y="7" width="14" height="14.5" rx="2"/><circle cx="12" cy="12.5" r="2.3"/><path d="M8.5 18.5c.8-1.5 2-2.2 3.5-2.2s2.7.7 3.5 2.2"/>',
+  charger:'<path d="M9 2.5v5M15 2.5v5M6.5 7.5h11V11a5.5 5.5 0 0 1-11 0z"/><path d="M12 16.5v5"/>',
+  glasses:'<circle cx="6.5" cy="14" r="3.5"/><circle cx="17.5" cy="14" r="3.5"/><path d="M10 14c1.3-1 2.7-1 4 0M3 14l1-6M21 14l-1-6"/>',
+  umbrella:'<path d="M2.5 12a9.5 9.5 0 0 1 19 0z"/><path d="M12 12v7a2 2 0 0 1-4 0"/>',
+  headphones:'<path d="M4 15v-3a8 8 0 0 1 16 0v3"/><rect x="3" y="14" width="4.5" height="7" rx="1.5"/><rect x="16.5" y="14" width="4.5" height="7" rx="1.5"/>',
+  camera:'<path d="M3 8a1.5 1.5 0 0 1 1.5-1.5h3l1.5-2h6l1.5 2h3A1.5 1.5 0 0 1 21 8v10a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18z"/><circle cx="12" cy="13" r="3.5"/>',
+  bag:'<rect x="3" y="7.5" width="18" height="13" rx="2"/><path d="M9 7.5V5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5v2.5M3 12.5h18"/>',
+  watch:'<circle cx="12" cy="12" r="5.5"/><path d="M12 9.5V12l1.5 1.5M9 7l.5-4.5h5L15 7M9 17l.5 4.5h5L15 17"/>',
+  tag:'<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.3"/>'
+};
+const svg = k=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[k]||P.tag}</svg>`;
+const CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m4.5 12.5 4.5 4.5L19.5 7"/></svg>';
+const DOT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="6.5"/></svg>';
+const GRIP = '<svg width="14" height="20" viewBox="0 0 14 20" fill="currentColor" aria-hidden="true"><circle cx="4" cy="4" r="1.6"/><circle cx="10" cy="4" r="1.6"/><circle cx="4" cy="10" r="1.6"/><circle cx="10" cy="10" r="1.6"/><circle cx="4" cy="16" r="1.6"/><circle cx="10" cy="16" r="1.6"/></svg>';
+const TRASH = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/></svg>';
+
+const V8_ADD = [['折りたたみ傘','umbrella'],['歯みがきセット','toothbrush'],['フロス','floss'],['爪切り','nailclip']];
+const ABROAD = [['パスポート','passport'],['入国審査（ビザ）','doc'],['スマホ','phone'],['スマホ充電器','charger'],['Wi-fiルーター','wifi'],
+  ['電源アダプタ変換器','adapter'],...V8_ADD,['ひげ剃り','razor'],['薬','pill'],['マスク','mask'],['絆創膏','bandage'],['着替え','clothes'],['ベルト','belt']];
+const BUILTIN = [ {name:'海外出張', def:ABROAD} ];
+const DATA_V = 8;   // v7: 海外出張 replaced with the new list, 国内出張 removed / v8: 充電器→スマホ充電器, items added before ひげ剃り
+const ROUND_COLORS = ['var(--r1)','var(--r2)','var(--r3)','var(--r4)','var(--r5)'];
+const MAXR=5, DEF_ROUNDS=2;
+const KEY='wasuremono-v2', OLDKEY='wasuremono-v1';
+let uid=1;
+const nid = p=>p+(uid++)+'_'+Date.now().toString(36);
+const mk = ([name,icon]) => ({id:nid('i'), name, icon, n:0});
+const mkSet = (name,def) => ({id:nid('s'), name, def:def.map(x=>[x[0],x[1]]), items:def.map(mk)});
+const cleanItems = arr => (Array.isArray(arr)?arr:[]).filter(x=>x&&x.name).map(x=>({id:String(x.id||nid('i')),name:String(x.name),icon:P[x.icon]?x.icon:'tag',n:Math.max(0,x.n|0)}));
+const clampR = r => Math.min(MAXR,Math.max(1,r|0||DEF_ROUNDS));
+
+let state = { rounds:DEF_ROUNDS, roundsV:2, dataV:DATA_V, cur:null, sets: BUILTIN.map(b=>mkSet(b.name,b.def)) };
+state.cur = state.sets[0].id;
+try{
+  const s = JSON.parse(localStorage.getItem(KEY)||'null');
+  if(s && Array.isArray(s.sets) && s.sets.length){
+    const sets = s.sets.filter(x=>x&&x.name&&!((s.dataV|0)<4&&x.name==='基本')).map(x=>({id:String(x.id||nid('s')),name:String(x.name),
+      def:(Array.isArray(x.def)?x.def:[]).filter(d=>Array.isArray(d)&&d[0]).map(d=>[String(d[0]),P[d[1]]?d[1]:'tag']),
+      items:cleanItems(x.items)}));
+    if((s.dataV|0)<8 && (s.dataV|0)>=7){
+      const A=sets.find(x=>x.name==='海外出張');
+      if(A){
+        A.items.forEach(x=>{ if(x.name==='充電器') x.name='スマホ充電器'; });
+        A.def.forEach(d=>{ if(d[0]==='充電器') d[0]='スマホ充電器'; });
+        const insBefore=(arr,get,make)=>{ const have=new Set(arr.map(get)), todo=V8_ADD.filter(a=>!have.has(a[0])); if(!todo.length) return;
+          const i=arr.findIndex(x=>get(x)==='ひげ剃り'); arr.splice(i<0?arr.length:i,0,...todo.map(make)); };
+        insBefore(A.items,x=>x.name,mk); insBefore(A.def,x=>x[0],a=>[a[0],a[1]]);
+      }
+    }
+    if((s.dataV|0)<7){
+      for(let i=sets.length-1;i>=0;i--) if(sets[i].name==='国内出張') sets.splice(i,1);
+      const A=sets.find(x=>x.name==='海外出張');
+      if(A){ A.def=ABROAD.map(x=>[x[0],x[1]]); A.items=ABROAD.map(mk); }
+      else sets.unshift(mkSet('海外出張',ABROAD));
+    }
+    if(sets.length){
+      state.sets=sets;
+      state.rounds = s.roundsV===2 ? clampR(s.rounds) : DEF_ROUNDS;   // switch older saves to the new default of 2
+      state.cur = sets.some(x=>x.id===s.cur) ? s.cur : sets[0].id;
+    }
+  }
+}catch(e){}
+const save = ()=>{ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} };
+const cur = ()=> state.sets.find(x=>x.id===state.cur) || state.sets[0];
+const clone = o => JSON.parse(JSON.stringify(o));
+
+const $ = id=>document.getElementById(id);
+const list=$('list'), bars=$('bars'), chips=$('chips'), panel=$('setPanel');
+const esc = s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let editing=false;
+
+/* ---------- two-tap confirm ---------- */
+const armed=new Map();
+function disarm(key){ const a=armed.get(key); if(!a) return; clearTimeout(a.t); a.btn.classList.remove('arm'); a.btn.innerHTML=a.label; armed.delete(key); }
+function disarmAll(){ [...armed.keys()].forEach(disarm); }
+function twoTap(btn,key,armText,run){
+  const a=armed.get(key);
+  if(a && a.btn===btn){ disarm(key); run(); return; }
+  disarmAll();
+  armed.set(key,{btn,label:btn.innerHTML,t:setTimeout(()=>disarm(key),3000)});
+  btn.classList.add('arm'); btn.textContent=armText;
+}
+
+/* ---------- rendering ---------- */
+function stateText(n,R){ return n===0?'未チェック':n>=R?'確認完了':`${n}回目まで確認 / 全${R}回`; }
+function chkInner(n,R){
+  let h=''; for(let i=0;i<R;i++) h+= i<n ? `<span class="mk" style="color:${ROUND_COLORS[i]}">${CHECK}</span>` : `<span class="mk off">${DOT}</span>`;
+  return h;
+}
+function rowHTML(it){
+  const R=state.rounds, n=Math.min(it.n,R);
+  return `<button type="button" class="handle" aria-label="${esc(it.name)}を並べ替え">${GRIP}</button>
+    <span class="ic" style="--ic:${n?ROUND_COLORS[n-1]:'var(--muted)'}">${svg(it.icon)}</span>
+    <div class="main"><span class="name">${esc(it.name)}</span><span class="state">${stateText(n,R)}</span></div>
+    <button type="button" class="chk${n>=R?' full':''}" style="--c:${ROUND_COLORS[Math.max(0,n-1)]}" aria-label="${esc(it.name)}をチェック（${n}/${R}）">${chkInner(n,R)}</button>
+    <button type="button" class="del" aria-label="${esc(it.name)}を削除">${TRASH}削除</button>`;
+}
+function renderRow(li,it){ li.className='item'+(it.n>=state.rounds?' full':''); li.innerHTML=rowHTML(it); }
+function renderList(){
+  const S=cur();
+  list.classList.toggle('editing',editing);
+  list.innerHTML='';
+  if(!S.items.length) list.innerHTML='<li class="empty">このセットにはアイテムがありません。下から追加してください。</li>';
+  for(const it of S.items){ const li=document.createElement('li'); li.dataset.id=it.id; renderRow(li,it); list.appendChild(li); }
+  renderHead();
+}
+function renderChips(){
+  const keep=chips.scrollLeft, R=state.rounds;
+  chips.innerHTML = state.sets.map(s=>{
+    return `<button type="button" class="chip" data-set="${s.id}" aria-pressed="${s.id===state.cur}">${esc(s.name)}</button>`;
+  }).join('') + `<button type="button" class="chip tool" id="panelBtn" aria-haspopup="dialog">＋ セット管理</button>`;
+  chips.scrollLeft=keep;
+}
+function revealActiveChip(){
+  const a=chips.querySelector('[aria-pressed="true"]'); if(!a) return;
+  const cr=chips.getBoundingClientRect(), ar=a.getBoundingClientRect();
+  if(ar.left<cr.left) chips.scrollLeft=Math.max(0,chips.scrollLeft-(cr.left-ar.left));
+  else if(ar.right>cr.right) chips.scrollLeft+=ar.right-cr.right;
+}
+function renderPanel(){
+  const S=cur();
+  $('curLabel').textContent=`このセット（${S.name}）`;
+  $('renameInput').value=S.name;
+  $('delSetBtn').disabled = state.sets.length<=1;
+  $('rOut').innerHTML=`${state.rounds}<small> 回</small>`;
+  $('rDown').disabled = state.rounds<=1;
+  $('rUp').disabled = state.rounds>=MAXR;
+}
+function renderHead(){
+  const S=cur(), R=state.rounds, T=S.items.length;
+  $('setTitle').textContent = S.name;
+  if(bars.children.length!==R){
+    bars.innerHTML=Array.from({length:R},(_,r)=>`<div class="bar"><span>${r+1}回目</span><span class="track"><span class="fill" style="background:${ROUND_COLORS[r]}"></span></span><span class="n"></span></div>`).join('');
+  }
+  [...bars.children].forEach((row,r)=>{
+    const c=S.items.filter(x=>x.n>r).length;
+    row.classList.toggle('done', T>0&&c===T);
+    row.querySelector('.fill').style.width=(T?c/T*100:0)+'%';
+    row.querySelector('.n').textContent=`${c}/${T}`;
+  });
+  renderChips(); if(!panel.hidden) renderPanel();
+}
+const find = id=>cur().items.find(x=>x.id===id);
+
+function refreshRow(it, focus){
+  const li=list.querySelector(`li[data-id="${it.id}"]`); if(!li) return;
+  renderRow(li,it); renderHead();
+  const b=li.querySelector('.chk'); if(b){ b.classList.add('bump'); if(focus) b.focus({preventScroll:true}); }
+}
+
+/* ---------- check button: tap = +1, long-press = -1 ---------- */
+const HOLD_MS=600;
+let press=null, lastPtr=0;
+function addCheck(it){
+  const R=state.rounds;
+  if(it.n>=R){ const li=list.querySelector(`li[data-id="${it.id}"] .chk`); if(li){ li.classList.remove('nope'); void li.offsetWidth; li.classList.add('nope'); } return; }
+  it.n++; save(); refreshRow(it,true);
+}
+function removeCheck(it){
+  if(it.n<=0) return;
+  it.n=Math.min(it.n,state.rounds)-1; save(); refreshRow(it,true);
+  if(navigator.vibrate) try{navigator.vibrate(30)}catch(e){}
+}
+list.addEventListener('pointerdown',e=>{
+  const b=e.target.closest('.chk'); if(!b) return;
+  if(e.button!==undefined && e.button!==0) return;
+  const it=find(b.closest('li').dataset.id); if(!it) return;
+  lastPtr=Date.now();
+  press={b,it,pid:e.pointerId,fired:false,x:e.clientX,y:e.clientY};
+  if(it.n>0) b.classList.add('holding');
+  press.t=setTimeout(()=>{ if(!press) return; press.fired=true; b.classList.remove('holding'); removeCheck(it); }, HOLD_MS);
+});
+function cancelPress(){ if(!press) return; clearTimeout(press.t); press.b.classList.remove('holding'); press=null; }
+window.addEventListener('pointermove',e=>{ if(press && e.pointerId===press.pid && Math.hypot(e.clientX-press.x,e.clientY-press.y)>10) cancelPress(); });
+window.addEventListener('pointercancel',e=>{ if(press && e.pointerId===press.pid) cancelPress(); });
+window.addEventListener('pointerup',e=>{
+  if(!press || e.pointerId!==press.pid) return;
+  lastPtr=Date.now();
+  const p=press; clearTimeout(p.t); p.b.classList.remove('holding'); press=null;
+  if(!p.fired && p.b.contains(e.target)) addCheck(p.it);
+});
+list.addEventListener('contextmenu',e=>{ if(e.target.closest('.chk')) e.preventDefault(); });
+list.addEventListener('click',e=>{
+  const b=e.target.closest('.chk');
+  if(b && Date.now()-lastPtr>800){ const it=find(b.closest('li').dataset.id); if(it) addCheck(it); }   // keyboard Enter/Space
+  const d=e.target.closest('.del');
+  if(d){
+    const id=d.closest('li').dataset.id;
+    twoTap(d,'del:'+id,'もう一度で削除',()=>{ const S=cur(); S.items=S.items.filter(x=>x.id!==id); save(); renderList(); });
+  }
+});
+list.addEventListener('keydown',e=>{
+  const b=e.target.closest('.chk');
+  if(b && (e.key==='Backspace'||e.key==='Delete')){ e.preventDefault(); const it=find(b.closest('li').dataset.id); if(it) removeCheck(it); }
+});
+
+$('editBtn').addEventListener('click',e=>{
+  disarmAll();
+  editing=!editing; e.currentTarget.setAttribute('aria-pressed',editing);
+  e.currentTarget.textContent = editing ? '編集を終了' : '削除・編集';
+  $('listHint').textContent = editing ? '削除は2回押しで確定' : 'ボタンでチェック／長押しで取り消し';
+  list.classList.toggle('editing',editing);
+});
+
+/* ---------- sets & modal ---------- */
+chips.addEventListener('click',e=>{
+  const t=e.target.closest('[data-set]');
+  if(t){ disarmAll(); state.cur=t.dataset.set; save(); renderList(); revealActiveChip(); return; }
+  if(e.target.closest('#panelBtn')) openPanel();
+});
+let lastFocus=null;
+function openPanel(){ disarmAll(); lastFocus=document.activeElement; renderPanel(); panel.hidden=false; document.body.classList.add('locked'); $('closePanel').focus({preventScroll:true}); }
+function closePanel(){ if(panel.hidden) return; disarmAll(); panel.hidden=true; document.body.classList.remove('locked'); const b=$('panelBtn')||lastFocus; if(b) b.focus({preventScroll:true}); }
+$('closePanel').addEventListener('click',closePanel);
+panel.addEventListener('click',e=>{ if(e.target===panel) closePanel(); });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closePanel(); });
+
+function createSet(copy){
+  const inp=$('newSetName'); const name=inp.value.trim();
+  if(!name){ inp.focus(); return; }
+  const S=cur();
+  const ns = mkSet(name, copy ? S.items.map(x=>[x.name,x.icon]) : []);
+  state.sets.push(ns); state.cur=ns.id; inp.value=''; save(); renderList(); closePanel(); revealActiveChip();
+}
+$('mkEmpty').addEventListener('click',()=>createSet(false));
+$('mkCopy').addEventListener('click',()=>createSet(true));
+$('newSetName').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); createSet(false);} });
+const rename=()=>{
+  const inp=$('renameInput'), v=inp.value.trim(); if(!v){ inp.focus(); return; }
+  const S=cur(); if(v===S.name) return;
+  S.name=v; save(); renderHead();
+};
+$('renameBtn').addEventListener('click',rename);
+$('renameInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); rename(); } });
+$('saveDefBtn').addEventListener('click',e=>{
+  twoTap(e.currentTarget,'savedef','もう一度押すと上書き登録',()=>{ const S=cur(); S.def=S.items.map(x=>[x.name,x.icon]); save(); });
+});
+$('delSetBtn').addEventListener('click',e=>{
+  if(state.sets.length<=1) return;
+  twoTap(e.currentTarget,'delset','もう一度押すと削除',()=>{
+    const S=cur(), i=state.sets.indexOf(S);
+    state.sets.splice(i,1); state.cur=state.sets[Math.max(0,i-1)].id; save(); renderList(); closePanel(); revealActiveChip();
+  });
+});
+function setRounds(r){ state.rounds=clampR(r); state.roundsV=2; save(); renderList(); }
+$('rDown').addEventListener('click',()=>setRounds(state.rounds-1));
+$('rUp').addEventListener('click',()=>setRounds(state.rounds+1));
+
+/* ---------- add / bulk tools ---------- */
+let pickIcon='tag';
+const pick=$('iconPick');
+pick.innerHTML=Object.keys(P).map(k=>`<button type="button" data-ic="${k}" aria-pressed="${k===pickIcon}" aria-label="${k}">${svg(k)}</button>`).join('');
+pick.addEventListener('click',e=>{const b=e.target.closest('[data-ic]'); if(!b) return; pickIcon=b.dataset.ic; pick.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));});
+// no <form>: some viewers sandbox pages without form submission, so wire the button and Enter key directly
+function addItem(){
+  const inp=$('newName'); const v=inp.value.trim(); if(!v){ inp.focus(); return; }
+  cur().items.push(mk([v,pickIcon])); inp.value=''; save(); renderList();
+  const li=list.lastElementChild;
+  if(li){ li.scrollIntoView({block:'nearest'}); if(li.animate) li.animate([{borderColor:'#e2b26a'},{borderColor:'#26262f'}],{duration:900}); }
+}
+$('addBtn').addEventListener('click',addItem);
+$('newName').addEventListener('keydown',e=>{ if(e.key==='Enter' && !e.isComposing){ e.preventDefault(); addItem(); } });
+$('clearChecks').addEventListener('click',e=>{
+  if(!cur().items.some(x=>x.n)) return;
+  twoTap(e.currentTarget,'clear','もう一度押すと全部外す',()=>{ cur().items.forEach(x=>x.n=0); save(); renderList(); });
+});
+$('resetDefault').addEventListener('click',e=>{
+  twoTap(e.currentTarget,'reset','もう一度押すと初期化',()=>{ const S=cur(); S.items=S.def.map(mk); save(); renderList(); });
+});
+
+/* ---------- drag reorder ---------- */
+let drag=null;
+list.addEventListener('pointerdown',e=>{
+  const h=e.target.closest('.handle'); if(!h) return;
+  const li=h.closest('li.item'); e.preventDefault();
+  drag={li,startY:e.clientY,pid:e.pointerId,top0:li.getBoundingClientRect().top};
+  li.classList.add('dragging');
+});
+window.addEventListener('pointermove',e=>{
+  if(!drag||e.pointerId!==drag.pid) return;
+  const {li}=drag;
+  li.style.transform='';
+  const y=e.clientY - drag.startY + drag.top0;
+  const mid=y+li.offsetHeight/2;
+  let before=null;
+  for(const s of list.children){ if(s===li) continue; const sr=s.getBoundingClientRect(); if(mid < sr.top+sr.height/2){ before=s; break; } }
+  if(before!==li.nextSibling || (before===null && li!==list.lastElementChild)) list.insertBefore(li,before);
+  li.style.transform=`translateY(${y-li.getBoundingClientRect().top}px)`;
+});
+const endDrag=e=>{
+  if(!drag||e.pointerId!==drag.pid) return;
+  const {li}=drag; li.style.transform=''; li.classList.remove('dragging'); drag=null;
+  const order=[...list.querySelectorAll('li.item')].map(x=>x.dataset.id);
+  cur().items.sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id)); save();
+};
+window.addEventListener('pointerup',endDrag);
+window.addEventListener('pointercancel',endDrag);
+list.addEventListener('keydown',e=>{
+  const h=e.target.closest('.handle'); if(!h||(e.key!=='ArrowUp'&&e.key!=='ArrowDown')) return;
+  e.preventDefault(); const li=h.closest('li'); const items=cur().items; const i=items.findIndex(x=>x.id===li.dataset.id);
+  const j=e.key==='ArrowUp'?i-1:i+1; if(j<0||j>=items.length) return;
+  [items[i],items[j]]=[items[j],items[i]]; save(); renderList();
+  list.querySelector(`li[data-id="${li.dataset.id}"] .handle`).focus();
+});
+
+renderList(); revealActiveChip();
+})();
+</script>
+</body>
+</html>
