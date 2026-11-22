@@ -189,7 +189,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 22（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 23（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -670,6 +670,7 @@ function processTile(t,buf){
         if(br==='tunnel') mx.setLineDash([3,3]); else mx.setLineDash([]);
         mx.beginPath(); mx.moveTo(pc[0]*256/E,pc[1]*256/E); for(let i=2;i<n;i+=2) mx.lineTo(pc[i]*256/E,pc[i+1]*256/E); mx.stroke(); } }
     mx.setLineDash([]); }
+  safe('clearance',()=>liftBridgesOverRoads(roads));
   // 2) ground: terrain cut below the roads, asphalt painted under them
   let gm=safe('ground',()=>buildGroundTile(t,layers,roads.filter(r=>!r.br)));
   if(!gm) gm=safe('ground-plain',()=>buildGroundTile(t,{},null));
@@ -2142,6 +2143,29 @@ function buildJunctions(roads,ox,oz){
 }
 
 function safe(name,fn){ try{ return fn(); }catch(e){ console.warn('tile stage failed:',name,e); TL.errs=(TL.errs||0)+1; return null; } }
+
+/* ---------- bridges must pass clearly above the roads they cross (no flat slab across the road) ---------- */
+function liftBridgesOverRoads(roads){
+  const lows=roads.filter(r=>!r.br), G=20, grid=new Map();
+  for(const r of lows){ const p=r.pts; for(let i=0;i<p.length/2-1;i++){
+    const ax=p[2*i],az=p[2*i+1],bx=p[2*i+2],bz=p[2*i+3];
+    const i0=Math.floor(Math.min(ax,bx)/G), i1=Math.floor(Math.max(ax,bx)/G), j0=Math.floor(Math.min(az,bz)/G), j1=Math.floor(Math.max(az,bz)/G);
+    for(let a=i0;a<=i1;a++) for(let b=j0;b<=j1;b++){ const k=a+','+b; let l=grid.get(k); if(!l){l=[];grid.set(k,l);} l.push([ax,az,r.ys[i],bx,bz,r.ys[i+1],r.w]); } } }
+  const CLEAR=5.5+1.4, RAMP=0.06;
+  for(const br of roads){ if(br.br!=='bridge') continue;
+    const p=br.pts, n=p.length/2, need=new Array(n).fill(-1e9); let any=false;
+    for(let i=0;i<n;i++){ const x=p[2*i], z=p[2*i+1], ci=Math.floor(x/G), cj=Math.floor(z/G);
+      for(let a=ci-1;a<=ci+1;a++) for(let b=cj-1;b<=cj+1;b++){ const l=grid.get(a+','+b); if(!l) continue;
+        for(const s of l){ const dx=s[3]-s[0], dz=s[4]-s[1], L2=dx*dx+dz*dz||1; let u=((x-s[0])*dx+(z-s[1])*dz)/L2; u=u<0?0:u>1?1:u;
+          const d=Math.hypot(x-s[0]-dx*u, z-s[1]-dz*u); if(d>br.w/2+s[6]/2+2) continue;
+          const y=s[2]+(s[5]-s[2])*u; if(y+CLEAR>br.ys[i] && y<br.ys[i]+3 && y+CLEAR>need[i]){ need[i]=y+CLEAR; any=true; } } } }
+    if(!any) continue;
+    const cum=[0]; for(let i=1;i<n;i++) cum.push(cum[i-1]+Math.hypot(p[2*i]-p[2*i-2],p[2*i+1]-p[2*i-1]));
+    for(let i=0;i<n;i++){ let req=br.ys[i];
+      for(let j=0;j<n;j++) if(need[j]>-1e8) req=Math.max(req, need[j]-RAMP*Math.abs(cum[i]-cum[j]));
+      br.ys[i]=req; }
+  }
+}
 
 </script>
 </body>
