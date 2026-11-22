@@ -103,6 +103,8 @@ table.res{width:100%;font-size:15px;color:#cdd8e4;border-collapse:collapse}
 table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:700}
 
 /* v15 */
+#dbg{position:absolute;left:max(8px,env(safe-area-inset-left));bottom:calc(84px + env(safe-area-inset-bottom));font:11px/1.3 ui-monospace,monospace;color:rgba(255,255,255,.85);background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px;pointer-events:auto}
+#dbg:empty{display:none}
 #locPill{position:absolute;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:rgba(10,16,24,.7);color:#fff;font-size:13px;padding:5px 14px;border-radius:16px;white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;z-index:2}
 #menuPanel{display:flex;flex-direction:column;gap:2px;background:rgba(10,16,24,.78);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:4px;pointer-events:auto}
 #menuPanel.hidden{display:none}
@@ -177,6 +179,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
   <div id="spdCtl"><button id="goBtn" title="一時停止">⏸</button><button id="spdDn">−</button><input type="range" id="spdRange" min="0" max="1000" step="1"><button id="spdUp">＋</button><span id="spdSet">43 km/h</span></div>
   <div id="joy" class="hidden"><div id="joyBase"></div><div id="thrBar"><div id="thrFill"></div></div><div id="joyKnob"></div><div id="joyLbl"></div></div>
   <div id="attr"></div>
+  <div id="dbg"></div>
   <div id="bldStat" class="hidden"></div>
 </div>
 
@@ -189,7 +192,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 27（2026/11/23）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 28（2026/11/23）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -665,7 +668,7 @@ function processTile(t,buf){
       for(const part of decodeGeom(f.geom)) for(const pc of clipLine(part,E)){
         const n=pc.length, inA=pc[0]>0&&pc[0]<E&&pc[1]>0&&pc[1]<E, inB=pc[n-2]>0&&pc[n-2]<E&&pc[n-1]>0&&pc[n-1]<E;
         const raw=proj(pc), pts=subdivide(raw,12), ys=deckHeights(pts,br,layer,inA,inB);
-        roads.push({raw,pts,ys,w,br,inA,inB,id:roads.length});
+        roads.push({raw,pts,ys,w,br,inA,inB,id:roads.length,mw:f.tags.class==='motorway'});
         mx.strokeStyle=w>=10?'#e8c66a':(w>=8?'#c9d1da':'#8a96a3'); mx.lineWidth=Math.max(1.2,w*256/E*0.35);
         if(br==='tunnel') mx.setLineDash([3,3]); else mx.setLineDash([]);
         mx.beginPath(); mx.moveTo(pc[0]*256/E,pc[1]*256/E); for(let i=2;i<n;i+=2) mx.lineTo(pc[i]*256/E,pc[i+1]*256/E); mx.stroke(); } }
@@ -681,7 +684,7 @@ function processTile(t,buf){
   for(const r of roads){
     if(!r.ys || r.ys.length*2!==r.pts.length || r.ys.some(v=>!isFinite(v))) r.ys=r.pts.filter((_,i)=>i%2===0).map(()=>0);
     if(!r.br) for(let i=0;i<r.ys.length;i++) r.ys[i]=Math.max(r.ys[i],groundAt(r.pts[2*i],r.pts[2*i+1]));
-    addDeck(t,r.pts,r.ys,r.br==='tunnel');
+    addDeck(t,r.pts,r.ys,r.br==='tunnel',r.mw);
     if(r.br==='bridge') bridges.push({pts:r.pts,ys:r.ys,w:r.w});
     else if(r.br!=='tunnel') lines.push({pts:r.pts,ys:r.ys,w:r.w,capA:0,capB:0});
   }
@@ -1153,6 +1156,7 @@ function rebuildRouteMesh(){
   const p=[raw[0],raw[1]]; for(let i=2;i<raw.length;i+=2) if(Math.hypot(raw[i]-p[p.length-2],raw[i+1]-p[p.length-1])>0.3) p.push(raw[i],raw[i+1]);
   if(p.length<4) return;
   if(mode==='real'){ const sp=subdivide(p,6); p.length=0; for(const v of sp) p.push(v); }
+  const sAt=[s0]; for(let i=1;i<p.length/2;i++) sAt.push(sAt[i-1]+Math.hypot(p[2*i]-p[2*i-2],p[2*i+1]-p[2*i-1]));
   const ox=p[0], oz=p[1], n=p.length/2, rel=new Array(p.length);
   // shift to the left lane
   for(let i=0;i<n;i++){ const j=Math.min(n-1,i+1), k=Math.max(0,i-1); const d=norm(p[2*j]-p[2*k],p[2*j+1]-p[2*k+1]);
@@ -1160,7 +1164,7 @@ function rebuildRouteMesh(){
   const Pp=new Float32Array(n*6), U=new Float32Array(n*4), I=new Uint32Array((n-1)*6);
   writeStrip(rel,0.9,0.05,5,Pp,U,I,0,0);
   if(mode==='real'){ let py=car.y; for(let i=0;i<n;i++){ const j=Math.min(n-1,i+1), k=Math.max(0,i-1), d=norm(p[2*j]-p[2*k],p[2*j+1]-p[2*k+1]);
-    let y=roadY(p[2*i],p[2*i+1],d.x,d.z,py); if(!roadY.tun) y=Math.max(y,groundAt(p[2*i],p[2*i+1]));
+    let y=roadY(p[2*i],p[2*i+1],d.x,d.z,py,flagAt(sAt[i])); if(!roadY.tun) y=Math.max(y,groundAt(p[2*i],p[2*i+1]));
     if(i>0){ const ds=Math.hypot(p[2*i]-p[2*i-2],p[2*i+1]-p[2*i-1]), m=0.09*ds+0.05; y=Math.min(py+m,Math.max(py-m,y)); }
     py=y; Pp[(2*i)*3+1]=y+0.6; Pp[(2*i+1)*3+1]=y+0.6; } }
   const mat=rebuildRouteMesh.mat||(rebuildRouteMesh.mat=new THREE.MeshBasicMaterial({map:routeTex,transparent:true,opacity:0.38,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-8}));
@@ -1320,9 +1324,11 @@ async function startRealRoute(){
     for(const c of coords){ const q=ll2xz(c[1],c[0]); pts.push(q[0],q[1]); }
     const stepsRaw=route.legs[0].steps, sum=stepsRaw.reduce((a,s)=>a+s.distance,0)||1;
     let acc=0; const tmp=[];
-    for(const st of stepsRaw){ tmp.push({s:acc,type:st.maneuver.type,mod:st.maneuver.modifier||'',name:st.name||'',ref:st.ref||''}); acc+=st.distance; }
+    const xs=[]; for(const st of stepsRaw){ tmp.push({s:acc,type:st.maneuver.type,mod:st.maneuver.modifier||'',name:st.name||'',ref:st.ref||''}); acc+=st.distance;
+      for(const it of (st.intersections||[])) xs.push({loc:it.location,cls:it.classes||[]}); }
     setRoute(pts,[],setup.goal.name);
     const k=drive.total/sum; drive.steps=tmp.map(s=>({...s,s:s.s*k}));
+    try{ drive.flags=routeFlags(xs); }catch(e){ drive.flags=null; }
     $('attr').textContent='© OpenFreeMap © OpenMapTiles © OpenStreetMap contributors / ルート: OSRM';
     setStatus('周辺の地図を読み込み中…', 'ルート '+fmtDist(drive.total));
     const t0=performance.now(); TL.timer=0;
@@ -1390,7 +1396,7 @@ function loop(now){
     else if(drive.intro){ updatePose(false); updateCarY(dt,true); placeCamera(); }
     else if(drive.finished){ drive.arrT+=dt; if(gs.id===null) car.look=wrapA(car.look+dt*0.22*Math.min(1,drive.arrT/2)); updatePose(false); updateCarY(dt,false); placeCamera(); }
     else { step(dt); drive.navT-=dt; if(drive.navT<=0){ drive.navT=0.2; updateNavHUD(); rebuildRouteMesh(); rebuildTunnel(); } }
-    tileTick(dt); bldTick(dt); updateLabels(dt); drawMinimap();
+    tileTick(dt); bldTick(dt); updateLabels(dt); drawMinimap(); updateDbg();
     envTick(dt);
     routeTex.offset.y-=dt*1.5;
     const bm=goalGroup.userData.beam; bm.material.opacity=0.3+0.12*Math.sin(now/300);
@@ -1479,6 +1485,8 @@ $('lblBtn').onclick=()=>{ lbl.on=!lbl.on; lbl.t=0; updateMenuLabels(); };
 $('mmWrap').onclick=()=>{ mmZoomFar=!mmZoomFar; };
 $('voiceBtn').onclick=()=>{ voiceOn=!voiceOn; updateMenuLabels();
   if(voiceOn && window.speechSynthesis){ try{ const u=new SpeechSynthesisUtterance('音声案内をオンにしました'); u.lang='ja-JP'; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){} } };
+$('dbg').onclick=()=>{ const t=$('dbg').textContent.split('  ')[0]; if(!t) return;
+  try{ navigator.clipboard.writeText(t).then(()=>toast('座標をコピーしました：'+t),()=>toast(t)); }catch(e){ toast(t); } };
 $('spdDn').onclick=()=>spdStep(-1);
 $('spdUp').onclick=()=>spdStep(1);
 $('spdRange').addEventListener('input',e=>{ car.setKmh=t2kmh(+e.target.value/1000); $('spdSet').textContent=Math.round(car.setKmh)+' km/h'; });
@@ -1841,16 +1849,16 @@ function deckHeights(p,br,layer,trueA,trueB){
   }
   return ys;
 }
-function addDeck(t,p,ys,tun){
+function addDeck(t,p,ys,tun,mw){
   for(let i=0;i<p.length/2-1;i++){
     const ax=p[2*i],az=p[2*i+1],bx=p[2*i+2],bz=p[2*i+3], L=Math.hypot(bx-ax,bz-az); if(L<0.01) continue;
-    const seg={ax,az,ay:ys[i],bx,bz,by:ys[i+1],ux:(bx-ax)/L,uz:(bz-az)/L,L,tun:!!tun};
+    const seg={ax,az,ay:ys[i],bx,bz,by:ys[i+1],ux:(bx-ax)/L,uz:(bz-az)/L,L,tun:!!tun,mw:!!mw};
     const i0=Math.floor(Math.min(ax,bx)/25), i1=Math.floor(Math.max(ax,bx)/25), j0=Math.floor(Math.min(az,bz)/25), j1=Math.floor(Math.max(az,bz)/25);
     for(let a=i0;a<=i1;a++) for(let b=j0;b<=j1;b++){ const k=a+','+b; let l=t.deck.get(k); if(!l){l=[];t.deck.set(k,l);} l.push(seg); }
   }
 }
 // height of the road we are driving on (prefers the deck closest to our current height, so overpasses work)
-function roadY(x,z,hx,hz,prevY){
+function roadY(x,z,hx,hz,prevY,want){
   roadY.tun=false;
   if(mode!=='real' || !origin) return 0;
   const ll=xz2ll(x,z), t=tiles.get(tileKey(Math.floor(lon2tx(ll[1])),Math.floor(lat2ty(ll[0]))));
@@ -1860,27 +1868,27 @@ function roadY(x,z,hx,hz,prevY){
       for(const s of l){ let u=((x-s.ax)*s.ux+(z-s.az)*s.uz)/s.L; u=u<0?0:u>1?1:u;
         const px=s.ax+(s.bx-s.ax)*u, pz=s.az+(s.bz-s.az)*u, d=Math.hypot(x-px,z-pz); if(d>6) continue;
         if(hx!=null && Math.abs(s.ux*hx+s.uz*hz)<0.7) continue;
-        const y=s.ay+(s.by-s.ay)*u, sc=(prevY==null?0:Math.abs(y-prevY))+d*0.3; if(sc<bs){ bs=sc; best=y; roadY.tun=s.tun; } } }
+        const y=s.ay+(s.by-s.ay)*u, sc=(prevY==null?0:Math.abs(y-prevY))+d*0.3+mismatch(s,want); if(sc<bs){ bs=sc; best=y; roadY.tun=s.tun; } } }
     if(best==null) for(let a=ci-1;a<=ci+1;a++) for(let b=cj-1;b<=cj+1;b++){ const l=t.deck.get(a+','+b); if(!l) continue;
       for(const s of l){ let u=((x-s.ax)*s.ux+(z-s.az)*s.uz)/s.L; u=u<0?0:u>1?1:u;
-        const d=Math.hypot(x-s.ax-(s.bx-s.ax)*u, z-s.az-(s.bz-s.az)*u); if(d>14) continue;
-        const y=s.ay+(s.by-s.ay)*u, sc=(prevY==null?0:Math.abs(y-prevY))+d*0.3; if(sc<bs){ bs=sc; best=y; roadY.tun=s.tun; } } } }
+        const d=Math.hypot(x-s.ax-(s.bx-s.ax)*u, z-s.az-(s.bz-s.az)*u); if(d>14) continue; if(s.tun && !(want&&want.tun)) continue;
+        const y=s.ay+(s.by-s.ay)*u, sc=(prevY==null?0:Math.abs(y-prevY))+d*0.3+mismatch(s,want); if(sc<bs){ bs=sc; best=y; roadY.tun=s.tun; } } } }
   if(best==null){ roadY.tun=false; return Math.max(groundAt(x,z)+0.45,hAt(x,z)); }
   return best;
 }
 function updateCarY(dt,snap){
   if(mode!=='real'){ car.y=0; car.yAhead=0; car.grade=0; return; }
   const hx=Math.sin(car.h), hz=-Math.cos(car.h);
-  let target=roadY(car.x,car.z,hx,hz,car.y); const tun=roadY.tun;
+  const wantC=flagAt(car.s); let target=roadY(car.x,car.z,hx,hz,car.y,wantC); const tun=roadY.tun;
   if(!snap){ const m=0.09*Math.abs(car.v)*dt+0.03; target=Math.min(car.y+m,Math.max(car.y-m,target)); }
   if(!tun) target=Math.max(target,groundAt(car.x,car.z));
-  const ah=posAt(car.s+40); let ahY=roadY(ah.x,ah.z,hx,hz,target); if(!roadY.tun) ahY=Math.max(ahY,groundAt(ah.x,ah.z));
+  const ah=posAt(car.s+40); let ahY=roadY(ah.x,ah.z,hx,hz,target,flagAt(car.s+40)); if(!roadY.tun) ahY=Math.max(ahY,groundAt(ah.x,ah.z));
   if(snap){ car.y=target; car.yAhead=ahY; }
   else { const k=1-Math.exp(-dt*(6+Math.abs(car.v)*0.25)); car.y+=(target-car.y)*k; car.yAhead+=(ahY-car.yAhead)*(1-Math.exp(-dt*3));
     if(!tun && car.y<target-0.1) car.y=target-0.1; }   // 上り坂でも路面より下に遅れない
   if(car.s-car.gS>25){ const g=(car.y-car.gY)/(car.s-car.gS)*100; car.grade=car.grade*0.6+g*0.4; car.gS=car.s; car.gY=car.y; }
   else if(car.s<car.gS){ car.gS=car.s; car.gY=car.y; }
-  car.tunnel = tun && target < groundAt(car.x,car.z)-3;
+  car.tunnel = tun && (!wantC || wantC.tun) && target < groundAt(car.x,car.z)-3;
   $('tunnel').classList.toggle('on',car.tunnel);
   const gr=Math.round(car.grade);
   $('altInfo').textContent='⛰ '+Math.round(car.y)+'m '+(Math.abs(gr)<1?'平坦':(gr>0?'上り'+gr+'%':'下り'+(-gr)+'%'));
@@ -2240,7 +2248,7 @@ function rebuildTunnel(){
   const S0=Math.max(0,car.s-60), S1=Math.min(drive.total,car.s+900), samples=[];
   let py=car.y;
   for(let s=S0;s<=S1;s+=5){ const p=posAt(s), a=posAt(s+3), hx=a.x-p.x, hz=a.z-p.z, L=Math.hypot(hx,hz)||1;
-    const y=roadY(p.x,p.z,hx/L,hz/L,py); py=y; samples.push({x:p.x,z:p.z,y,tun:roadY.tun,dx:hx/L,dz:hz/L}); }
+    const fw=flagAt(s), y=roadY(p.x,p.z,hx/L,hz/L,py,fw); py=y; samples.push({x:p.x,z:p.z,y,tun:roadY.tun && (fw?fw.tun:true),dx:hx/L,dz:hz/L}); }
   const key=Math.round(S0/25)+':'+samples.filter(q=>q.tun).length;
   if(key===tunnelKey && tunnelMesh) return; tunnelKey=key;
   clearTunnel();
@@ -2266,6 +2274,41 @@ function rebuildTunnel(){
   tunnelMesh=mk(W,wm); if(Lg.length) tunnelLights=mk(Lg,lm);
 }
 function clearTunnel(){ for(const m of [tunnelMesh,tunnelLights]) if(m){ scene.remove(m); m.geometry.dispose(); } tunnelMesh=tunnelLights=null; tunnelKey=''; }
+
+
+/* ---------- route flags from OSRM (tunnel / motorway) ---------- */
+function routeFlags(xs){
+  if(!origin || !xs.length) return null;
+  const P=drive.pts, c=drive.cum, n=c.length, out=[]; let from=0;
+  for(const it of xs){
+    const q=ll2xz(it.loc[1],it.loc[0]); let bi=from, bd=1e18;
+    for(let i=from;i<Math.min(n-1,from+4000);i++){ const ax=P[2*i],az=P[2*i+1],bx=P[2*i+2],bz=P[2*i+3], dx=bx-ax, dz=bz-az, L2=dx*dx+dz*dz||1;
+      let u=((q[0]-ax)*dx+(q[1]-az)*dz)/L2; u=u<0?0:u>1?1:u; const d=(q[0]-ax-dx*u)**2+(q[1]-az-dz*u)**2; if(d<bd){ bd=d; bi=i; } if(bd<1 && i>bi+50) break; }
+    from=bi;
+    const ax=P[2*bi],az=P[2*bi+1],bx=P[2*bi+2],bz=P[2*bi+3], dx=bx-ax, dz=bz-az, L2=dx*dx+dz*dz||1;
+    let u=((q[0]-ax)*dx+(q[1]-az)*dz)/L2; u=u<0?0:u>1?1:u;
+    out.push({s:c[bi]+Math.sqrt(L2)*u, tun:it.cls.includes('tunnel'), mw:it.cls.includes('motorway')});
+  }
+  return out;
+}
+function flagAt(s){
+  const F=drive.flags; if(!F || !F.length) return null;
+  let lo=0, hi=F.length-1; if(s<F[0].s) return F[0];
+  while(lo<hi){ const m=(lo+hi+1)>>1; if(F[m].s<=s) lo=m; else hi=m-1; }
+  return F[lo];
+}
+function mismatch(seg,want){
+  if(!want) return seg.tun?6:0;
+  return (seg.tun!==want.tun?10:0)+(seg.mw!==want.mw?5:0);
+}
+
+/* ---------- debug: GPS position, tap to copy ---------- */
+function updateDbg(){
+  const el=$('dbg'); if(!el) return;
+  if(!drive.active || mode!=='real' || !origin){ el.textContent=''; return; }
+  const ll=xz2ll(car.x,car.z), f=flagAt(car.s);
+  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+'  v28';
+}
 
 </script>
 </body>
