@@ -176,7 +176,7 @@ input::placeholder{color:var(--muted)}
     <button class="ghost" id="resetDefault" type="button">このセットを初期状態に戻す</button>
   </div>
   <p class="hint">⠿ をドラッグで並べ替え<br>削除・初期化は2回押しで確定</p>
-  <p class="ver">Ver. 15</p>
+  <p class="ver">Ver. 16</p>
 </div>
 
 <div class="modal" id="setPanel" hidden>
@@ -244,6 +244,8 @@ const P = {
   adapter:'<rect x="5" y="9" width="14" height="10" rx="2.5"/><path d="M9.5 9V4.5M14.5 9V4.5M12 19v2.5M9 14h6M13 12l2 2-2 2"/>',
   razor:'<path d="M5 4.5h14v4H5z"/><path d="M7 8.5v1.5M10 8.5v1.5M14 8.5v1.5M17 8.5v1.5"/><path d="M12 8.5v4"/><rect x="10.3" y="12.5" width="3.4" height="9" rx="1.7"/>',
   nailclip:'<path d="M3 13.5c4-.5 10-.5 18 0v1.5c-7 1.5-13 1.5-18 0z"/><path d="M4 13.4 17 9l2.5 1.2"/><circle cx="18.5" cy="14.3" r=".6"/><path d="M8 11.8l3.5 1.4"/>',
+  tissue:'<path d="M3.5 11h17v8.5a1.5 1.5 0 0 1-1.5 1.5H5a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M9 11c0-3 1-5 3-6.5 1.5 1.5 3.5 2 3 6.5"/><path d="M8.5 15h7"/>',
+  hairbrush:'<rect x="4" y="3" width="10" height="9" rx="4"/><path d="M7 6v3M9 6v3M11 6v3"/><path d="M10.5 11.5 18.5 21"/><path d="M12.5 11 20 19.5"/>',
   wipes:'<rect x="3" y="9" width="18" height="11" rx="2.5"/><path d="M9 9V7c0-1 1-2 3-2s3 1 3 2v2M9 14.5h6"/>',
   mint:'<rect x="5" y="3" width="14" height="18" rx="3"/><circle cx="12" cy="10" r="2.5"/><path d="M8.5 16h7"/>',
   bizcard:'<rect x="2.5" y="6" width="19" height="12" rx="1.5"/><circle cx="8" cy="11" r="2"/><path d="M5.5 15.5c.6-1.3 1.5-2 2.5-2s1.9.7 2.5 2M13.5 10h5M13.5 13h4"/>',
@@ -264,11 +266,13 @@ const DOT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-w
 const GRIP = '<svg width="14" height="20" viewBox="0 0 14 20" fill="currentColor" aria-hidden="true"><circle cx="4" cy="4" r="1.6"/><circle cx="10" cy="4" r="1.6"/><circle cx="4" cy="10" r="1.6"/><circle cx="10" cy="10" r="1.6"/><circle cx="4" cy="16" r="1.6"/><circle cx="10" cy="16" r="1.6"/></svg>';
 const TRASH = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M9 7V4.5h6V7M6.5 7l1 13h9l1-13"/></svg>';
 
-const V8_ADD = [['折りたたみ傘','umbrella'],['歯みがきセット','toothbrush'],['フロス','floss'],['爪切り','nailclip']];
+const V9_BRUSH = [['ヘアブラシ','hairbrush']];
+const V9_TISSUE = [['ティッシュ','tissue'],['ウエットティッシュ','wipes']];
+const V8_ADD = [['折りたたみ傘','umbrella'],['歯みがきセット','toothbrush'],['フロス','floss'],...V9_BRUSH,['爪切り','nailclip']];
 const ABROAD = [['パスポート','passport'],['入国審査（ビザ）','doc'],['スマホ','phone'],['スマホ充電器','charger'],['Wi-fiルーター','wifi'],
-  ['電源アダプタ変換器','adapter'],...V8_ADD,['ひげ剃り','razor'],['薬','pill'],['マスク','mask'],['絆創膏','bandage'],['着替え','clothes'],['ベルト','belt']];
+  ['電源アダプタ変換器','adapter'],...V8_ADD,['ひげ剃り','razor'],['薬','pill'],['マスク','mask'],...V9_TISSUE,['絆創膏','bandage'],['着替え','clothes'],['ベルト','belt']];
 const BUILTIN = [ {name:'海外出張', def:ABROAD} ];
-const DATA_V = 8;   // v7: 海外出張 replaced with the new list, 国内出張 removed / v8: 充電器→スマホ充電器, items added before ひげ剃り
+const DATA_V = 9;   // v7: 海外出張 replaced with the new list, 国内出張 removed / v8: 充電器→スマホ充電器, items added before ひげ剃り
 const ROUND_COLORS = ['var(--r1)','var(--r2)','var(--r3)','var(--r4)','var(--r5)'];
 const MAXR=5, DEF_ROUNDS=2;
 const KEY='wasuremono-v2', OLDKEY='wasuremono-v1';
@@ -287,6 +291,16 @@ try{
     const sets = s.sets.filter(x=>x&&x.name&&!((s.dataV|0)<4&&x.name==='基本')).map(x=>({id:String(x.id||nid('s')),name:String(x.name),
       def:(Array.isArray(x.def)?x.def:[]).filter(d=>Array.isArray(d)&&d[0]).map(d=>[String(d[0]),P[d[1]]?d[1]:'tag']),
       items:cleanItems(x.items)}));
+    // insert new items next to an anchor, skipping names already present (items and initial list)
+    const insertAt=(S,add,anchor,after)=>{
+      const go=(arr,get,make)=>{ const have=new Set(arr.map(get)), todo=add.filter(a=>!have.has(a[0])); if(!todo.length) return;
+        const i=arr.findIndex(x=>get(x)===anchor); arr.splice(i<0?arr.length:i+(after?1:0),0,...todo.map(make)); };
+      go(S.items,x=>x.name,mk); go(S.def,x=>x[0],a=>[a[0],a[1]]);
+    };
+    if((s.dataV|0)<9 && (s.dataV|0)>=7){
+      const A=sets.find(x=>x.name==='海外出張');
+      if(A && (s.dataV|0)===8){ insertAt(A,V9_TISSUE,'マスク',true); insertAt(A,V9_BRUSH,'爪切り',false); }
+    }
     if((s.dataV|0)<8 && (s.dataV|0)>=7){
       const A=sets.find(x=>x.name==='海外出張');
       if(A){
