@@ -110,7 +110,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
 .mi:active{background:rgba(255,255,255,.12)}
 #spdCtl #goBtn{background:#1c6fd1;font-size:17px}
 #spdCtl #goBtn.on{background:#1f9d55}
-#tunnel{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .6s;background:radial-gradient(ellipse at center,rgba(255,190,90,.10) 0%,rgba(5,5,8,.55) 45%,rgba(0,0,0,.92) 100%)}
+#tunnel{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .6s;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 40%,rgba(0,0,0,.45) 100%)}
 #tunnel.on{opacity:1}
 /* v13 compact HUD */
 #nav{left:max(10px,env(safe-area-inset-left));top:calc(max(10px,env(safe-area-inset-top)) + 36px);transform:none;gap:8px;padding:5px 10px 5px 5px;border-radius:12px;min-width:0;max-width:calc(100% - 170px);background:rgba(10,16,24,.7)}
@@ -189,7 +189,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 25（2026/11/23）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 26（2026/11/23）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -729,6 +729,7 @@ function buildBldMesh(T, list, center){
     const toV=p=>{ const a=[]; for(let i=0;i<p.length;i+=2) a.push(new THREE.Vector2(p[i],p[i+1])); return a; };
     const cv=toV(pts), hv=holes.map(toV); let faces=[]; try{ faces=THREE.ShapeUtils.triangulateShape(cv,hv); }catch(e){}
     let base=1e9; const st=Math.max(1,Math.floor(n/8)); for(let i=0;i<n;i+=st) base=Math.min(base,hAt(pts[2*i],pts[2*i+1]));
+    if(b.M<4.5 && roadThrough(T,pts)) continue;
     polys.push({pts,n,faces,all:cv.concat(...hv),H:b.H,M:b.M,id:b.id,name:poiName(pts,T),base:base-0.4});
   }
   return polys.length?makeBuildingMesh(polys,center[0],center[1]):null;
@@ -1016,6 +1017,7 @@ function setRoute(pts, steps, goalName){
   computeCorners();
   const e=posAt(drive.total); goalGroup.position.set(e.x,0,e.z); goalGroup.visible=true;
   car.s=0; car.v=0; car.hold=false; car.look=0; car.px=null; updatePose(true);
+  if(typeof clearTunnel==='function') clearTunnel();
 }
 function posAt(s){
   const c=drive.cum, p=drive.pts, n=c.length; s=Math.max(0,Math.min(drive.total,s));
@@ -1158,7 +1160,7 @@ function rebuildRouteMesh(){
   const Pp=new Float32Array(n*6), U=new Float32Array(n*4), I=new Uint32Array((n-1)*6);
   writeStrip(rel,0.9,0.05,5,Pp,U,I,0,0);
   if(mode==='real'){ let py=car.y; for(let i=0;i<n;i++){ const j=Math.min(n-1,i+1), k=Math.max(0,i-1), d=norm(p[2*j]-p[2*k],p[2*j+1]-p[2*k+1]);
-    let y=roadY(p[2*i],p[2*i+1],d.x,d.z,py); if(!roadY.tun) y=Math.max(y,groundAt(p[2*i],p[2*i+1])); py=y; Pp[(2*i)*3+1]=y+0.5; Pp[(2*i+1)*3+1]=y+0.5; } }
+    let y=roadY(p[2*i],p[2*i+1],d.x,d.z,py); if(!roadY.tun) y=Math.max(y,groundAt(p[2*i],p[2*i+1])); py=y; Pp[(2*i)*3+1]=y+0.6; Pp[(2*i+1)*3+1]=y+0.6; } }
   const mat=rebuildRouteMesh.mat||(rebuildRouteMesh.mat=new THREE.MeshBasicMaterial({map:routeTex,transparent:true,opacity:0.38,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-8}));
   routeMesh=new THREE.Mesh(geom(Pp,U,I),mat); routeMesh.position.set(ox,0,oz); routeMesh.renderOrder=2; scene.add(routeMesh);
 }
@@ -1385,7 +1387,7 @@ function loop(now){
     if(paused){}
     else if(drive.intro){ updatePose(false); updateCarY(dt,true); placeCamera(); }
     else if(drive.finished){ drive.arrT+=dt; if(gs.id===null) car.look=wrapA(car.look+dt*0.22*Math.min(1,drive.arrT/2)); updatePose(false); updateCarY(dt,false); placeCamera(); }
-    else { step(dt); drive.navT-=dt; if(drive.navT<=0){ drive.navT=0.2; updateNavHUD(); rebuildRouteMesh(); } }
+    else { step(dt); drive.navT-=dt; if(drive.navT<=0){ drive.navT=0.2; updateNavHUD(); rebuildRouteMesh(); rebuildTunnel(); } }
     tileTick(dt); bldTick(dt); updateLabels(dt); drawMinimap();
     envTick(dt);
     routeTex.offset.y-=dt*1.5;
@@ -1856,8 +1858,12 @@ function roadY(x,z,hx,hz,prevY){
       for(const s of l){ let u=((x-s.ax)*s.ux+(z-s.az)*s.uz)/s.L; u=u<0?0:u>1?1:u;
         const px=s.ax+(s.bx-s.ax)*u, pz=s.az+(s.bz-s.az)*u, d=Math.hypot(x-px,z-pz); if(d>6) continue;
         if(hx!=null && Math.abs(s.ux*hx+s.uz*hz)<0.7) continue;
+        const y=s.ay+(s.by-s.ay)*u, sc=(prevY==null?0:Math.abs(y-prevY))+d*0.3; if(sc<bs){ bs=sc; best=y; roadY.tun=s.tun; } } }
+    if(best==null) for(let a=ci-1;a<=ci+1;a++) for(let b=cj-1;b<=cj+1;b++){ const l=t.deck.get(a+','+b); if(!l) continue;
+      for(const s of l){ let u=((x-s.ax)*s.ux+(z-s.az)*s.uz)/s.L; u=u<0?0:u>1?1:u;
+        const d=Math.hypot(x-s.ax-(s.bx-s.ax)*u, z-s.az-(s.bz-s.az)*u); if(d>14) continue;
         const y=s.ay+(s.by-s.ay)*u, sc=(prevY==null?0:Math.abs(y-prevY))+d*0.3; if(sc<bs){ bs=sc; best=y; roadY.tun=s.tun; } } } }
-  if(best==null){ roadY.tun=false; return groundAt(x,z); }
+  if(best==null){ roadY.tun=false; return Math.max(groundAt(x,z)+0.45,hAt(x,z)); }
   return best;
 }
 function updateCarY(dt,snap){
@@ -2012,7 +2018,7 @@ function updateLabels(dt){
   if(lbl.t<=0){ lbl.t=0.3; lbl.items=[];
     if(lbl.on && !car.tunnel){
       const yaw=camYaw(), fx=Math.sin(yaw), fz=-Math.cos(yaw), cand=[];
-      const consider=m=>{ const dx=m.x-car.x, dz=m.z-car.z, d=Math.hypot(dx,dz); if(d<8||d>260) return;
+      const consider=m=>{ const dx=m.x-car.x, dz=m.z-car.z, d=Math.hypot(dx,dz); if(d<22||d>260) return;
         if((dx*fx+dz*fz)/d<0.55) return; if(!m.name && m.h<14) return;
         cand.push({m,score:(m.name?0:400)+d-m.h*0.5}); };
       for(const c of bld.chunks.values()) if(c.meta && Math.hypot(c.cx-car.x,c.cz-car.z)<600) for(const m of c.meta) consider(m);
@@ -2210,6 +2216,51 @@ function buildMarkings(roads,ox,oz){
   const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); g.computeBoundingSphere();
   const m=new THREE.Mesh(g,markMat()); m.position.set(ox,0,oz); m.renderOrder=1; return m;
 }
+
+
+function roadThrough(T,pts){
+  if(!T.deck) return false;
+  let a=1e12,b=1e12,A=-1e12,B=-1e12; for(let i=0;i<pts.length;i+=2){ a=Math.min(a,pts[i]); A=Math.max(A,pts[i]); b=Math.min(b,pts[i+1]); B=Math.max(B,pts[i+1]); }
+  for(let i=Math.floor(a/25);i<=Math.floor(A/25);i++) for(let j=Math.floor(b/25);j<=Math.floor(B/25);j++){ const l=T.deck.get(i+','+j); if(!l) continue;
+    for(const s of l){ if(s.tun) continue;
+      for(const f of [0,0.5,1]){ const x=s.ax+(s.bx-s.ax)*f, z=s.az+(s.bz-s.az)*f; if(x<a||x>A||z<b||z>B) continue; if(inRing(pts,x,z)) return true; } } }
+  return false;
+}
+
+/* ---------- tunnel tube along the route (walls, ceiling, lights) ---------- */
+let tunnelMesh=null, tunnelLights=null, tunnelKey='';
+function tunnelMats(){ return tunnelMats.m||(tunnelMats.m=[new THREE.MeshLambertMaterial({color:0x8e8d88,side:THREE.DoubleSide}), new THREE.MeshBasicMaterial({color:0xffd27a})]); }
+function rebuildTunnel(){
+  if(mode!=='real' || !drive.pts){ clearTunnel(); return; }
+  const S0=Math.max(0,car.s-60), S1=Math.min(drive.total,car.s+900), samples=[];
+  let py=car.y;
+  for(let s=S0;s<=S1;s+=5){ const p=posAt(s), a=posAt(s+3), hx=a.x-p.x, hz=a.z-p.z, L=Math.hypot(hx,hz)||1;
+    const y=roadY(p.x,p.z,hx/L,hz/L,py); py=y; samples.push({x:p.x,z:p.z,y,tun:roadY.tun,dx:hx/L,dz:hz/L}); }
+  const key=Math.round(S0/25)+':'+samples.filter(q=>q.tun).length;
+  if(key===tunnelKey && tunnelMesh) return; tunnelKey=key;
+  clearTunnel();
+  if(!samples.some(q=>q.tun)) return;
+  const ox=samples[0].x, oz=samples[0].z, W=[], Lg=[], HW=6.5, HT=5.6;
+  const quad=(A,B,C,D,arr)=>arr.push(...A,...B,...C, ...A,...C,...D);
+  let since=0;
+  for(let i=0;i<samples.length-1;i++){
+    const q=samples[i], r=samples[i+1]; if(!(q.tun && r.tun)) { since=0; continue; }
+    const nqx=-q.dz, nqz=q.dx, nrx=-r.dz, nrz=r.dx;
+    const P=(o,s,n,h)=>[o.x-ox+n[0]*s, o.y+h, o.z-oz+n[1]*s];
+    const nq=[nqx,nqz], nr=[nrx,nrz];
+    quad(P(q,HW,nq,-0.5),P(r,HW,nr,-0.5),P(r,HW,nr,HT),P(q,HW,nq,HT),W);      // wall
+    quad(P(q,-HW,nq,-0.5),P(r,-HW,nr,-0.5),P(r,-HW,nr,HT),P(q,-HW,nq,HT),W);  // wall
+    quad(P(q,HW,nq,HT),P(r,HW,nr,HT),P(r,-HW,nr,HT),P(q,-HW,nq,HT),W);        // ceiling
+    since+=5;
+    if(since>=10){ since=0; for(const s of [-3.2,3.2]) quad(P(q,s-0.25,nq,HT-0.05),P(r,s-0.25,nr,HT-0.05),P(r,s+0.25,nr,HT-0.05),P(q,s+0.25,nq,HT-0.05),Lg); }
+  }
+  if(!W.length) return;
+  const mk=(arr,mat)=>{ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(arr,3)); g.computeVertexNormals(); g.computeBoundingSphere();
+    const m=new THREE.Mesh(g,mat); m.position.set(ox,0,oz); scene.add(m); return m; };
+  const [wm,lm]=tunnelMats();
+  tunnelMesh=mk(W,wm); if(Lg.length) tunnelLights=mk(Lg,lm);
+}
+function clearTunnel(){ for(const m of [tunnelMesh,tunnelLights]) if(m){ scene.remove(m); m.geometry.dispose(); } tunnelMesh=tunnelLights=null; tunnelKey=''; }
 
 </script>
 </body>
