@@ -189,7 +189,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 19（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 22（2026/11/22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -1584,7 +1584,7 @@ function makeFacadePair(style){
       g.fillStyle=gr; g.fillRect(x+2,y+2,cell-4,46);
       g.fillStyle='rgba(255,255,255,.18)'; g.beginPath(); g.moveTo(x+2,y+2); g.lineTo(x+26,y+2); g.lineTo(x+2,y+30); g.fill();
       g.fillStyle='#b9c2cb'; g.fillRect(x+cell/2-1,y+2,2,46);
-      light(x+2,y+2,cell/2-3,46,0.45); light(x+cell/2+1,y+2,cell/2-3,46,0.45);
+      light(x+2,y+2,cell/2-3,46,0.12); light(x+cell/2+1,y+2,cell/2-3,46,0.12);
     } else if(style===1){
       const dark=55+rnd()*40; g.fillStyle=`rgb(${dark*0.8|0},${dark*0.9|0},${dark|0})`; g.fillRect(x+10,y+8,44,30);
       g.fillStyle='rgba(255,255,255,.15)'; g.fillRect(x+12,y+10,14,26);
@@ -1593,12 +1593,12 @@ function makeFacadePair(style){
       g.fillStyle='rgba(120,125,130,.85)'; g.fillRect(x,y+46,cell,2);
       for(let k=2;k<cell;k+=6) g.fillRect(x+k,y+46,1.5,14);
       g.fillRect(x,y+58,cell,2);
-      light(x+10,y+8,44,30,0.6);
+      light(x+10,y+8,44,30,0.28);
     } else {
       if(rnd()<0.75){ const dark=60+rnd()*40; g.fillStyle='#ffffff'; g.fillRect(x+18,y+14,28,30);
         g.fillStyle=`rgb(${dark*0.8|0},${dark*0.9|0},${dark|0})`; g.fillRect(x+20,y+16,24,26);
         g.fillStyle='#ffffff'; g.fillRect(x+31,y+16,2,26); g.fillRect(x+20,y+28,24,2);
-        light(x+20,y+16,24,26,0.55); }
+        light(x+20,y+16,24,26,0.3); }
       g.fillStyle='rgba(0,0,0,.08)'; g.fillRect(x,y+62,cell,2);
     }
   }
@@ -1674,9 +1674,9 @@ function envTick(dt){
   const sp = sunPos(Date.now(), ll[0], ll[1]);
   const alt = env.on ? sp.alt : 0.9, az = env.on ? sp.az : 2.6;
   const day=smooth(-0.12,0.18,alt), dusk=Math.max(0,1-Math.abs(alt-0.02)/0.16)*(1-f.over*0.8);
-  let sky=mixC([0.03,0.05,0.11],[0.66,0.83,0.94],day);
+  let sky=mixC([0.10,0.14,0.26],[0.66,0.83,0.94],day);
   sky=mixC(sky,[0.98,0.6,0.38],dusk*0.55);
-  const gray=0.22+0.5*day; sky=mixC(sky,[gray,gray*1.04,gray*1.1],f.over*0.75);
+  const gray=0.30+0.42*day; sky=mixC(sky,[gray,gray*1.04,gray*1.1],f.over*0.75);
   if(f.rain||f.snow) sky=mixC(sky,[gray*0.85,gray*0.9,gray*0.95],0.4);
   const fl=env.flash; if(fl>0) sky=mixC(sky,[0.9,0.92,1],fl*0.7);
   farScene.background.setRGB(sky[0],sky[1],sky[2]); scene.fog.color.setRGB(sky[0],sky[1],sky[2]); farScene.fog.color.setRGB(sky[0],sky[1],sky[2]);
@@ -1686,23 +1686,26 @@ function envTick(dt){
   if(f.snow) dens=Math.max(dens,0.0008+0.0014*f.snow);
   if(f.fog) dens=Math.max(dens,0.006);
   scene.fog.density=dens; farScene.fog.density=dens;
-  env.light=0.16+0.84*day*(1-0.35*f.over)+fl*0.6;
-  hemi.intensity=0.18+0.72*day*(1-0.3*f.over)+fl*1.2;
+  env.light=0.42+0.58*day*(1-0.35*f.over)+fl*0.6;   // 夜でも街あかり程度の明るさ
+  hemi.intensity=0.48+0.42*day*(1-0.3*f.over)+fl*1.2;
+  hemi.color.setRGB(0.87+0.13*day,0.9+0.1*day,1); hemi.groundColor.setRGB(0.29+0.1*(1-day),0.3+0.05*(1-day),0.23+0.12*(1-day));
   sun.intensity=0.78*day*(1-0.75*f.over);
   sun.color.setRGB(1,0.85+0.15*(1-dusk),0.7+0.3*(1-dusk));
   sun.position.set(Math.sin(az)*Math.cos(alt)*1000, Math.max(0.05,Math.sin(alt))*1000, -Math.cos(az)*Math.cos(alt)*1000);
-  farHemi.intensity=hemi.intensity; farSun.intensity=sun.intensity; farSun.color.copy(sun.color); farSun.position.copy(sun.position);
+  farHemi.intensity=hemi.intensity; farHemi.color.copy(hemi.color); farHemi.groundColor.copy(hemi.groundColor); farSun.intensity=sun.intensity; farSun.color.copy(sun.color); farSun.position.copy(sun.position);
   env.night=1-day;
   const L=Math.min(1.2,env.light), tint=f.snow?[1.08,1.1,1.14]:[1,1,1];
   const setC=(m,b)=>{ if(m) m.color.setRGB(b[0]*L*tint[0],b[1]*L*tint[1],b[2]*L*tint[2]); };
   setC(ground.material,[1,1,1]); setC(roadMat.m,[1,1,1]); setC(capMat.m,[1,1,1]);
   setC(waterMat.m,[0.31,0.56,0.78]); setC(greenMat.gwood,[0.31,0.5,0.24]); setC(greenMat.ggrass,[0.53,0.72,0.39]);
-  if(bld.mats) for(let i=0;i<3;i++){ bld.mats[i].emissiveIntensity=env.night*0.85; }
+  // 夜の窓明かり：夕方〜22時は多め、深夜は少なめ
+  const hr=new Date().getHours()+new Date().getMinutes()/60, late = hr>=23||hr<5 ? 0.45 : (hr>=22 ? 0.6 : 0.75);
+  if(bld.mats) for(let i=0;i<3;i++){ bld.mats[i].emissiveIntensity=env.night*late*(i===0?0.8:1); }
   // HUD
   const d=new Date(), hh=d.getHours(), mm=String(d.getMinutes()).padStart(2,'0');
-  const clock=(env.night>0.5?'🌙':'')+hh+':'+mm;
+  const clock=hh+':'+mm;
   let wtxt='';
-  if(mode==='real' && env.on && env.wx){ const [ic,lb]=wxLabel(env.wx.code); wtxt=ic+lb+' '+Math.round(env.wx.temp)+'℃ '; }
+  if(mode==='real' && env.on && env.wx){ let [ic,lb]=wxLabel(env.wx.code); if(env.night>0.5 && env.wx.code<=2) ic=env.wx.code===2?'☁️':'🌙'; wtxt=ic+lb+' '+Math.round(env.wx.temp)+'℃ '; }
   else if(mode==='real' && env.on) wtxt='天気取得中 ';
   else if(!env.on) wtxt='天気オフ ';
   $('envInfo').textContent=wtxt+clock;
@@ -1769,13 +1772,17 @@ function loadDem(z,x,y){
       const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d',{willReadFrequently:true}); g.drawImage(bmp,0,0);
       const px=g.getImageData(0,0,256,256).data, a=new Float32Array(65536);
       for(let i=0;i<65536;i++) a[i]=px[4*i]*256+px[4*i+1]+px[4*i+2]/256-32768;
-      d.data=a; d.state='done';
+      if(z>=12){ for(let i=0;i<65536;i++) if(a[i]<0) a[i]=0; d.data=blurDem(a,2,3); } else d.data=a;
+      d.state='done'; demCache.k=null;
     }catch(e){ d.state='err'; setTimeout(()=>{ if(dem.get(k)===d) dem.delete(k); },20000); }
     return d;
   })();
   return d.p;
 }
-function demPx(z,ix,iy){ const tx=Math.floor(ix/256), ty=Math.floor(iy/256), d=dem.get(z+'/'+tx+'/'+ty); if(!d||!d.data) return null; return d.data[(iy-ty*256)*256+(ix-tx*256)]; }
+const demCache={k:null,d:null};
+function demPx(z,ix,iy){ const tx=Math.floor(ix/256), ty=Math.floor(iy/256), k=z*1e14+tx*1e7+ty;
+  let d; if(demCache.k===k) d=demCache.d; else { d=dem.get(z+'/'+tx+'/'+ty); demCache.k=k; demCache.d=d; }
+  if(!d||!d.data) return null; return d.data[(iy-ty*256)*256+(ix-tx*256)]; }
 function demSample(z,gx,gy){
   const fx0=gx-0.5, fy0=gy-0.5, x0=Math.floor(fx0), y0=Math.floor(fy0), fx=fx0-x0, fy=fy0-y0;
   const a=demPx(z,x0,y0); if(a==null) return null;
@@ -1783,11 +1790,23 @@ function demSample(z,gx,gy){
   return (a*(1-fx)+b*fx)*(1-fy)+(c*(1-fx)+d*fx)*fy;
 }
 function ll2gp(lat,lon,z){ const n=256*2**z, r=lat*Math.PI/180; return [(lon+180)/360*n, (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*n]; }
-function hAt(x,z){
-  if(mode!=='real' || !origin) return 0;
+function hAtRaw(x,z){
   const ll=xz2ll(x,z); let g=ll2gp(ll[0],ll[1],13), h=demSample(13,g[0],g[1]);
   if(h==null){ g=ll2gp(ll[0],ll[1],10); h=demSample(10,g[0],g[1]); }
   return h==null?0:Math.max(0,h);
+}
+function hAt(x,z){ if(mode!=='real' || !origin) return 0; return hAtRaw(x,z); }
+// 標高データには建物や木の高さが混ざって細かくデコボコするので、読み込み時に約40m幅でならしておく
+function blurDem(a,r,iter){
+  const n=256; let src=a, tmp=new Float32Array(65536), dst=new Float32Array(65536), w=2*r+1;
+  for(let it=0;it<iter;it++){
+    for(let y=0;y<n;y++){ let sum=0; for(let x=-r;x<=r;x++) sum+=src[y*n+Math.min(n-1,Math.max(0,x))];
+      for(let x=0;x<n;x++){ tmp[y*n+x]=sum/w; sum+=src[y*n+Math.min(n-1,x+r+1)]-src[y*n+Math.max(0,x-r)]; } }
+    for(let x=0;x<n;x++){ let sum=0; for(let y=-r;y<=r;y++) sum+=tmp[Math.min(n-1,Math.max(0,y))*n+x];
+      for(let y=0;y<n;y++){ dst[y*n+x]=sum/w; sum+=tmp[Math.min(n-1,y+r+1)*n+x]-tmp[Math.max(0,y-r)*n+x]; } }
+    src=dst; dst=new Float32Array(65536);
+  }
+  return src;
 }
 function subdivide(p,maxL){
   const out=[p[0],p[1]];
@@ -1807,7 +1826,7 @@ function deckHeights(p,br,layer,trueA,trueB){
     if(br==='bridge'){
       let m=h; for(const s of [-80,-40,40,80]) m=Math.max(m,hAt(x+d.x*s,z+d.z*s));
       const da=trueA?cum[i]:1e9, db=trueB?L-cum[i]:1e9, taper=Math.min(1,da/70,db/70);
-      ys[i]=Math.max(h, m*taper+h*(1-taper)) + 5.5*layer*taper;
+      ys[i]=Math.max(h, m*taper+h*(1-taper)) + 4.5*layer*taper;
     } else {
       let m=h; for(const s of [-150,-75,75,150]) m=Math.min(m,hAt(x+d.x*s,z+d.z*s));
       const da=trueA?cum[i]:1e9, db=trueB?L-cum[i]:1e9, taper=Math.min(1,da/60,db/60);
