@@ -170,6 +170,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <div id="stats">
       <div><span id="spd">0</span> km/h</div>
       <div>🏁 残り <b id="remain">-</b></div>
+      <div style="font-size:.86em;white-space:nowrap">⏱ <b id="eta">-</b></div>
       <div id="dest"></div>
       <div id="altInfo"></div>
       <div id="envInfo"></div>
@@ -211,7 +212,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 43（2026/11/23 16:11）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 44（2026/11/23 19:22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -1180,6 +1181,11 @@ function updateNavHUD(){
   arrow.style.transform='rotate('+rot+'deg)'; arrow.classList.toggle('hidden',!!em); emo.classList.toggle('hidden',!em); emo.textContent=em;
   $('navDist').textContent=dist; $('navText').textContent=text;
   $('remain').textContent=fmtDist(drive.total-car.s);
+  { // 到着までの残り時間（設定速度で走った場合）と到着予定時刻
+    const left=Math.max(0,drive.total-car.s), kmh=car.setKmh||0, el=$('eta');
+    if(el){ if(kmh<1) el.textContent='--';
+      else { const sec=left/(kmh/3.6), m=Math.round(sec/60), at=new Date(Date.now()+sec*1000);
+        el.textContent=(m<1?'1分未満':m<60?m+'分':Math.floor(m/60)+'時間'+(m%60)+'分')+' '+at.getHours()+':'+String(at.getMinutes()).padStart(2,'0')+'着'; } } }
   $('roadName').textContent=currentRoad();
   if(ns && drive.started && !car.hold){
     for(const th of [300,80]){ const key=ns.i+'|'+th;
@@ -2340,7 +2346,7 @@ function updateDbg(){
   const el=$('dbg'); if(!el) return;
   if(!drive.active || mode!=='real' || !origin){ el.textContent=''; return; }
   const ll=xz2ll(car.x,car.z), f=flagAt(car.s);
-  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+' '+(car.kind||'')+' y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+(air.on?' ✈'+(air.err?'×'+air.err:(air.got==null?'…':air.got+'/'+(air.shown||0)+(air.route?'('+air.route+')':''))):'')+'  v43 11/23 16:11';
+  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+' '+(car.kind||'')+' y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+(air.on?' ✈'+(air.err?'×'+air.err:(air.got==null?'…':air.got+'/'+(air.shown||0)+(air.route?'('+air.route+')':''))):'')+'  v44 11/23 19:22';
 }
 
 
