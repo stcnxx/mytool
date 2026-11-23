@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>昭和の街あるき</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#1a140e;color:#f3e7cf;font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;touch-action:none;-webkit-user-select:none;user-select:none}
+#view{position:fixed;inset:0}
+#view canvas{display:block;width:100%;height:100%;touch-action:none}
+.hud{position:fixed;z-index:5}
+.ingame{display:none}
+body.playing .ingame{display:block}
+body.playing #side.ingame{display:flex}
+#hdr{top:calc(env(safe-area-inset-top) + 8px);left:50%;transform:translateX(-50%);background:rgba(30,22,14,.6);padding:4px 12px;border-radius:999px;font-size:12px;white-space:nowrap;pointer-events:none}
+#mini{top:calc(env(safe-area-inset-top) + 40px);left:calc(env(safe-area-inset-left) + 10px);width:120px;height:120px;border-radius:12px;overflow:hidden;border:2px solid rgba(243,231,207,.75);background:#e6d6b0;box-shadow:0 2px 8px rgba(0,0,0,.45);cursor:pointer}
+.maplayer{position:absolute;inset:0;overflow:hidden}
+.maplayer img{position:absolute;width:256px;height:256px;max-width:none;pointer-events:none}
+.mapcv{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none}
+#miniLbl{position:absolute;left:4px;bottom:3px;font-size:10px;color:#3a2a1a;background:rgba(255,248,230,.75);padding:0 4px;border-radius:4px;pointer-events:none}
+#side{top:calc(env(safe-area-inset-top) + 40px);right:calc(env(safe-area-inset-right) + 10px);flex-direction:column;gap:6px;align-items:flex-end}
+.btn{font:inherit;font-size:13px;color:#f8eed8;background:rgba(40,28,18,.75);border:1px solid rgba(243,231,207,.35);border-radius:10px;padding:8px 10px;min-width:44px;cursor:pointer;touch-action:manipulation}
+.btn:active{transform:scale(.96)}
+.btn.on{background:rgba(150,70,40,.9)}
+#joy{left:calc(env(safe-area-inset-left) + 18px);bottom:calc(env(safe-area-inset-bottom) + 22px);width:124px;height:124px;border-radius:50%;background:rgba(243,231,207,.12);border:2px solid rgba(243,231,207,.35);touch-action:none}
+#knob{position:absolute;left:50%;top:50%;width:54px;height:54px;margin:-27px 0 0 -27px;border-radius:50%;background:rgba(243,231,207,.55);pointer-events:none}
+#read{left:50%;bottom:calc(env(safe-area-inset-bottom) + 160px);transform:translateX(-50%);display:none;font-size:15px;padding:11px 18px;background:rgba(150,70,40,.92);white-space:nowrap}
+#hint{right:14px;bottom:calc(env(safe-area-inset-bottom) + 50px);font-size:12px;opacity:.9;pointer-events:none;transition:opacity 1.2s;text-align:right;text-shadow:0 1px 3px #000}
+#ver{right:8px;bottom:calc(env(safe-area-inset-bottom) + 6px);font-size:10px;opacity:.65;pointer-events:none;text-shadow:0 1px 2px #000}
+.sheet{position:fixed;z-index:20;left:0;right:0;bottom:0;max-height:72vh;overflow:auto;background:#efe3c8;color:#3a2a1a;border-radius:16px 16px 0 0;padding:16px 18px calc(env(safe-area-inset-bottom) + 18px);box-shadow:0 -4px 20px rgba(0,0,0,.5);display:none;touch-action:pan-y;-webkit-user-select:text;user-select:text}
+.sheet h2{margin:0 0 10px;font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;font-size:20px}
+.sheet .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;margin-bottom:4px}
+.sheet .then{background:#8a5a2b;color:#fff}
+.sheet .now{background:#2f6b7a;color:#fff}
+.sheet p{margin:2px 0 12px;line-height:1.7;font-size:14.5px}
+.sheet .close{position:sticky;float:right;top:0;background:#3a2a1a;color:#f3e7cf;border:0;border-radius:999px;width:34px;height:34px;font-size:16px}
+#mapPanel{position:fixed;inset:0;z-index:25;background:rgba(15,10,6,.82);display:none;overflow:auto;touch-action:pan-y;padding:calc(env(safe-area-inset-top) + 12px) 12px calc(env(safe-area-inset-bottom) + 16px)}
+#mapCard{max-width:420px;margin:0 auto}
+#mapHead{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+#mapHead .sp{flex:1}
+#big{position:relative;width:100%;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:#e6d6b0;border:2px solid rgba(243,231,207,.7)}
+#bigNote{font-size:11.5px;opacity:.85;margin:6px 2px 10px;line-height:1.5}
+#lmList{display:flex;flex-direction:column;gap:6px}
+.lmRow{display:flex;align-items:center;gap:8px;background:rgba(243,231,207,.1);border-radius:10px;padding:8px 10px;font-size:14px}
+.lmRow span{flex:1}
+#title{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 35%,#5a4630,#20160d 75%);padding:24px}
+#title .box{max-width:380px;text-align:center}
+#title h1{font-family:"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif;font-size:32px;margin:0 0 6px;letter-spacing:.1em}
+#title .sub{font-size:14px;opacity:.9;margin-bottom:18px}
+#title p{font-size:13px;line-height:1.7;opacity:.85;text-align:left}
+#startBtn{font-size:18px;padding:14px 34px;margin:14px 0 8px;background:#a8452a;border-color:#f3e7cf}
+#loadMsg{font-size:12px;min-height:18px;opacity:.9}
+</style></head>
+<body>
+<div id="view"></div>
+
+<div id="hdr" class="hud ingame"></div>
+<div id="mini" class="hud ingame"><div class="maplayer" id="miniTiles"></div><canvas class="mapcv" id="miniCv"></canvas><div id="miniLbl">昭和</div></div>
+<div id="side" class="hud ingame">
+  <button class="btn" id="btnTime"></button>
+  <button class="btn" id="btnSeason"></button>
+  <button class="btn" id="btnAuto"></button>
+  <button class="btn" id="btnMap">🗺 地図</button>
+</div>
+<div id="joy" class="hud ingame"><div id="knob"></div></div>
+<button id="read" class="hud btn"></button>
+<div id="hint" class="hud ingame">左のスティックで歩く<br>画面をドラッグで見回す</div>
+<div id="ver" class="hud"></div>
+
+<div id="info" class="sheet"><button class="close" id="infoClose">✕</button><h2 id="infoTitle"></h2>
+  <span class="tag then">昭和30年代</span><p id="infoThen"></p>
+  <span class="tag now">いま</span><p id="infoNow"></p></div>
+
+<div id="mapPanel"><div id="mapCard">
+  <div id="mapHead"><button class="btn" id="mShowa">昭和のころ</button><button class="btn" id="mNow">現在</button><span class="sp"></span><button class="btn" id="mapClose">✕ 閉じる</button></div>
+  <div id="big"><div class="maplayer" id="bigTiles"></div><canvas class="mapcv" id="bigCv"></canvas></div>
+  <div id="bigNote"></div>
+  <div id="lmList"></div>
+</div></div>
+
+<div id="title"><div class="box">
+  <h1>昭和の街あるき</h1>
+  <div class="sub">芝・大門 ── 昭和33年（1958年）</div>
+  <p>できたばかりの東京タワーを望む、都電の走る下町を歩いてみましょう。名所に近づくと解説が読めます。時間帯や季節を変えたり、地図で「いま」と見比べたりできます。</p>
+  <p style="font-size:11.5px;opacity:.7">※街並みは芝・大門あたりをモデルにした再現イメージです。お店や映画館などの名前は架空です。</p>
+  <button class="btn" id="startBtn">街へ出る</button>
+  <div id="loadMsg">3Dを読み込み中…</div>
+</div></div>
+
+<script>
+/* ===== UI と状態（3Dの読み込み前から動く） ===== */
+const VERSION='v1.0 · 2026-11-23 21:10';
+const $=id=>document.getElementById(id);
+$('ver').textContent=VERSION;
+const S={hour:15,season:0,auto:false,mapMode:'showa',ready:false,wantStart:false,started:false,teleport:null,near:null,envDirty:true,seasonDirty:true,failed:false};
+const SEASONS=['春','夏','秋','冬'], SICON=['🌸','🎐','🍁','⛄'];
+const LAT0=35.6572, LON0=139.7497, MLAT=111000, MLON=90450;
+function hourName(h){return (h>=5&&h<10)?'朝':(h>=10&&h<16)?'昼':(h>=16&&h<19)?'夕':'夜';}
+function fmtH(h){h=((h%24)+24)%24;return Math.floor(h)+':'+String(Math.floor((h%1)*60)).padStart(2,'0');}
+function updateLabels(){
+  $('hdr').textContent='昭和33年（1958） '+SEASONS[S.season]+' · '+hourName(S.hour)+' '+fmtH(S.hour);
+  $('btnTime').textContent='🕒 '+hourName(S.hour);
+  $('btnSeason').textContent=SICON[S.season]+' '+SEASONS[S.season];
+  $('btnAuto').textContent=S.auto?'⏸ 時を止める':'▶ 時を進める';
+  $('btnAuto').classList.toggle('on',S.auto);
+  $('mShowa').classList.toggle('on',S.mapMode==='showa');
+  $('mNow').classList.toggle('on',S.mapMode==='now');
+  $('miniLbl').textContent=S.mapMode==='showa'?'昭和':'現在';
+}
+updateLabels();
+
+const LM=[
+ {id:'tower',name:'東京タワーの眺め',x:-13.5,z:-22,r:7,tx:-386,tz:-153,
+  then:'昭和33年（1958年）12月に完成した高さ333mの電波塔。当時、自立式の鉄塔としてはパリのエッフェル塔を抜いて世界一の高さでした。テレビ放送の電波を関東一円に届ける役目を担い、完成直後から東京の新名所に。',
+  now:'2013年ごろにテレビ電波送信の主役を東京スカイツリーに譲りましたが、展望台とともに今も東京を代表するシンボルです。'},
+ {id:'gate',name:'増上寺 三解脱門',x:-18,z:0,r:11,tx:-30,tz:0,
+  then:'1622年に建てられた増上寺の正門。空襲をくぐり抜けた江戸時代初期の建物で、国の重要文化財。「三つの煩悩（むさぼり・いかり・おろかさ）から解き放たれる門」という意味の名前です。',
+  now:'今も同じ姿で建っていて、門と東京タワーが一緒に見える景色は定番の撮影スポットです。'},
+ {id:'tram',name:'都電の停留場',x:6.5,z:25,r:9,tx:3,tz:-40,
+  then:'東京の街なかを縦横に走っていた路面電車。日比谷通りにも線路が敷かれ、通勤や買い物の足でした。最盛期には40を超える系統が走り、道路の真ん中の細い安全地帯で電車を待ちました。',
+  now:'車の増加で1960年代後半〜70年代はじめに大半が廃止。日比谷通りの線路も消え、都電で今残るのは荒川線（東京さくらトラム）だけです。地下には都営三田線が走っています。'},
+ {id:'koban',name:'派出所（交番）',x:10,z:12,r:6,tx:15,tz:12,
+  then:'街角の派出所。おまわりさんが道案内や落とし物の世話をする、町の顔なじみでした。当時の正式な名前は「派出所」。',
+  now:'1994年に「交番」が正式な名前になりました。この仕組みは海外でも「KOBAN」として紹介されています。'},
+ {id:'tv',name:'電器屋の店先テレビ',x:59,z:-6,r:7,tx:58,tz:-8,
+  then:'テレビ・洗濯機・冷蔵庫は「三種の神器」と呼ばれた憧れの家電。テレビはまだ高価で、店先のテレビの前にはプロレスや野球の中継を見る人だかりができました。',
+  now:'家電はほとんどの家にある時代に。街の電器屋さんは量販店やネット通販に押されて数を減らしました。'},
+ {id:'tabako',name:'たばこ屋・赤電話・丸ポスト',x:89,z:6,r:6,tx:89,tz:9,
+  then:'店先に置かれた赤い公衆電話（赤電話）と、丸い郵便ポストは昭和の街角の定番。電話のない家も多く、赤電話は町の大事な連絡手段でした。',
+  now:'携帯電話の普及で公衆電話は大きく減り、丸型ポストも四角いポストへの置き換えが進みました。'},
+ {id:'cinema',name:'映画館',x:151,z:3,r:9,tx:151,tz:10,
+  then:'娯楽の王様は映画。昭和33年（1958年）の映画館の入場者数は年間11億人を超え、史上最高を記録しました。大きな手描きの看板が通りを飾りました。',
+  now:'テレビの普及で観客は急減。今はシネコンや配信で見るのが中心になりました。'},
+ {id:'dagashi',name:'駄菓子屋',x:103.5,z:49.5,r:6,tx:103.5,tz:46,
+  then:'子どもたちが小銭を握りしめて通った店。数円で買える飴やくじ引き、めんこやビー玉も並んでいました。',
+  now:'数はぐっと減りましたが、昔ながらの店や、懐かしさを売りにした店が今も各地に残っています。'},
+ {id:'sento',name:'銭湯',x:179,z:-49,r:9,tx:179,tz:-56,
+  then:'家にお風呂がない家も多く、銭湯は毎日通う場所。高い煙突は街の目印で、ご近所どうしの社交場でもありました。',
+  now:'内風呂の普及で減り続け、都内で2,600軒を超えた1960年代後半の最盛期から、今はその1割ほどに。'},
+ {id:'lot',name:'空き地と土管',x:163,z:50.5,r:9,tx:163,tz:58,
+  then:'資材の土管が転がる空き地は子どもたちの遊び場。野球や缶けりで日が暮れるまで遊びました。',
+  now:'都心の空き地はビルや駐車場に変わり、遊び場は公園が中心になりました。'},
+ {id:'well',name:'井戸ポンプ',x:62.5,z:-50,r:5,tx:60,tz:-50,
+  then:'路地には手押しポンプの井戸が残り、打ち水や洗い物に使われていました。',
+  now:'水道の普及でほとんど姿を消しましたが、災害用の井戸として残している地域もあります。'},
+ {id:'daimon',name:'芝大門',x:240,z:0,r:12,tx:253,tz:0,
+  then:'増上寺の表門（総門）だった門で、「大門」という地名の由来。この門は昭和12年（1937年）に鉄筋コンクリートで建て直されたものです。',
+  now:'今も大門通りに建っていて、車が門の下をくぐって行き来しています。'},
+];
+
+function openInfo(lm){
+  $('infoTitle').textContent=lm.name; $('infoThen').textContent=lm.then; $('infoNow').textContent=lm.now;
+  $('info').style.display='block';
+}
+$('infoClose').onclick=()=>{$('info').style.display='none';};
+$('read').onclick=()=>{ if(S.near) openInfo(S.near); };
+
+const PRESETS=[7,12,17.5,20.5];
+$('btnTime').onclick=()=>{ const n=PRESETS.find(p=>p>S.hour+0.01); S.hour=(n===undefined)?PRESETS[0]:n; S.envDirty=true; updateLabels(); };
+$('btnSeason').onclick=()=>{ S.season=(S.season+1)%4; S.seasonDirty=true; S.envDirty=true; updateLabels(); };
+$('btnAuto').onclick=()=>{ S.auto=!S.auto; updateLabels(); };
+function setMapMode(m){ S.mapMode=m; updateLabels(); if(window.redrawMaps) window.redrawMaps(); updateMapNote(); }
+$('mShowa').onclick=()=>setMapMode('showa');
+$('mNow').onclick=()=>setMapMode('now');
+function updateMapNote(){
+  $('bigNote').textContent = S.mapMode==='showa'
+   ? '昭和のころ：1961〜69年ごろの航空写真（国土地理院）。写真を読み込めない環境では、再現した街の地図を表示します。赤い点線は都電。'
+   : '現在：国土地理院の地図。読み込めない環境では、いまの様子の略図を表示します。都電は廃止され、日比谷通りの地下を都営三田線が走っています。';
+}
+updateMapNote();
+$('btnMap').onclick=()=>{ $('mapPanel').style.display='block'; if(window.redrawMaps) window.redrawMaps(); };
+$('mini').onclick=()=>$('btnMap').onclick();
+$('mapClose').onclick=()=>{ $('mapPanel').style.display='none'; };
+(function(){ const L=$('lmList');
+  LM.forEach(lm=>{ const row=document.createElement('div'); row.className='lmRow';
+    const sp=document.createElement('span'); sp.textContent=lm.name;
+    const r=document.createElement('button'); r.className='btn'; r.textContent='読む'; r.onclick=()=>openInfo(lm);
+    const g=document.createElement('button'); g.className='btn'; g.textContent='ここへ行く';
+    g.onclick=()=>{ S.teleport=lm; $('mapPanel').style.display='none'; };
+    row.append(sp,r,g); L.appendChild(row); });
+})();
+
+function startGame(){
+  S.started=true; S.near=undefined; document.body.classList.add('playing'); $('title').style.display='none';
+  setTimeout(()=>{$('hint').style.opacity=0;},7000);
+}
+$('startBtn').onclick=()=>{
+  if(S.failed){ location.reload(); return; }
+  S.wantStart=true;
+  if(S.ready) startGame(); else $('loadMsg').textContent='準備ができしだい始まります…';
+};
+window.__threeFail=function(){ S.failed=true; $('loadMsg').textContent='3Dライブラリを読み込めませんでした。通信状況を確かめて、ボタンを押すと再読み込みします。'; $('startBtn').textContent='再読み込み'; };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" onload="window.__threeOk&&window.__threeOk()" onerror="window.__threeFail()"></script>
+<script>
+/* ===== 3D の街 ===== */
+window.__threeOk=function(){ try{ initWorld(); S.ready=true; $('loadMsg').textContent=''; if(S.wantStart) startGame(); }catch(e){ console.error(e); $('loadMsg').textContent='初期化でエラー：'+e.message; } };
+if(window.THREE) setTimeout(window.__threeOk,0);
+
+let renderer,scene,camera,clock;
+const P={x:30,z:2,yaw:1.25,pitch:0.1};
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+const R=rng(19581223);
+const rr=(a,b)=>a+R()*(b-a), pick=a=>a[Math.floor(R()*a.length)];
+
+// ---- 道路データ（3Dと地図で共用）
+const ROADS=[
+ {x1:-11,x2:11,z1:-700,z2:700,t:'main'},          // 日比谷通り
+ {x1:11,x2:520,z1:-6,z2:6,t:'main'},              // 大門通り
+ {x1:11,x2:340,z1:-52.5,z2:-47.5,t:'alley'},{x1:11,x2:340,z1:47.5,z2:52.5,t:'alley'},
+ {x1:11,x2:340,z1:-102.5,z2:-97.5,t:'alley'},{x1:11,x2:340,z1:97.5,z2:102.5,t:'alley'},
+ {x1:117.5,x2:122.5,z1:-160,z2:160,t:'alley'},{x1:217.5,x2:222.5,z1:-160,z2:160,t:'alley'},
+];
+const BOUNDS={x1:-215,x2:338,z1:-158,z2:158};
+
+// ---- 当たり判定
+const COLS=[], GRID=new Map(), MAPRECTS=[];
+function gk(i,j){return i*100003+j;}
+function addCol(minx,minz,maxx,maxz){const c={minx,minz,maxx,maxz};COLS.push(c);
+  for(let i=Math.floor(minx/16);i<=Math.floor(maxx/16);i++)for(let j=Math.floor(minz/16);j<=Math.floor(maxz/16);j++){const k=gk(i,j);if(!GRID.has(k))GRID.set(k,[]);GRID.get(k).push(c);} }
+
+// ---- インスタンス用リスト
+const BOX=[],PRISM=[],LWIN=[],DWIN=[],SHOP=[],TRUNK=[],FDEC=[],FPINE=[],POLES=[],LAMPS=[],WIRES=[];
+function box(x,y,z,sx,sy,sz,c,ry){BOX.push({x,y,z,sx,sy,sz,c,ry:ry||0});}
+function prism(x,y,z,sx,sy,sz,c,ry,snow){PRISM.push({x,y,z,sx,sy,sz,c,ry:ry||0,snow:snow!==false});}
+function L(b,lx,lz){const c=Math.cos(b.th),s=Math.sin(b.th);return{x:b.cx+lx*c+lz*s,z:b.cz-lx*s+lz*c};}
+function plane(list,b,lx,y,lz,sx,sy){const p=L(b,lx,lz);list.push({x:p.x,y,z:p.z,sx,sy,sz:1,ry:b.th});}
+function footprint(b){const along=Math.abs(Math.sin(b.th))<0.5;const hx=along?b.w/2:b.d/2,hz=along?b.d/2:b.w/2;return{minx:b.cx-hx,maxx:b.cx+hx,minz:b.cz-hz,maxz:b.cz+hz};}
+
+const BODYC=[0x5e4230,0x6b4a32,0x7d5c40,0x8a6a4a,0xcfc2a6,0xbfb193,0xa89878,0x75604a];
+const ROOFC=[0x4a5058,0x40464e,0x545a60,0x5c4436,0x6e3f30,0x4f4a44];
+const FACADEC=[0x6f9483,0x7fa08f,0xbdb6a6,0xa79f8e,0xc8c0ad];
+const SHOPS=['米穀店','酒店','八百屋','鮮魚','豆腐店','書店','理容','薬局','時計店','菓子舗','呉服店','金物店','乾物','大衆食堂','そば','写真館','文房具','履物','洋品店','荒物','精肉店','パン','喫茶','靴店','茶舗','クリーニング','自転車','畳店','牛乳','质屋'.replace('质','質')];
+
+function addHouse(b){
+  const kind=b.kind||'main';
+  box(b.cx,0,b.cz,(Math.abs(Math.sin(b.th))<0.5?b.w:b.d),b.h,(Math.abs(Math.sin(b.th))<0.5?b.d:b.w),b.body||pick(BODYC));
+  const roofH=b.roofH||rr(1.3,2.3);
+  if(!b.flat){ prism(b.cx,b.h,b.cz,b.w+0.7,roofH,b.d+0.7,b.roof||pick(ROOFC),b.th); }
+  else { const fp=footprint(b); box(b.cx,b.h,b.cz,fp.maxx-fp.minx+0.3,0.35,fp.maxz-fp.minz+0.3,0x8a857c); }
+  const f=b.d/2;
+  if(kind==='main'){
+    const kanban=b.kanban!==undefined?b.kanban:R()<0.35;
+    if(kanban){ const p=L(b,0,f-0.2); box(p.x,0,p.z,b.w,b.h+roofH*0.8,0.4,pick(FACADEC),b.th); }
+    plane(SHOP,b,0,1.3,f+0.25,b.w*0.86,2.4);
+    const e=L(b,0,f+0.75); box(e.x,2.6,e.z,b.w,0.16,1.5,0x3d3430,b.th);
+    if(b.shopName!==null){ addSign(b,b.shopName||pick(SHOPS),0,3.35,f+0.27,Math.min(b.w*0.75,4.5),0.85); }
+    if(b.h>5.5) plane(R()<0.6?LWIN:DWIN,b,0,b.h-1.9,f+0.25,b.w*0.55,1.1);
+  }else{
+    plane(DWIN,b,-b.w*0.22,0.95,f+0.02,b.w*0.3,1.9);
+    plane(R()<0.55?LWIN:DWIN,b,b.w*0.2,1.45,f+0.02,b.w*0.35,0.9);
+    if(b.h>5.5) plane(R()<0.5?LWIN:DWIN,b,0,b.h-1.8,f+0.02,b.w*0.5,0.9);
+  }
+  const fp=footprint(b); addCol(fp.minx,fp.minz,fp.maxx,fp.maxz); MAPRECTS.push(fp);
+}
+
+// 通りに沿って家を並べる
+function row(o){
+  let pos=o.from;
+  while(pos<o.to){
+    const w=rr(o.wmin||5,o.wmax||9);
+    if(pos+w>o.to)break;
+    const sk=(o.skip||[]).find(s=>pos<s[1]&&pos+w>s[0]);
+    if(sk){pos=sk[1]+0.3;continue;}
+    const d=rr(o.dmin||8,o.dmax||12), h=o.kind==='main'?rr(5.6,8):(R()<0.35?rr(5.8,6.8):rr(3.6,4.6));
+    let b;
+    if(o.axis==='x') b={cx:pos+w/2,cz:o.line-o.n*d/2,th:o.n>0?0:Math.PI,w,d,h,kind:o.kind};
+    else b={cx:o.line-o.n*d/2,cz:pos+w/2,th:o.n>0?Math.PI/2:-Math.PI/2,w,d,h,kind:o.kind};
+    if(o.kind==='alley'&&R()<0.15){pos+=w+rr(1,3);continue;}
+    addHouse(b); pos+=w+rr(0,0.5);
+  }
+}
+
+// ---- テクスチャ
+const TEXC={};
+function canvasTex(w,h,draw){const c=document.createElement('canvas');c.width=w;c.height=h;draw(c.getContext('2d'),w,h);const t=new THREE.CanvasTexture(c);t.anisotropy=2;return t;}
+const SERIF='"Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif';
+function signTex(text,bg,fg){const k=text+bg+fg;if(TEXC[k])return TEXC[k];
+  return TEXC[k]=canvasTex(256,64,(g,w,h)=>{g.fillStyle=bg;g.fillRect(0,0,w,h);g.strokeStyle='rgba(0,0,0,.35)';g.lineWidth=4;g.strokeRect(2,2,w-4,h-4);
+    g.fillStyle=fg;let fs=44;g.font='bold '+fs+'px '+SERIF;while(g.measureText(text).width>w-24&&fs>18){fs-=2;g.font='bold '+fs+'px '+SERIF;}
+    g.textAlign='center';g.textBaseline='middle';g.fillText(text,w/2,h/2+2);});}
+const SIGNBG=[['#f1e6cc','#2b1d12'],['#2b2420','#f1e6cc'],['#7a2a1e','#f5e9d0'],['#e8dcc0','#7a2a1e'],['#1f3b5a','#f1e6cc']];
+const SIGNS=[];
+function addSign(b,text,lx,y,lz,w,h,colors,basic){
+  const cc=colors||pick(SIGNBG);
+  const mat=basic?new THREE.MeshBasicMaterial({map:signTex(text,cc[0],cc[1])}):new THREE.MeshLambertMaterial({map:signTex(text,cc[0],cc[1])});
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);const p=L(b,lx,lz);m.position.set(p.x,y,p.z);m.rotation.y=b.th;SIGNS.push(m);return m;}
+function glowTex(){return canvasTex(64,64,(g)=>{const gr=g.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(.3,'rgba(255,255,255,.6)');gr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=gr;g.fillRect(0,0,64,64);});}
+
+// ---- 環境（時刻）
+const KF=[
+ {h:0,sky:0x0b1430,sun:.10,hemi:.20,night:1},
+ {h:4.5,sky:0x0e1838,sun:.10,hemi:.20,night:1},
+ {h:6,sky:0xe2b48e,sun:.45,hemi:.40,night:.45},
+ {h:8,sky:0xcfe2ef,sun:.85,hemi:.60,night:0},
+ {h:12,sky:0x9cc8ea,sun:1.0,hemi:.68,night:0},
+ {h:16,sky:0xb5d2e6,sun:.9,hemi:.62,night:0},
+ {h:17.6,sky:0xf0995a,sun:.62,hemi:.44,night:.3},
+ {h:18.8,sky:0x34366a,sun:.25,hemi:.26,night:.8},
+ {h:20,sky:0x0b1430,sun:.10,hemi:.20,night:1},
+ {h:24,sky:0x0b1430,sun:.10,hemi:.20,night:1}];
+let hemi,dir,litMat,shopMat,neonMat,glowPts,stars,towerLights,lampPts,tramWinMats=[];
+const tmpC=new THREE.Color(),tmpC2=new THREE.Color();
+let NIGHT=0;
+function applyEnv(){
+  const h=S.hour;let a=KF[0],b=KF[1];
+  for(let i=0;i<KF.length-1;i++){if(h>=KF[i].h&&h<=KF[i+1].h){a=KF[i];b=KF[i+1];break;}}
+  const t=(h-a.h)/Math.max(1e-6,b.h-a.h), lp=(u,v)=>u+(v-u)*t;
+  const night=lp(a.night,b.night);NIGHT=night;
+  const sky=new THREE.Color(a.sky).lerp(tmpC.setHex(b.sky),t);
+  if(S.season===3) sky.lerp(tmpC.setHex(0xb9bec6),0.3*(1-night));
+  if(S.season===1) sky.lerp(tmpC.setHex(0x7fbfee),0.15*(1-night));
+  scene.background=sky; scene.fog.color.copy(sky);
+  scene.fog.near=lp(1,1)*(60-30*night); scene.fog.far=650-330*night;
+  hemi.intensity=lp(a.hemi,b.hemi); hemi.color.setHex(0xdfe8f0).lerp(tmpC.setHex(0x6070a8),night);
+  dir.intensity=lp(a.sun,b.sun);
+  const ang=(h-6)/12*Math.PI;
+  if(Math.sin(ang)>0.03){dir.position.set(Math.cos(ang)*300,Math.sin(ang)*300+20,110);
+    const warm=1-Math.min(1,Math.sin(ang)*2.2);dir.color.setHex(0xffffff).lerp(tmpC.setHex(0xffa860),warm);}
+  else{dir.position.set(-120,220,-80);dir.color.setHex(0x8fa8ff);}
+  litMat.color.setHex(0x2b3038).lerp(tmpC.setHex(0xffc56a),Math.min(1,night*1.3));
+  shopMat.color.setHex(0x4e4234).lerp(tmpC.setHex(0xffcf85),Math.min(1,night*1.2));
+  tramWinMats.forEach(m=>m.color.copy(litMat.color));
+  neonMat.color.setHex(0x8a7d6a).lerp(tmpC.setHex(0xfff0c0),night);
+  lampPts.material.opacity=night*0.95;
+  stars.material.opacity=Math.max(0,night-0.3)*1.2;
+  towerLights.visible=night>0.3;
+}
+
+// ---- 季節
+let roofMesh,folMat,foliageMesh,groundMats=[],PARTS,partCfg;
+const SEAS_FOL=[0xf4c3d2,0x4b8a3a,0xd9a238,0x000000];
+function applySeason(){
+  const s=S.season;
+  foliageMesh.visible=s!==3; folMat.color.setHex(SEAS_FOL[s]);
+  const white=new THREE.Color(0xf2f4f8);
+  PRISM.forEach((o,i)=>{tmpC2.setHex(o.c);if(s===3&&o.snow)tmpC2.lerp(white,0.72);roofMesh.setColorAt(i,tmpC2);});
+  roofMesh.instanceColor.needsUpdate=true;
+  groundMats.forEach(g=>{g.m.color.setHex(g.c);if(s===3)g.m.color.lerp(white,g.snow);});
+  partCfg=[{n:260,c:0xffc8da,sz:.13,fall:.55,sway:.9},{n:0},{n:220,c:0xd98b2b,sz:.17,fall:.9,sway:.7},{n:900,c:0xffffff,sz:.11,fall:1.1,sway:.35}][s];
+  PARTS.visible=partCfg.n>0; if(partCfg.n){PARTS.material.color.setHex(partCfg.c);PARTS.material.size=partCfg.sz;PARTS.geometry.setDrawRange(0,partCfg.n);}
+}
+
+let tvTex,tvCtx,trams=[],markers=[];
+function initWorld(){
+  renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,1.75));
+  renderer.setSize(innerWidth,innerHeight);
+  $('view').appendChild(renderer.domElement);
+  scene=new THREE.Scene(); scene.fog=new THREE.Fog(0x9cc8ea,60,650);
+  camera=new THREE.PerspectiveCamera(68,innerWidth/innerHeight,0.1,2500);
+  clock=new THREE.Clock();
+  hemi=new THREE.HemisphereLight(0xdfe8f0,0x6b5a48,.65);scene.add(hemi);
+  dir=new THREE.DirectionalLight(0xffffff,1);scene.add(dir);
+
+  litMat=new THREE.MeshBasicMaterial({color:0x2b3038});
+  shopMat=new THREE.MeshBasicMaterial({color:0x4e4234});
+  neonMat=new THREE.MeshBasicMaterial({color:0x8a7d6a});
+  const dwinMat=new THREE.MeshBasicMaterial({color:0x22252a});
+
+  // 地面
+  function ground(x1,x2,z1,z2,y,c,snow){const m=new THREE.MeshLambertMaterial({color:c});groundMats.push({m,c,snow});
+    const g=new THREE.Mesh(new THREE.PlaneGeometry(x2-x1,z2-z1),m);g.rotation.x=-Math.PI/2;g.position.set((x1+x2)/2,y,(z1+z2)/2);scene.add(g);}
+  ground(-1500,1500,-1500,1500,0,0x857a62,.8);
+  ground(-215,-16,-160,160,0.01,0xb9b19f,.85);            // 境内（砂利）
+  ROADS.forEach(r=>ground(r.x1,r.x2,r.z1,r.z2,0.02,r.t==='main'?0x55524d:0xa3926f,r.t==='main'?.35:.8));
+  ground(-3.6,3.6,-700,700,0.03,0x6d6a63,.4);               // 軌道敷（石畳）
+  ground(11,13,-700,700,0.025,0x8d887d,.7);ground(-16,-11,-700,700,0.025,0x8d887d,.7); // 歩道
+  ground(11,520,-8,-6,0.025,0x8d887d,.7);ground(11,520,6,8,0.025,0x8d887d,.7);
+  ground(150,176,52.5,67,0.03,0x7d8455,.6);                 // 空き地の草地
+  // レール
+  [-2.52,-1.08,1.08,2.52].forEach(x=>box(x,0.03,0,0.1,0.06,1400,0x8b8b8b));
+  // 安全地帯
+  box(6.5,0,25,1.6,0.22,22,0xb5b0a5);
+  { const st={cx:6.5,cz:16,th:Math.PI/2}; box(6.5,0,16,0.12,2.6,0.12,0x444); addSign(st,'停留場',0,2.6,0.08,1.6,0.5,['#f1e6cc','#1f3b5a']); }
+
+  // --- 日比谷通り東側
+  row({axis:'z',line:13,n:-1,from:-156,to:156,kind:'main',dmax:11,skip:[[-8,8],[-53,-47],[47,53],[-103,-97],[97,103],[8.5,16]]});
+  // 派出所
+  { const b={cx:15,cz:12.3,th:-Math.PI/2,w:4.5,d:4,h:3.6,kind:'x',flat:true,body:0xcfcac0}; addHouse(b);
+    plane(DWIN,b,0,1.05,2.03,1.1,2.1); addSign(b,'派出所',0,2.85,2.05,2.6,0.6,['#f4f1ea','#1a1a1a']);
+    const lp=new THREE.Mesh(new THREE.SphereGeometry(0.22,12,8),new THREE.MeshBasicMaterial({color:0xff2a1a}));const p=L(b,0,2.25);lp.position.set(p.x,3.4,p.z);scene.add(lp); }
+
+  // --- 大門通り
+  const dSkip=[[54,64.5],[86,92.5],[117,123],[140,162.5],[217,223],[247,259]];
+  row({axis:'x',line:-8,n:1,from:27,to:336,kind:'main',skip:dSkip});
+  row({axis:'x',line:8,n:-1,from:27,to:336,kind:'main',skip:dSkip});
+  // 電器屋
+  { const b={cx:59,cz:-13,th:0,w:10,d:10,h:7,kind:'main',kanban:true,shopName:'電器商会'}; addHouse(b);
+    box(57.6,0,-7.4,1.3,0.85,0.7,0x5a3a24); box(57.6,0.85,-7.4,1.05,0.82,0.62,0x3b2a1e);
+    tvTex=canvasTex(96,72,(g)=>{tvCtx=g;}); const scr=new THREE.Mesh(new THREE.PlaneGeometry(0.78,0.58),new THREE.MeshBasicMaterial({map:tvTex}));
+    scr.position.set(57.5,1.26,-7.08);scene.add(scr);
+    box(60.6,0,-7.6,0.65,0.95,0.6,0xeef0ee); box(61.5,0,-7.6,0.7,1.55,0.62,0xf2f2ec); }
+  // たばこ屋
+  { const b={cx:89,cz:11.5,th:Math.PI,w:6,d:7,h:5.6,kind:'main',kanban:false,shopName:null}; addHouse(b);
+    addSign(b,'たばこ',0,3.35,3.77,2.6,0.8,['#c8281e','#ffffff']);
+    box(88.5,0,7.6,2.4,0.95,0.5,0x6b4a32); box(87.9,0.95,7.65,0.32,0.28,0.3,0xc8281e);
+    const post=new THREE.Mesh(new THREE.CylinderGeometry(0.27,0.27,1.25,16),new THREE.MeshLambertMaterial({color:0xc8281e}));post.position.set(91.6,0.62,6.9);scene.add(post);
+    const cap=new THREE.Mesh(new THREE.SphereGeometry(0.29,16,8,0,Math.PI*2,0,Math.PI/2),post.material);cap.position.set(91.6,1.25,6.9);scene.add(cap);
+    addCol(91.3,6.6,91.9,7.2); }
+  // 映画館
+  { const b={cx:151,cz:17,th:Math.PI,w:22,d:18,h:11,kind:'x',flat:true,body:0xd6cbb1}; addHouse(b);
+    const poster=canvasTex(512,160,(g,w,h)=>{const gr=g.createLinearGradient(0,0,w,h);gr.addColorStop(0,'#2a3f66');gr.addColorStop(1,'#a83a2a');g.fillStyle=gr;g.fillRect(0,0,w,h);
+      g.fillStyle='rgba(255,230,190,.9)';g.beginPath();g.arc(390,80,46,0,7);g.fill();g.fillStyle='#1b1410';g.fillRect(330,95,30,65);g.fillRect(420,100,26,60);
+      g.fillStyle='#fff4d8';g.font='bold 58px '+SERIF;g.textBaseline='middle';g.fillText('星降る港町',24,70);g.font='22px '+SERIF;g.fillText('総天然色・堂々公開',28,128);});
+    const pm=new THREE.Mesh(new THREE.PlaneGeometry(18,5.6),new THREE.MeshLambertMaterial({map:poster}));const p=L(b,0,9.08);pm.position.set(p.x,7.7,p.z);pm.rotation.y=b.th;scene.add(pm);
+    const ms=new THREE.Mesh(new THREE.PlaneGeometry(10,1.3),neonMat);const q=L(b,0,9.1);ms.position.set(q.x,4.4,q.z);ms.rotation.y=b.th;scene.add(ms);
+    const nt=addSign(b,'芝大門劇場',0,4.4,9.12,9.4,1.15,['rgba(0,0,0,0)','#c8281e'],true);nt.material.transparent=true;
+    plane(SHOP,b,0,1.5,9.05,7,3); }
+
+  // --- 路地
+  [[-52.5,1],[-47.5,-1],[47.5,1],[52.5,-1],[-102.5,1],[-97.5,-1],[97.5,1],[102.5,-1]].forEach(([line,n])=>{
+    const sk=[[117,123],[217,223]];
+    if(line===47.5) sk.push([100,107.2]);
+    if(line===-52.5) sk.push([170,188.5]);
+    if(line===52.5) sk.push([150,176]);
+    row({axis:'x',line,n,from:27,to:336,kind:'alley',skip:sk,dmin:7,dmax:11});
+  });
+  // 外周の路地（北・南端）
+  row({axis:'x',line:-150,n:-1,from:27,to:336,kind:'alley',dmin:7,dmax:9});
+  row({axis:'x',line:150,n:1,from:27,to:336,kind:'alley',dmin:7,dmax:9});
+  // 駄菓子屋
+  { const b={cx:103.5,cz:43,th:0,w:7,d:9,h:5,kind:'main',kanban:false,shopName:'だがしや'}; addHouse(b);
+    box(103.5,0,47.1,3.2,0.7,0.8,0x7a5638);
+    [0xe0453a,0xf2c230,0x3a8fd0,0x4bb05a,0xf08ac0,0xffffff].forEach((c,i)=>box(102.1+i*0.55,0.7,47.1,0.35,0.35,0.35,c)); }
+  // 銭湯
+  { const b={cx:179,cz:-60.5,th:0,w:18,d:16,h:7.5,kind:'x',body:0x7a5a3c,roof:0x3c4249,roofH:3.6}; addHouse(b);
+    const nt=canvasTex(256,96,(g,w,h)=>{g.fillStyle='#1f3b6a';g.fillRect(0,0,w,h);g.fillStyle='#f4efe4';g.font='bold 70px '+SERIF;g.textAlign='center';g.textBaseline='middle';g.fillText('ゆ',w/2,h/2+4);
+      g.strokeStyle='#e9e1d0';g.lineWidth=3;[64,128,192].forEach(x=>{g.beginPath();g.moveTo(x,0);g.lineTo(x,h*0.6);g.stroke();});});
+    const nr=new THREE.Mesh(new THREE.PlaneGeometry(3.4,1.3),new THREE.MeshLambertMaterial({map:nt}));nr.position.set(179,2.3,-52.4);scene.add(nr);
+    plane(SHOP,b,0,1.1,8.03,3.4,2.2);
+    addSign(b,'松の湯',0,5,8.05,5.2,1.2,['#f1e6cc','#2b1d12']);
+    const ch=new THREE.Mesh(new THREE.CylinderGeometry(0.85,1.15,26,12),new THREE.MeshLambertMaterial({color:0x8b6b5a}));ch.position.set(184,13,-66);scene.add(ch);
+    const ct=new THREE.Mesh(new THREE.CylinderGeometry(0.9,0.9,1.2,12),new THREE.MeshLambertMaterial({color:0x2a2622}));ct.position.set(184,25.6,-66);scene.add(ct); }
+  // 空き地の土管
+  { const pm=new THREE.MeshLambertMaterial({color:0x9a968d}); const g=new THREE.CylinderGeometry(0.9,0.9,3,16,1,true); pm.side=THREE.DoubleSide;
+    [[163,0.9,57.1],[163,0.9,58.9],[163,2.46,58]].forEach(p=>{const m=new THREE.Mesh(g,pm);m.rotation.z=Math.PI/2;m.position.set(p[0],p[1],p[2]);scene.add(m);});
+    addCol(161.5,56.2,164.5,59.8); }
+  // 井戸ポンプ
+  { box(60,0,-50,1.2,0.5,1.2,0x8c8c86); const pm=new THREE.Mesh(new THREE.CylinderGeometry(0.15,0.17,1.2,10),new THREE.MeshLambertMaterial({color:0x3f5a4a}));pm.position.set(60,1.1,-50);scene.add(pm);
+    box(60.25,1.35,-50,0.4,0.1,0.1,0x3f5a4a); const hd=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.06,0.06),pm.material);hd.position.set(59.6,1.75,-50);hd.rotation.z=0.4;scene.add(hd);
+    addCol(59.4,-50.6,60.6,-49.4); }
+
+  // --- 増上寺：塀と三解脱門
+  [[-160,-12],[12,160]].forEach(([a,b])=>{box(-16.6,0,(a+b)/2,0.6,2.2,b-a,0xe8e0cf);prism(-16.6,2.2,(a+b)/2,b-a,0.5,1.2,0x40464e,Math.PI/2);addCol(-16.9,a,-16.3,b);});
+  { const V=0xb0402a;
+    box(-30,0,0,12,0.5,23,0x9c968a,0);
+    [-34.5,-25.5].forEach(x=>[-10,-6,-2,2,6,10].forEach(z=>{box(x,0,z,0.9,7,0.9,V);addCol(x-0.45,z-0.45,x+0.45,z+0.45);}));
+    [[-10,-6],[6,10]].forEach(([a,b])=>{box(-30,0,(a+b)/2,8.6,6.6,b-a,0xe9e2d0);addCol(-34.3,a,-25.7,b);});
+    box(-30,6.6,0,10.4,1.2,21.6,V);
+    prism(-30,7.6,0,25,2.3,14,0x3a4047,Math.PI/2);
+    box(-30,9,0,6.5,5,16,V); box(-30,9,0,6.7,0.5,16.2,0xe9e2d0);
+    prism(-30,13.6,0,23,5.2,13,0x3a4047,Math.PI/2); }
+  // --- 芝大門
+  { const V=0xa8392a; [-7.2,7.2].forEach(z=>{box(253,0,z,1.5,9,1.5,V);addCol(252.25,z-0.75,253.75,z+0.75);});
+    box(253,8.2,0,1.7,0.9,17.4,V); box(253,6.6,0,1.2,0.5,16,V); prism(253,9.1,0,19.5,2.2,4,0x3a4047,Math.PI/2); }
+
+  // --- 東京タワー（1958年当時：大展望台のみ）
+  buildTower();
+
+  // --- 木々
+  for(let z=-150;z<=150;z+=14){ if(Math.abs(z)<16)continue; tree(-14,z,'dec'); }
+  for(let i=0;i<110;i++){ const x=rr(-210,-40),z=rr(-155,155); if(Math.abs(z)<9||(x>-48&&Math.abs(z)<16))continue; tree(x,z,R()<0.75?'pine':'dec'); }
+  for(let i=0;i<160;i++){ const x=rr(-520,-220),z=rr(-420,260); tree(x,z,R()<0.6?'pine':'dec',true); }
+  for(let i=0;i<40;i++){ const x=rr(-200,-60),z=rr(-420,-170); tree(x,z,R()<0.6?'pine':'dec',true); }
+
+  // --- 電柱と電線、すずらん灯
+  function poleLine(pts,h){ for(let i=0;i<pts.length;i++){const [x,z]=pts[i];POLES.push({x,z,h});if(i>0){const [px,pz]=pts[i-1];[h-0.5,h-0.9,h-1.3].forEach((y,k)=>WIRES.push(px,y,pz+k*0.25,x,y,z+k*0.25));}} }
+  [-7.2,7.2].forEach(z=>{const pts=[];for(let x=30;x<=330;x+=26){if(Math.abs(x-253)<5)continue;pts.push([x,z]);LAMPS.push(x+13,4.3,z);}poleLine(pts,8.5);});
+  for(let i=0;i<LAMPS.length;i+=3) box(LAMPS[i],0,LAMPS[i+2],0.12,4.2,0.12,0x3a3a3a);
+  [-50,50,-100,100].forEach(zc=>{const pts=[];for(let x=30;x<=330;x+=28)pts.push([x,zc+(zc>0?2.2:-2.2)]);poleLine(pts,7.5);});
+  for(let z=-300;z<=300;z+=32){ [-10.6,10.6].forEach(x=>POLES.push({x,z,h:7.2,steel:true})); WIRES.push(-10.6,6.4,z,10.6,6.4,z); }
+  [-1.8,1.8].forEach(x=>WIRES.push(x,5.9,-700,x,5.9,700));
+
+  // ---- インスタンス化
+  function mkInst(list,geo,mat,colored){const m=new THREE.InstancedMesh(geo,mat,Math.max(1,list.length));m.count=list.length;m.frustumCulled=false;
+    const d=new THREE.Object3D();list.forEach((o,i)=>{d.position.set(o.x,o.y,o.z);d.rotation.set(0,o.ry||0,0);d.scale.set(o.sx,o.sy,o.sz||1);d.updateMatrix();m.setMatrixAt(i,d.matrix);if(colored)m.setColorAt(i,tmpC.setHex(o.c));});
+    m.instanceMatrix.needsUpdate=true;if(colored&&m.instanceColor)m.instanceColor.needsUpdate=true;scene.add(m);return m;}
+  // 背景の街（歩けない外側）
+  for(let x=20;x<520;x+=12)for(let z of [1,-1])for(let zz=166;zz<330;zz+=12){if(R()<0.15)continue;const w=rr(7,11),d=rr(7,11),h=rr(4,8);box(x,0,z*zz,w,h,d,pick(BODYC));prism(x,h,z*zz,w+0.6,rr(1.2,2),d+0.6,pick(ROOFC),R()<0.5?0:Math.PI/2);}
+  for(let x=346;x<520;x+=12)for(let z=-160;z<166;z+=12){if(Math.abs(z)<9||R()<0.15)continue;const w=rr(7,11),d=rr(7,11),h=rr(4,9);box(x,0,z,w,h,d,pick(BODYC));prism(x,h,z,w+0.6,rr(1.2,2),d+0.6,pick(ROOFC),R()<0.5?0:Math.PI/2);}
+
+  const boxGeo=new THREE.BoxGeometry(1,1,1).translate(0,0.5,0);
+  mkInst(BOX,boxGeo,new THREE.MeshLambertMaterial({color:0xffffff}),true);
+  roofMesh=mkInst(PRISM,prismGeo(),new THREE.MeshLambertMaterial({color:0xffffff}),true);
+  const pg=new THREE.PlaneGeometry(1,1);
+  mkInst(LWIN,pg,litMat,false); mkInst(DWIN,pg,dwinMat,false); mkInst(SHOP,pg,shopMat,false);
+  SIGNS.forEach(m=>scene.add(m));
+  // 木
+  mkInst(TRUNK,new THREE.CylinderGeometry(0.18,0.28,1,6).translate(0,0.5,0),new THREE.MeshLambertMaterial({color:0x4a3a2c}),false);
+  folMat=new THREE.MeshLambertMaterial({color:0x4b8a3a});
+  foliageMesh=mkInst(FDEC,new THREE.IcosahedronGeometry(1,0),folMat,true);
+  mkInst(FPINE,new THREE.IcosahedronGeometry(1,0),new THREE.MeshLambertMaterial({color:0x2f5a35}),true);
+  // 電柱
+  const pl=POLES.map(p=>({x:p.x,y:0,z:p.z,sx:p.steel?0.9:1,sy:p.h,sz:p.steel?0.9:1}));
+  mkInst(pl,new THREE.CylinderGeometry(0.12,0.16,1,6).translate(0,0.5,0),new THREE.MeshLambertMaterial({color:0x5b4a3a}),false);
+  mkInst(POLES.filter(p=>!p.steel).map(p=>({x:p.x,y:p.h-0.6,z:p.z+0.25,sx:0.12,sy:0.12,sz:1.4})),boxGeo,new THREE.MeshLambertMaterial({color:0x4a3c30}),false);
+  const wg=new THREE.BufferGeometry();wg.setAttribute('position',new THREE.Float32BufferAttribute(WIRES,3));
+  scene.add(new THREE.LineSegments(wg,new THREE.LineBasicMaterial({color:0x1d1b1a})));
+  // 街灯の光
+  const lg=new THREE.BufferGeometry();lg.setAttribute('position',new THREE.Float32BufferAttribute(LAMPS,3));
+  lampPts=new THREE.Points(lg,new THREE.PointsMaterial({color:0xffd9a0,size:2.4,map:glowTex(),transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));scene.add(lampPts);
+  // 星
+  const sp=[];for(let i=0;i<700;i++){const th=R()*Math.PI*2,ph=R()*Math.PI*0.45;sp.push(Math.cos(th)*Math.sin(ph)*1200,Math.cos(ph)*1200,Math.sin(th)*Math.sin(ph)*1200);}
+  const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.Float32BufferAttribute(sp,3));
+  stars=new THREE.Points(sg,new THREE.PointsMaterial({color:0xffffff,size:1.6,sizeAttenuation:false,transparent:true,opacity:0,fog:false,depthWrite:false}));scene.add(stars);
+  // 舞うもの（花びら・落ち葉・雪）
+  const N=900,pp=new Float32Array(N*3);for(let i=0;i<N;i++){pp[i*3]=rr(-35,35);pp[i*3+1]=rr(0,22);pp[i*3+2]=rr(-35,35);}
+  const pgeo=new THREE.BufferGeometry();pgeo.setAttribute('position',new THREE.BufferAttribute(pp,3));
+  PARTS=new THREE.Points(pgeo,new THREE.PointsMaterial({color:0xffffff,size:.12,map:glowTex(),transparent:true,depthWrite:false}));PARTS.frustumCulled=false;scene.add(PARTS);
+  // 都電
+  trams=[makeTram(1.8,-300,1),makeTram(-1.8,200,-1)];
+  // 名所の目印
+  const mt=canvasTex(128,128,(g)=>{g.fillStyle='rgba(120,50,25,.92)';g.beginPath();g.arc(64,64,54,0,7);g.fill();g.strokeStyle='#f3e7cf';g.lineWidth=6;g.stroke();g.fillStyle='#f3e7cf';g.font='bold 44px '+SERIF;g.textAlign='center';g.textBaseline='middle';g.fillText('名所',64,68);});
+  LM.forEach(lm=>{const s=new THREE.Sprite(new THREE.SpriteMaterial({map:mt,depthWrite:false}));const mx=lm.id==='tower'?lm.x:(lm.x+lm.tx)/2, mz=lm.id==='tower'?lm.z:(lm.z+lm.tz)/2;
+    s.position.set(mx,3.4,mz);s.scale.set(1.1,1.1,1);s.userData.y=3.4;scene.add(s);markers.push(s);});
+
+  window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+  setupInput();
+  window.redrawMaps=()=>{drawMap('mini');drawMap('big');};
+  loop();
+}
+
+function prismGeo(){
+  const A=[-.5,0,-.5],B=[.5,0,-.5],C=[.5,0,.5],D=[-.5,0,.5],E=[-.5,1,0],F=[.5,1,0];
+  const tris=[D,C,F, D,F,E, B,A,E, B,E,F, A,D,E, C,B,F, A,B,C, A,C,D];
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(tris.flat(),3));g.computeVertexNormals();return g;
+}
+function tree(x,z,type,far){
+  const h=type==='pine'?rr(4,7):rr(4.5,7.5);
+  TRUNK.push({x,y:0,z,sx:1,sy:h*0.7,sz:1});
+  const s=type==='pine'?rr(1.8,2.6):rr(2.2,3.2), g=rr(0.8,1.1);
+  (type==='pine'?FPINE:FDEC).push({x,y:h*0.72,z,sx:s,sy:type==='pine'?s*0.6:s*0.85,sz:s,c:new THREE.Color(g,g,g).getHex()});
+  if(!far) addCol(x-0.3,z-0.3,x+0.3,z+0.3);
+}
+function buildTower(){
+  const lat=canvasTex(64,64,(g)=>{g.strokeStyle='#fff';g.lineWidth=12;g.beginPath();g.moveTo(0,0);g.lineTo(64,64);g.moveTo(64,0);g.lineTo(0,64);g.moveTo(0,2);g.lineTo(64,2);g.moveTo(2,0);g.lineTo(2,64);g.stroke();});
+  lat.wrapS=lat.wrapT=THREE.RepeatWrapping;lat.repeat.set(8,1.5);
+  const mO=new THREE.MeshLambertMaterial({color:0xe2541c,map:lat,alphaTest:.5,side:THREE.DoubleSide,fog:false});
+  const mW=new THREE.MeshLambertMaterial({color:0xf1efe8,map:lat,alphaTest:.5,side:THREE.DoubleSide,fog:false});
+  const T=new THREE.Group();T.position.set(-386,0,-153);
+  const r=y=>58*Math.pow(1-y/333,1.7)+0.8;
+  const ys=[0,28,56,84,112,140,150,180,210,240,270,300,333];
+  for(let i=0;i<ys.length-1;i++){const y0=ys[i],y1=ys[i+1];
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(r(y1),r(y0),y1-y0,4,1,true),i%2?mW:mO);m.position.y=(y0+y1)/2;m.rotation.y=Math.PI/4;T.add(m);}
+  const deck=new THREE.Mesh(new THREE.CylinderGeometry(25,24,9,8),new THREE.MeshLambertMaterial({color:0xd9dde0,fog:false}));deck.position.y=150;T.add(deck);
+  const base=new THREE.Mesh(new THREE.BoxGeometry(70,18,70),new THREE.MeshLambertMaterial({color:0xcfcfc8}));base.position.y=9;T.add(base);
+  scene.add(T);
+  const lp=[];[[0,155,0],[0,333,0],[20,90,20],[-20,90,-20],[0,240,0]].forEach(p=>lp.push(p[0]-386,p[1],p[2]-153));
+  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(lp,3));
+  towerLights=new THREE.Points(g,new THREE.PointsMaterial({color:0xff3020,size:7,sizeAttenuation:false,map:glowTex(),transparent:true,depthWrite:false,fog:false,blending:THREE.AdditiveBlending}));
+  scene.add(towerLights);
+}
+function makeTram(x,z,dirn){
+  const g=new THREE.Group();
+  const cream=new THREE.MeshLambertMaterial({color:0xe6d6a6}),red=new THREE.MeshLambertMaterial({color:0xb33228}),gray=new THREE.MeshLambertMaterial({color:0x5d5f62});
+  const win=new THREE.MeshBasicMaterial({color:0x2b3038});tramWinMats.push(win);
+  const add=(geo,mat,y)=>{const m=new THREE.Mesh(geo,mat);m.position.y=y;g.add(m);return m;};
+  add(new THREE.BoxGeometry(2.3,1.25,12),cream,1.05);
+  add(new THREE.BoxGeometry(2.34,0.22,12.04),red,1.78);
+  add(new THREE.BoxGeometry(2.3,1.0,11.6),cream,2.4);
+  add(new THREE.BoxGeometry(2.32,0.62,11.0),win,2.42);
+  add(new THREE.BoxGeometry(2.36,0.62,0.5),cream,2.42).position.z=0;
+  add(new THREE.BoxGeometry(2.1,0.25,11.4),gray,3.0);
+  const pole=add(new THREE.BoxGeometry(0.06,0.06,4.2),gray,4.0);pole.rotation.x=-0.62*dirn;pole.position.z=-1.2*dirn;
+  add(new THREE.BoxGeometry(2.0,0.4,11.2),gray,0.35);
+  const sg=new THREE.Mesh(new THREE.PlaneGeometry(1.3,0.32),new THREE.MeshBasicMaterial({map:signTex(dirn>0?'品川':'日比谷','#1b1b1b','#f5f0e0')}));
+  sg.position.set(0,2.95,6.03);g.add(sg);const sg2=sg.clone();sg2.position.z=-6.03;sg2.rotation.y=Math.PI;g.add(sg2);
+  g.position.set(x,0,z);scene.add(g);
+  return {g,x,z,dirn,v:9,wait:0,stopped:false};
+}
+
+// ---- 入力
+const KEYS={};let joy={id:null,x:0,y:0},look={id:null,lx:0,ly:0};
+function setupInput(){
+  const J=$('joy'),K=$('knob');
+  J.addEventListener('pointerdown',e=>{e.preventDefault();joy.id=e.pointerId;J.setPointerCapture(e.pointerId);moveJoy(e);});
+  J.addEventListener('pointermove',e=>{if(e.pointerId===joy.id)moveJoy(e);});
+  const endJ=e=>{if(e.pointerId===joy.id){joy.id=null;joy.x=joy.y=0;K.style.transform='';}};
+  J.addEventListener('pointerup',endJ);J.addEventListener('pointercancel',endJ);
+  function moveJoy(e){const r=J.getBoundingClientRect();let dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2);const m=Math.hypot(dx,dy),mx=46;if(m>mx){dx*=mx/m;dy*=mx/m;}
+    joy.x=dx/mx;joy.y=dy/mx;K.style.transform='translate('+dx+'px,'+dy+'px)';}
+  const C=renderer.domElement;
+  C.addEventListener('pointerdown',e=>{if(look.id!==null)return;look.id=e.pointerId;look.lx=e.clientX;look.ly=e.clientY;C.setPointerCapture(e.pointerId);});
+  C.addEventListener('pointermove',e=>{if(e.pointerId!==look.id)return;P.yaw-=(e.clientX-look.lx)*0.0055;P.pitch=Math.max(-1.2,Math.min(1.2,P.pitch-(e.clientY-look.ly)*0.0045));look.lx=e.clientX;look.ly=e.clientY;});
+  const endL=e=>{if(e.pointerId===look.id)look.id=null;};
+  C.addEventListener('pointerup',endL);C.addEventListener('pointercancel',endL);
+  addEventListener('keydown',e=>{KEYS[e.code]=true;});addEventListener('keyup',e=>{KEYS[e.code]=false;});
+}
+
+function collide(){
+  const r=0.35,i0=Math.floor(P.x/16),j0=Math.floor(P.z/16);const seen=new Set();
+  for(let i=i0-1;i<=i0+1;i++)for(let j=j0-1;j<=j0+1;j++){const l=GRID.get(gk(i,j));if(!l)continue;
+    for(const c of l){if(seen.has(c))continue;seen.add(c);pushOut(c,r);}}
+  trams.forEach(t=>pushOut({minx:t.g.position.x-1.2,maxx:t.g.position.x+1.2,minz:t.g.position.z-6,maxz:t.g.position.z+6},r));
+  P.x=Math.max(BOUNDS.x1,Math.min(BOUNDS.x2,P.x));P.z=Math.max(BOUNDS.z1,Math.min(BOUNDS.z2,P.z));
+}
+function pushOut(c,r){const cx=Math.max(c.minx,Math.min(c.maxx,P.x)),cz=Math.max(c.minz,Math.min(c.maxz,P.z));const dx=P.x-cx,dz=P.z-cz,d2=dx*dx+dz*dz;
+  if(d2>=r*r)return;
+  if(d2>1e-8){const d=Math.sqrt(d2);P.x=cx+dx/d*r;P.z=cz+dz/d*r;}
+  else{const pl=P.x-c.minx,pr=c.maxx-P.x,pt=P.z-c.minz,pb=c.maxz-P.z,m=Math.min(pl,pr,pt,pb);
+    if(m===pl)P.x=c.minx-r;else if(m===pr)P.x=c.maxx+r;else if(m===pt)P.z=c.minz-r;else P.z=c.maxz+r;}}
+
+// ---- 地図
+const TILE_OK={showa:false,now:false};
+const TILEURL={showa:(z,x,y)=>`https://cyberjapandata.gsi.go.jp/xyz/ort_old10/${z}/${x}/${y}.png`,now:(z,x,y)=>`https://cyberjapandata.gsi.go.jp/xyz/std/${z}/${x}/${y}.png`};
+function proj(lat,lon,z){const n=256*Math.pow(2,z),s=Math.sin(lat*Math.PI/180);return{x:(lon+180)/360*n,y:(0.5-Math.log((1+s)/(1-s))/(4*Math.PI))*n};}
+function wLL(x,z){return{lat:LAT0-z/MLAT,lon:LON0+x/MLON};}
+const LAYERS={};
+function tiles(id,el,mode,c,zoom,W,H){
+  let Ly=LAYERS[id];if(!Ly||Ly.mode!==mode){el.innerHTML='';Ly=LAYERS[id]={mode,imgs:new Map()};}
+  const x0=Math.floor((c.x-W/2)/256),x1=Math.floor((c.x+W/2)/256),y0=Math.floor((c.y-H/2)/256),y1=Math.floor((c.y+H/2)/256);const need=new Set();
+  for(let tx=x0;tx<=x1;tx++)for(let ty=y0;ty<=y1;ty++){const k=tx+'_'+ty;need.add(k);let im=Ly.imgs.get(k);
+    if(!im){im=new Image();im.onload=()=>{TILE_OK[mode]=true;};im.onerror=()=>{im.style.display='none';};im.src=TILEURL[mode](zoom,tx,ty);el.appendChild(im);Ly.imgs.set(k,im);}
+    im.style.left=(tx*256-c.x+W/2)+'px';im.style.top=(ty*256-c.y+H/2)+'px';}
+  for(const [k,im] of Ly.imgs){if(!need.has(k)){im.remove();Ly.imgs.delete(k);}}
+}
+function drawMap(which){
+  const big=which==='big';const box_=$(big?'big':'mini');if(big&&$('mapPanel').style.display!=='block')return;
+  const W=box_.clientWidth,H=box_.clientHeight;if(!W)return;
+  const zoom=big?16:17,mode=S.mapMode;const ll=wLL(P.x,P.z),c=proj(ll.lat,ll.lon,zoom);
+  tiles(which,$(big?'bigTiles':'miniTiles'),mode,c,zoom,W,H);
+  const cv=$(big?'bigCv':'miniCv'),dpr=Math.min(2,window.devicePixelRatio||1);
+  if(cv.width!==Math.round(W*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);}
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,W,H);
+  const tp=(x,z)=>{const q=wLL(x,z),p=proj(q.lat,q.lon,zoom);return[p.x-c.x+W/2,p.y-c.y+H/2];};
+  const rect=(x1,z1,x2,z2,col)=>{const a=tp(x1,z1),b=tp(x2,z2);g.fillStyle=col;g.fillRect(a[0],a[1],b[0]-a[0],b[1]-a[1]);};
+  const label=(x,z,t,col)=>{const p=tp(x,z);g.font='bold 11px sans-serif';g.textAlign='center';g.lineWidth=3;g.strokeStyle='rgba(255,250,235,.9)';g.strokeText(t,p[0],p[1]);g.fillStyle=col||'#3a2a1a';g.fillText(t,p[0],p[1]);};
+  if(!TILE_OK[mode]){
+    if(mode==='showa'){
+      g.fillStyle='#e3d2a8';g.fillRect(0,0,W,H);
+      rect(-600,-500,-16,400,'#b7c08f');
+      ROADS.forEach(r=>rect(r.x1,r.z1,r.x2,r.z2,r.t==='main'?'#f6ecd4':'#efe2c3'));
+      MAPRECTS.forEach(f=>rect(f.minx,f.minz,f.maxx,f.maxz,'#a7835b'));
+      g.setLineDash([5,4]);g.strokeStyle='#c0392b';g.lineWidth=2;const a=tp(0,-700),b=tp(0,700);g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();g.setLineDash([]);
+      if(big){label(-386,-140,'東京タワー','#b0401f');label(-90,10,'増上寺');label(30,-300,'都電（日比谷通り）','#c0392b');}
+    }else{
+      g.fillStyle='#f0eee8';g.fillRect(0,0,W,H);
+      rect(-600,-500,-16,400,'#cfe3c0');
+      for(const [x1,x2] of [[13,117.5],[122.5,217.5],[222.5,340]])for(const [z1,z2] of [[-160,-102.5],[-97.5,-52.5],[-47.5,-6],[6,47.5],[52.5,97.5],[102.5,160]])rect(x1+1,z1+1,x2-1,z2-1,'#dcd8ce');
+      ROADS.forEach(r=>rect(r.x1,r.z1,r.x2,r.z2,r.t==='main'?'#ffffff':'#f7f6f2'));
+      if(big){label(-386,-140,'東京タワー','#b0401f');label(-90,10,'増上寺');label(0,300,'芝公園駅（都営三田線）↓','#2f6b7a');label(170,-25,'ビルやマンションが並ぶ','#555');}
+    }
+  }
+  LM.forEach(lm=>{const p=tp(lm.tx===-386?lm.x:lm.tx,lm.tx===-386?lm.z:lm.tz);g.fillStyle='#a8452a';g.strokeStyle='#fff';g.lineWidth=1.5;g.beginPath();g.arc(p[0],p[1],big?4.5:3.5,0,7);g.fill();g.stroke();
+    if(big)label(lm.tx===-386?lm.x:lm.tx,(lm.tx===-386?lm.z:lm.tz)-7,lm.name);});
+  const pc=[W/2,H/2];g.save();g.translate(pc[0],pc[1]);g.rotate(-P.yaw);
+  g.fillStyle='#1f6fd0';g.strokeStyle='#fff';g.lineWidth=2;g.beginPath();g.moveTo(0,-9);g.lineTo(6,6);g.lineTo(0,3);g.lineTo(-6,6);g.closePath();g.fill();g.stroke();g.restore();
+}
+
+// ---- ループ
+let T=0,lastMap=0,lastLbl=0,lastTv=0;
+function loop(){
+  requestAnimationFrame(loop);
+  const dt=Math.min(clock.getDelta(),0.05);T+=dt;
+  if(S.auto){S.hour=(S.hour+dt/20)%24;S.envDirty=true;}
+  if(S.seasonDirty){applySeason();S.seasonDirty=false;}
+  if(S.envDirty){applyEnv();S.envDirty=false;}
+  if(S.teleport){const lm=S.teleport;P.x=lm.x;P.z=lm.z;P.yaw=Math.atan2(-(lm.tx-lm.x),-(lm.tz-lm.z));P.pitch=lm.id==='tower'?0.25:(lm.id==='daimon'||lm.id==='cinema'?0.18:0.02);S.teleport=null;}
+  // 移動
+  let fx=-joy.y,sx=joy.x;
+  if(KEYS.KeyW||KEYS.ArrowUp)fx+=1;if(KEYS.KeyS||KEYS.ArrowDown)fx-=1;if(KEYS.KeyA)sx-=1;if(KEYS.KeyD)sx+=1;
+  if(KEYS.ArrowLeft)P.yaw+=1.8*dt;if(KEYS.ArrowRight)P.yaw-=1.8*dt;
+  let mag=Math.hypot(fx,sx);if(mag>1){fx/=mag;sx/=mag;mag=1;}
+  const sp=(mag>0.95||KEYS.ShiftLeft)?7.5:4.2;
+  if(S.started&&mag>0.05){const s=Math.sin(P.yaw),c=Math.cos(P.yaw);P.x+=(-s*fx+c*sx)*sp*dt;P.z+=(-c*fx-s*sx)*sp*dt;}
+  collide();
+  const bob=mag>0.05?Math.sin(T*9)*0.03*mag:0;
+  camera.position.set(P.x,1.55+bob,P.z);camera.rotation.set(P.pitch,P.yaw,0,'YXZ');
+  // 都電
+  trams.forEach(t=>{
+    if(t.wait>0){t.wait-=dt;}else{
+      const z=t.g.position.z+t.dirn*t.v*dt;
+      if(t.dirn>0&&!t.stopped&&t.g.position.z<25&&z>=25){t.g.position.z=25;t.wait=7;t.stopped=true;}
+      else t.g.position.z=z;
+      if(t.dirn>0&&t.g.position.z>700){t.g.position.z=-700;t.stopped=false;}
+      if(t.dirn<0&&t.g.position.z<-700){t.g.position.z=700;}
+    }});
+  // 舞うもの
+  if(PARTS.visible){const a=PARTS.geometry.attributes.position.array,n=partCfg.n;
+    for(let i=0;i<n;i++){const k=i*3;a[k+1]-=partCfg.fall*dt*(0.7+(i%5)*0.12);a[k]+=Math.sin(T*1.3+i)*partCfg.sway*dt;
+      if(a[k+1]<0){a[k+1]=22;a[k]=rr(-35,35);a[k+2]=rr(-35,35);}}
+    PARTS.position.set(Math.round(P.x/10)*10,0,Math.round(P.z/10)*10);PARTS.geometry.attributes.position.needsUpdate=true;}
+  // テレビ
+  if(T-lastTv>0.12&&tvCtx){lastTv=T;const g=tvCtx;g.fillStyle='#9aa0a0';g.fillRect(0,0,96,72);
+    for(let i=0;i<40;i++){g.fillStyle='rgba(255,255,255,'+(Math.random()*0.25)+')';g.fillRect(0,Math.random()*72,96,1);}
+    g.fillStyle='#3d3f40';g.fillRect(8,50,80,4);const k=Math.sin(T*2)*10;g.fillRect(34+k,24,9,26);g.fillRect(52-k,22,10,28);
+    g.fillStyle='#2b2d2e';g.font='bold 10px sans-serif';g.fillText('プロレス中継',4,12);tvTex.needsUpdate=true;}
+  if(towerLights.visible)towerLights.material.opacity=0.5+0.5*Math.sin(T*3);
+  markers.forEach((m,i)=>{m.position.y=m.userData.y+Math.sin(T*2+i)*0.15;});
+  // 名所判定
+  let near=null,best=1e9;LM.forEach(lm=>{const d=Math.hypot(P.x-lm.x,P.z-lm.z);if(d<lm.r&&d<best){best=d;near=lm;}});
+  if(near!==S.near){S.near=near;const b=$('read');if(near&&S.started){b.textContent='📜 '+near.name+' を読む';b.style.display='block';}else b.style.display='none';}
+  if(T-lastMap>0.1&&S.started){lastMap=T;drawMap('mini');if($('mapPanel').style.display==='block')drawMap('big');}
+  if(T-lastLbl>0.5&&S.auto){lastLbl=T;updateLabels();}
+  renderer.render(scene,camera);
+}
+</script>
+</body></html>
