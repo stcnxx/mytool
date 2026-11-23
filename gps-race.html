@@ -192,7 +192,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 30（2026/11/23 08:57）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 31（2026/11/23 10:04）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -1082,8 +1082,8 @@ function step(dt){
   const toGoal=drive.total-car.s;
   const vlim=Math.sqrt(2*4*Math.max(0,toGoal)); // 目的地の手前だけ減速（カーブでは減速しない）
   let v=car.v;
-  if(v<target) v=Math.min(target, v+(3+v*0.07)*dt); else v=Math.max(target, v-(car.hold?7:4+v*0.05)*dt);
-  if(v>vlim) v=Math.max(vlim, v-10*dt);
+  v=target;                              // 速度ゲージ・一時停止・再開は加減速なしで即反映
+  if(v>vlim) v=vlim;
   if(!car.hold && toGoal>30) v=Math.max(v, Math.min(target,1.1));
   if(!car.hold && toGoal<=30 && toGoal>0.5) v=Math.max(v,0.8);
   car.v=v;
@@ -2350,7 +2350,7 @@ function updateDbg(){
   const el=$('dbg'); if(!el) return;
   if(!drive.active || mode!=='real' || !origin){ el.textContent=''; return; }
   const ll=xz2ll(car.x,car.z), f=flagAt(car.s);
-  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+'  y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+'  v30 11/23 08:57';
+  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+'  y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+'  v31 11/23 10:04';
 }
 
 </script>
