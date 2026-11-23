@@ -173,7 +173,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
       <div id="menuPanel" class="hidden">
         <button class="mi" id="voiceBtn">🔈 音声：オフ</button>
         <button class="mi" id="lblBtn">🏢 建物名：オン</button>
-        <button class="mi" id="platBtn">🏙 実写の建物（PLATEAU）：オフ</button>
+        <button class="mi" id="platBtn">🏙 実写建物：オフ</button>
         <button class="mi" id="envBtn">🌦 天気・時刻：オン</button>
         <button class="mi" id="mBack">⏪ 1km戻る</button>
         <button class="mi" id="mNewGoal">🔍 目的地を変える</button>
@@ -203,7 +203,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 34（2026/11/23 11:04）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 35（2026/11/23 12:19）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -2016,7 +2016,7 @@ function updateMenuLabels(){
   $('voiceBtn').textContent=voiceOn?'🔊 音声：オン':'🔈 音声：オフ';
   $('lblBtn').textContent=lbl.on?'🏢 建物名：オン':'🏢 建物名：オフ';
   $('envBtn').textContent=env.on?'🌦 天気・時刻：オン':'🌦 天気・時刻：オフ';
-  $('platBtn').textContent=plat.on?'🏙 実写の建物（PLATEAU）：オン':'🏙 実写の建物（PLATEAU）：オフ';
+  $('platBtn').textContent=plat.on?'🏙 実写建物：オン':'🏙 実写建物：オフ';
   saveSettings();
 }
 
@@ -2309,7 +2309,7 @@ function updateDbg(){
   const el=$('dbg'); if(!el) return;
   if(!drive.active || mode!=='real' || !origin){ el.textContent=''; return; }
   const ll=xz2ll(car.x,car.z), f=flagAt(car.s);
-  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+' '+(car.kind||'')+' y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+'  v34 11/23 11:04';
+  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+' '+(car.kind||'')+' y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+'  v35 11/23 12:19';
 }
 
 
@@ -2555,8 +2555,11 @@ function platPick(addr){
   const vals=new Set(Object.values(addr).filter(v=>typeof v==='string')), pref=addr.province||addr.state||'';
   const c=plat.cat.filter(d=>(!pref||!d.pref||d.pref===pref) && ((d.ward && vals.has(d.ward)) || (!d.ward && vals.has(d.city))));
   if(!c.length) return null;
-  c.sort((a,b)=>((+a.file_size||9e12)-(+b.file_size||9e12)) || ((+b.year||0)-(+a.year||0)));   // スマホ向けに軽いデータを優先
-  return c[0];
+  const lodOf=d=>+d.lod || +((/_lod(\d)/i.exec(d.url)||[])[1]) || 0;
+  const ok=c.filter(d=>!/no_?texture/i.test(d.url) && lodOf(d)>=2);   // LOD1は写真なしの箱なので使わない
+  if(!ok.length) return null;
+  ok.sort((a,b)=>(lodOf(b)-lodOf(a)) || ((+b.year||0)-(+a.year||0)) || ((+a.file_size||9e12)-(+b.file_size||9e12)));   // LOD2（写真付き）を優先、LOD1は箱だけなので最後
+  return ok[0];
 }
 /* --- geodesy --- */
 function ecef2llh(x,y,z){
@@ -2586,16 +2589,18 @@ async function platOpenSet(ds){
   return set;
 }
 function platAddTileset(set,ts,url,T0){
-  const walk=(nd,T)=>{
+  const walk=(nd,T,pref)=>{
+    const refine=(nd.refine||pref||'REPLACE').toUpperCase(), leaf=!(nd.children&&nd.children.length);
     let M=T; if(nd.transform){ const m=new THREE.Matrix4().fromArray(nd.transform); M=T?T.clone().multiply(m):m; }
     const c=nd.content; const uri=c&&(c.uri||c.url);
     if(uri){ const full=new URL(uri,url).href, rect=bvRect((c.boundingVolume)||nd.boundingVolume,M);
-      if(rect){ if(/\.json(\?|$)/i.test(uri)) set.ext.push({url:full,rect,T:M,done:false});
-        else { const node={url:full,rect,T:M}; set.nodes.push(node);
+      if(rect){ if(/\.json(\?|$)/i.test(uri)) set.ext.push({url:full,rect,T:M,done:false,refine});
+        else if(refine==='ADD' || leaf){   // REPLACE の親タイルは子の簡略版なので読まない（灰色の塊になる）
+          const node={url:full,rect,T:M}; set.nodes.push(node);
           if(rectDiag(rect)<1500){ const k=platKey(rect); for(const kk of k){ let l=set.idx.get(kk); if(!l){l=[];set.idx.set(kk,l);} l.push(node); } } } } }
-    for(const ch of nd.children||[]) walk(ch,M);
+    for(const ch of nd.children||[]) walk(ch,M,refine);
   };
-  walk(ts.root,T0);
+  walk(ts.root,T0,set.refine0);
 }
 function platKey(r){ const g=0.002, out=[]; for(let a=Math.floor(r.w/g);a<=Math.floor(r.e/g);a++) for(let b=Math.floor(r.s/g);b<=Math.floor(r.n/g);b++) out.push(a+','+b); return out; }
 // その場所にPLATEAUの建物があるか（あれば自動生成の建物は作らない）
@@ -2682,7 +2687,7 @@ function platTick(dt){
   const ll=xz2ll(car.x,car.z), lat=ll[0]*Math.PI/180, lon=ll[1]*Math.PI/180;
   for(const [u,s] of plat.sets){
     if(s.fail) continue;
-    for(const e of s.ext) if(!e.done && rectDist(e.rect,lat,lon)<1500){ e.done=true; fetchT(e.url,30000).then(r=>r.json()).then(j=>platAddTileset(s,j,e.url,e.T)).catch(()=>{}); }
+    for(const e of s.ext) if(!e.done && rectDist(e.rect,lat,lon)<1500){ e.done=true; fetchT(e.url,30000).then(r=>r.json()).then(j=>(s.refine0=e.refine, platAddTileset(s,j,e.url,e.T))).catch(()=>{}); }
     let near=false;
     for(const n of s.nodes){
       const d=rectDist(n.rect,lat,lon);
