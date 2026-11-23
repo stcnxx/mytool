@@ -103,6 +103,9 @@ table.res{width:100%;font-size:15px;color:#cdd8e4;border-collapse:collapse}
 table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:700}
 
 /* v15 */
+.mlbl{position:absolute;left:0;top:0;pointer-events:none;background:rgba(30,40,24,.72);border:1px solid rgba(190,230,150,.7);border-radius:8px;padding:1px 7px;font-size:11px;line-height:1.3;text-align:center;white-space:nowrap}
+.mlbl b{display:block;font-size:12px;color:#fff}
+.mlbl span{color:#cfeaa8}
 .plbl{position:absolute;left:0;top:0;pointer-events:auto;background:rgba(10,16,24,.72);border:1px solid rgba(140,200,255,.6);border-radius:8px;padding:1px 7px;font-size:11px;line-height:1.3;text-align:center;white-space:nowrap;cursor:pointer}
 .plbl b{display:block;font-size:12px;color:#fff}
 .pln{position:absolute;left:0;top:0;height:1px;background:rgba(160,210,255,.85);transform-origin:0 0;pointer-events:none}
@@ -208,7 +211,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 40（2026/11/23 14:49）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 41（2026/11/23 15:17）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -699,7 +702,7 @@ function processTile(t,buf){
   t.carveExtra=roads.filter(r=>r.br==='bridge');
   let gm=safe('ground',()=>buildGroundTile(t,layers,roads.filter(r=>!r.br)));
   if(!gm) gm=safe('ground-plain',()=>buildGroundTile(t,{},null));
-  if(gm){ scene.add(gm); t.meshes.push(gm); }
+  if(gm){ gm.userData.ground=true; scene.add(gm); t.meshes.push(gm); }
   if(!buf.length) return;
   // 3) road meshes, viaducts, junction patches
   const lines=[], bridges=[]; pierLows=roads.filter(r=>!r.br);
@@ -1443,7 +1446,7 @@ function loop(now){
     const bm=goalGroup.userData.beam; bm.material.opacity=0.3+0.12*Math.sin(now/300);
   } else if(mode==='real') tileTick(dt);
   if(!drive.active) envTick(dt);
-  farTick(dt); locTick(dt); airTick(dt);
+  farTick(dt); locTick(dt); airTick(dt); peakTick(dt);
   farCam.position.copy(camera.position); farCam.quaternion.copy(camera.quaternion);
   if(farCam.fov!==camera.fov){ farCam.fov=camera.fov; farCam.updateProjectionMatrix(); }
   renderer.clear(); renderer.render(farScene,farCam); renderer.clearDepth(); renderer.render(scene,camera);
@@ -1799,7 +1802,7 @@ function loadDem(z,x,y){
   d={state:'loading',data:null}; dem.set(k,d);
   d.p=(async()=>{
     try{
-      if(z<12){ const a=await loadDemRaw(z,x,y); if(!a) throw new Error('dem'); d.data=a; }
+      if(z<12){ const a=await loadDemRaw(z,x,y); if(!a) throw new Error('dem'); d.data=blurDem(openDem(a,2),1,1); }   // 遠景：ビル群の「偽の山」を消す
       else {
         const nb=await Promise.all([-1,0,1].flatMap(dy=>[-1,0,1].map(dx=>{ const p=loadDemRaw(z,x+dx,y+dy); return (dx||dy)?Promise.race([p,sleep(4000).then(()=>null)]):p; })));
         const C=nb[4]; if(!C) throw new Error('dem');
@@ -2008,9 +2011,9 @@ function locTick(dt){
   if(!drive.active){ el.classList.add('hidden'); return; }
   if(mode!=='real'){ el.textContent='📍 デモの街'; el.classList.remove('hidden'); return; }
   el.classList.remove('hidden');
-  loc.t-=dt; if(loc.t>0 || loc.busy) return; loc.t=5;
+  loc.t-=dt; if(loc.t>0 || loc.busy) return; loc.t=2;
   const ll=xz2ll(car.x,car.z);
-  if(loc.last && Math.hypot((ll[0]-loc.last[0])*111000,(ll[1]-loc.last[1])*91000)<700 && el.textContent) return;
+  if(loc.last && Math.hypot((ll[0]-loc.last[0])*111000,(ll[1]-loc.last[1])*91000)<200 && el.textContent) return;
   loc.busy=true;
   (async()=>{
     try{
@@ -2330,7 +2333,7 @@ function updateDbg(){
   const el=$('dbg'); if(!el) return;
   if(!drive.active || mode!=='real' || !origin){ el.textContent=''; return; }
   const ll=xz2ll(car.x,car.z), f=flagAt(car.s);
-  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+' '+(car.kind||'')+' y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+'  v40 11/23 14:49';
+  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+' '+(car.kind||'')+' y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+(air.on?' ✈'+(air.err?'×'+air.err:(air.got==null?'…':air.got+'/'+(air.shown||0))):'')+'  v41 11/23 15:17';
 }
 
 
@@ -2784,7 +2787,7 @@ async function airPoll(){
       Object.assign(p,{lat:a.lat, lon:a.lon, alt:ft*0.3048, gs:(a.gs||0)*0.5144, trk:(a.track!=null?a.track:(a.true_heading||0)), cs:(a.flight||'').trim(), reg:a.r||'', type:a.t||'', sz:acSize(a.t,a.category,(a.flight||'').trim()), t0:now-(a.seen_pos||0)*1000});
     }
     for(const [k,p] of air.list) if(!seen.has(k) && now-p.t0>45000) airDrop(p);
-    air.err=0;
+    air.err=0; air.got=(j.ac||j.aircraft||[]).length; if(!air.okOnce){ air.okOnce=true; toast('✈ 飛行機データ取得：'+air.got+'機'); }
   }catch(e){ air.err++; if(air.err===3) toast('飛行機の位置を取得できませんでした'); }
   finally{ air.busy=false; }
 }
@@ -2821,7 +2824,7 @@ function airTick(dt){
     p.x=w[0]; p.z=w[1]; p.y=y; p.d=d; p.el2=Math.atan2(y-cy,d)*180/Math.PI;
     if(d<40000 && p.el2>=3) cand.push(p); else if(p.obj) p.obj.visible=false;
   }
-  cand.sort((a,b)=>a.d-b.d);
+  cand.sort((a,b)=>a.d-b.d); air.shown=Math.min(30,cand.length);
   const show=new Set(cand.slice(0,30));
   for(const p of air.list.values()) if(!show.has(p)){ if(p.obj) p.obj.visible=false; if(p.el) p.el.style.display='none'; if(p.ln) p.ln.style.display='none'; }
   air.oT-=dt; if(air.oT<=0){ air.oT=0.25; airOcclude(cand.slice(0,10)); }
@@ -2874,6 +2877,67 @@ function airOcclude(ps){
     p.hid=objs.length>0 && airRay.intersectObjects(objs,true).length>0; }
 }
 function setAir(on){ air.on=on; if(!on) airClear(); else air.t=0; updateMenuLabels(); }
+
+/* =====================================================================
+   v41 山の名前と標高（地図の「山頂」データ）
+   ===================================================================== */
+const PZ=9, peaks={list:[], keys:new Set(), tiles:new Map(), t:0, vis:[], oT:0};
+function peakTile(x,y){
+  const k=x+','+y; if(peaks.tiles.has(k)) return; peaks.tiles.set(k,'loading');
+  (async()=>{
+    try{
+      const tpl=await getTileTpl(); const r=await fetchT(tpl.replace('{z}',PZ).replace('{x}',x).replace('{y}',y),20000);
+      if(!r.ok) throw new Error(r.status);
+      const L=parseTile(await gunzipMaybe(new Uint8Array(await r.arrayBuffer())),new Set(['mountain_peak'])).mountain_peak;
+      if(L) for(let i=0;i<featCount(L);i++){ const f=featAt(L,i); if(f.type!==1) continue;
+        const nm=f.tags['name:ja']||f.tags.name, ele=+f.tags.ele, c=f.tags.class||'peak'; if(!nm || !(ele>50) || (c!=='peak' && c!=='volcano')) continue;
+        for(const part of decodeGeom(f.geom)){ const tx=x+part[0]/L.ext, ty=y+part[1]/L.ext, n=2**PZ;
+          const lon=tx/n*360-180, lat=180/Math.PI*Math.atan(Math.sinh(Math.PI-2*Math.PI*ty/n)), key=nm+'|'+lat.toFixed(3)+'|'+lon.toFixed(3);
+          if(peaks.keys.has(key)) continue; peaks.keys.add(key); peaks.list.push({name:nm,ele,lat,lon,rank:+f.tags.rank||9}); } }
+      peaks.tiles.set(k,'done');
+    }catch(e){ peaks.tiles.delete(k); }
+  })();
+}
+function peakTick(dt){
+  const hide=()=>{ for(const p of peaks.list) if(p.el) p.el.style.display='none'; };
+  if(mode!=='real' || !origin || !drive.active || car.tunnel){ hide(); return; }
+  peaks.t-=dt;
+  if(peaks.t<=0){ peaks.t=5;
+    const ll=xz2ll(car.x,car.z), n=2**PZ, cx=Math.floor((ll[1]+180)/360*n), cy=Math.floor((1-Math.log(Math.tan(ll[0]*Math.PI/180)+1/Math.cos(ll[0]*Math.PI/180))/Math.PI)/2*n);
+    for(let dx=-2;dx<=2;dx++) for(let dy=-2;dy<=2;dy++) peakTile(cx+dx,cy+dy); }
+  // 見える山を選ぶ（0.5秒ごと）：130km以内（富士山は東京から約100km）・地平線より上・手前の地形に隠れていない
+  peaks.oT-=dt;
+  if(peaks.oT<=0){ peaks.oT=0.5;
+    const o=camera.position, cand=[];
+    for(const p of peaks.list){
+      const w=ll2xz(p.lat,p.lon), dx=w[0]-o.x, dz=w[1]-o.z, d=Math.hypot(dx,dz);
+      if(d<400 || d>130000){ p.on=false; continue; }
+      p.x=w[0]; p.z=w[1]; p.d=d; p.y=p.ele-d*d/(2*6371000)*0.87;
+      if(Math.atan2(p.y-o.y,d)<-0.002){ p.on=false; continue; }
+      cand.push(p); }
+    cand.sort((a,b)=>(a.rank-b.rank)||(b.ele-a.ele)||(a.d-b.d));
+    if(!airRay) airRay=new THREE.Raycaster();
+    const tgt=[]; if(far.mesh) tgt.push(far.mesh); for(const t of tiles.values()) for(const m of t.meshes||[]) if(m.userData && m.userData.ground) tgt.push(m);
+    const v=new THREE.Vector3(); let k=0, tries=0;
+    for(const p of cand){
+      p.on=false; if(k>=8 || tries>=16) continue;
+      v.set(p.x,p.y,p.z).project(farCam); if(v.z>1 || Math.abs(v.x)>1 || v.y>1 || v.y<-1) continue;
+      tries++; const dir=new THREE.Vector3(p.x-o.x,p.y-o.y,p.z-o.z), L=dir.length(); dir.multiplyScalar(1/L);
+      airRay.set(o,dir); airRay.far=Math.max(0,L-Math.max(300,L*0.02));
+      if(tgt.length && airRay.intersectObjects(tgt,false).length) continue;   // 手前の山や丘に隠れている
+      p.on=true; k++; }
+  }
+  // 札の位置（毎フレーム）。重なる札は後回しの山を省く
+  const W=innerWidth, H=innerHeight, v=new THREE.Vector3(), boxes=[];
+  for(const p of peaks.list){
+    if(!p.on){ if(p.el) p.el.style.display='none'; continue; }
+    v.set(p.x,p.y,p.z).project(farCam); const sx=(v.x+1)/2*W, sy=(1-v.y)/2*H;
+    const b=[sx-60,sy-44,sx+60,sy]; if(boxes.some(q=>b[0]<q[2]&&b[2]>q[0]&&b[1]<q[3]&&b[3]>q[1])){ if(p.el) p.el.style.display='none'; continue; }
+    boxes.push(b);
+    if(!p.el){ p.el=document.createElement('div'); p.el.className='mlbl'; const nb=document.createElement('b'); nb.textContent='▲ '+p.name; const e=document.createElement('span'); e.textContent=p.ele.toLocaleString()+'m'; p.el.append(nb,e); $('labels').appendChild(p.el); }
+    p.el.style.display=''; p.el.style.transform=`translate(${sx.toFixed(0)}px,${sy.toFixed(0)}px) translate(-50%,-100%)`;
+  }
+}
 
 loadSettings();
 updateMenuLabels();
