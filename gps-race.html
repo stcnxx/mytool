@@ -105,6 +105,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
 /* v15 */
 .plbl{position:absolute;left:0;top:0;pointer-events:auto;background:rgba(10,16,24,.72);border:1px solid rgba(140,200,255,.6);border-radius:8px;padding:1px 7px;font-size:11px;line-height:1.3;text-align:center;white-space:nowrap;cursor:pointer}
 .plbl b{display:block;font-size:12px;color:#fff}
+.pln{position:absolute;left:0;top:0;height:1px;background:rgba(160,210,255,.85);transform-origin:0 0;pointer-events:none}
 .plbl span{color:#9fd3ff}
 #spdWrap{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
 #spdWrap #spdRange{width:100%;margin:0}
@@ -207,7 +208,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 38（2026/11/23 14:18）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 40（2026/11/23 14:49）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -2329,7 +2330,7 @@ function updateDbg(){
   const el=$('dbg'); if(!el) return;
   if(!drive.active || mode!=='real' || !origin){ el.textContent=''; return; }
   const ll=xz2ll(car.x,car.z), f=flagAt(car.s);
-  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+' '+(car.kind||'')+' y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+'  v38 11/23 14:18';
+  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+' '+(car.kind||'')+' y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+'  v40 11/23 14:49';
 }
 
 
@@ -2744,11 +2745,21 @@ function loadSettings(){
    v38 飛行機：いま近くを飛んでいる機体を空に表示（My Spot と同じデータ）
    ===================================================================== */
 const MY_PROXY='https://myspot-proxy.tomot8086.workers.dev/?url=';
-const air={on:true, list:new Map(), t:0, busy:false, err:0, routes:new Map(), rT:0, geo:null, mat:null, lit:null, n:0};
+const air={oT:0, on:true, list:new Map(), t:0, busy:false, err:0, routes:new Map(), rT:0, geo:null, mat:null, lit:null, n:0};
 const AIRLINE={ANA:'NH',JAL:'JL',SKY:'BC',ADO:'HD',SNJ:'6J',SFJ:'7G',APJ:'MM',JJP:'GK',IBX:'FW',FDA:'JH',JTA:'NU',TZP:'ZG',JAC:'JC',HAC:'HC',ORC:'OC',RAC:'RC',AKX:'EH',WAJ:'NQ',SJO:'IJ',
   KAL:'KE',AAR:'OZ',JNA:'LJ',TWB:'TW',JJA:'7C',ABL:'BX',CPA:'CX',HKE:'UO',EVA:'BR',CAL:'CI',TTW:'IT',SIA:'SQ',TGW:'TR',THA:'TG',CES:'MU',CCA:'CA',CSN:'CZ',CHH:'HU',CQH:'9C',CXA:'MF',
   HVN:'VN',VJC:'VJ',PAL:'PR',CEB:'5J',AXM:'AK',MAS:'MH',GIA:'GA',UAE:'EK',QTR:'QR',ETD:'EY',THY:'TK',DLH:'LH',AFR:'AF',BAW:'BA',FIN:'AY',KLM:'KL',SWR:'LX',UAL:'UA',DAL:'DL',AAL:'AA',
   ACA:'AC',HAL:'HA',QFA:'QF',JST:'JQ',ANZ:'NZ',FDX:'FX',UPS:'5X',NCA:'KZ',GTI:'5Y',CKS:'K4',AIC:'AI',ZIP:'ZG'};
+// 機種ごとの実際の大きさ [全長m, 翼幅m]
+const ACSIZE={B788:[57,60],B789:[63,60],B78X:[68,60],B772:[64,61],B77L:[64,65],B773:[74,61],B77W:[74,65],B744:[71,64],B748:[76,68],B763:[55,48],B764:[61,52],B752:[47,38],B753:[54,38],
+  B736:[31,34],B737:[34,36],B738:[40,36],B739:[42,36],B37M:[36,36],B38M:[40,36],B39M:[42,36],A19N:[34,36],A319:[34,36],A20N:[38,36],A320:[38,36],A21N:[45,36],A321:[45,36],
+  A332:[59,60],A333:[64,60],A338:[59,64],A339:[64,64],A359:[67,65],A35K:[74,65],A388:[73,80],A306:[54,45],MD11:[61,52],
+  E170:[30,26],E75L:[32,26],E75S:[32,26],E190:[36,29],E195:[39,29],E290:[36,34],DH8D:[33,28],DH8C:[26,27],AT75:[27,27],AT76:[27,27],CRJ7:[33,23],CRJ9:[36,25],SF34:[20,21],
+  C152:[7,10],C172:[8,11],C182:[9,11],C208:[11,16],PA28:[7,11],SR22:[8,12],DA42:[9,14],PC12:[14,16],BE20:[13,17],B350:[14,18],C25A:[15,16],C56X:[16,17],C68A:[20,21],
+  GLF5:[30,29],GLF6:[30,30],GL7T:[34,31],CL60:[21,20],FA7X:[23,26],LJ45:[18,15],C130:[30,40],C30J:[30,40],C2:[44,44],P1:[38,35],KC46:[50,48],
+  EC35:[12,10],EC45:[13,11],EC55:[14,12],AS32:[16,16],AS50:[11,11],AS55:[11,11],AW39:[16,14],AW09:[13,11],B06:[12,10],B407:[13,11],B412:[17,14],R44:[9,10],R22:[9,8],S76:[16,13],H60:[20,16],BK17:[13,11]};
+const ACCAT={A1:[9,11],A2:[20,20],A3:[38,35],A4:[47,38],A5:[65,62],A7:[13,11],B1:[8,15],B6:[3,3]};
+function acSize(type,cat,cs){ return ACSIZE[type] || ACCAT[cat] || (/^[A-Z]{3}\d/.test(cs||'')?[40,36]:[12,12]); }
 function airCode(cs){ const m=/^([A-Z]{3})\d/.exec(cs||''); return m?(AIRLINE[m[1]]||m[1]):''; }
 async function airFetch(url,body){
   for(const u of [MY_PROXY+encodeURIComponent(url), url]){
@@ -2770,7 +2781,7 @@ async function airPoll(){
       const ft=a.alt_geom!=null?a.alt_geom:a.alt_baro;
       if(a.lat==null || a.lon==null || ft==null || ft==='ground' || ft<300) continue;
       seen.add(a.hex); let p=air.list.get(a.hex); if(!p){ p={id:a.hex}; air.list.set(a.hex,p); }
-      Object.assign(p,{lat:a.lat, lon:a.lon, alt:ft*0.3048, gs:(a.gs||0)*0.5144, trk:(a.track!=null?a.track:(a.true_heading||0)), cs:(a.flight||'').trim(), reg:a.r||'', type:a.t||'', t0:now-(a.seen_pos||0)*1000});
+      Object.assign(p,{lat:a.lat, lon:a.lon, alt:ft*0.3048, gs:(a.gs||0)*0.5144, trk:(a.track!=null?a.track:(a.true_heading||0)), cs:(a.flight||'').trim(), reg:a.r||'', type:a.t||'', sz:acSize(a.t,a.category,(a.flight||'').trim()), t0:now-(a.seen_pos||0)*1000});
     }
     for(const [k,p] of air.list) if(!seen.has(k) && now-p.t0>45000) airDrop(p);
     air.err=0;
@@ -2797,7 +2808,7 @@ function airObj(){
   }
   const g=new THREE.Group(), m=new THREE.Mesh(air.geo,air.mat), l=new THREE.Mesh(air.litGeo,air.lit); l.position.set(0,2.6,0); g.add(m,l); g.userData.sharedGeo=true; return g;
 }
-function airDrop(p){ if(p.obj){ farScene.remove(p.obj); p.obj=null; } if(p.el){ p.el.remove(); p.el=null; } air.list.delete(p.id); }
+function airDrop(p){ if(p.obj){ farScene.remove(p.obj); p.obj=null; } if(p.el){ p.el.remove(); p.el=null; } if(p.ln){ p.ln.remove(); p.ln=null; } air.list.delete(p.id); }
 function airClear(){ for(const p of [...air.list.values()]) airDrop(p); }
 function airTick(dt){
   if(!air.on || mode!=='real' || !origin || !drive.active){ if(air.list.size) airClear(); return; }
@@ -2812,17 +2823,20 @@ function airTick(dt){
   }
   cand.sort((a,b)=>a.d-b.d);
   const show=new Set(cand.slice(0,30));
-  for(const p of air.list.values()) if(!show.has(p)){ if(p.obj) p.obj.visible=false; if(p.el) p.el.style.display='none'; }
+  for(const p of air.list.values()) if(!show.has(p)){ if(p.obj) p.obj.visible=false; if(p.el) p.el.style.display='none'; if(p.ln) p.ln.style.display='none'; }
+  air.oT-=dt; if(air.oT<=0){ air.oT=0.25; airOcclude(cand.slice(0,10)); }
   let nl=0; const v=new THREE.Vector3(), W=innerWidth, H=innerHeight;
   air.rT-=dt; if(air.rT<=0){ air.rT=20; airRoutes(cand.slice(0,10)); }
   for(const p of cand.slice(0,30)){
     if(!p.obj){ p.obj=airObj(); farScene.add(p.obj); }
-    const s=Math.max(1,p.d*0.02/40);                                              // 遠くても見える大きさに
-    p.obj.position.set(p.x,p.y,p.z); p.obj.rotation.set(0,-p.trk*Math.PI/180,0); p.obj.scale.setScalar(s); p.obj.visible=true;
+    // 実物大で描く。遠くて小さくなりすぎる機体だけ、画面で最低7ピクセルの長さを保つ
+    const [len,span]=p.sz||[40,36], pxm=innerHeight/(farCam.fov*Math.PI/180)/Math.max(1,p.d), k=Math.max(1,7/(len*pxm)), s=k;
+    const ang=len*k/Math.max(1,p.d);
+    p.obj.position.set(p.x,p.y,p.z); p.obj.rotation.set(0,-p.trk*Math.PI/180,0); p.obj.scale.set(span/38*k,len/40*k,len/40*k); p.obj.visible=true;
     // 札（近い10機まで）
-    v.set(p.x,p.y+6*s,p.z).project(farCam);
-    const on=v.z<1 && Math.abs(v.x)<1.05 && Math.abs(v.y)<1.05 && nl<10;
-    if(!on){ if(p.el) p.el.style.display='none'; continue; }
+    v.set(p.x,p.y,p.z).project(farCam);
+    const on=v.z<1 && Math.abs(v.x)<1.05 && Math.abs(v.y)<1.05 && nl<10 && !p.hid;
+    if(!on){ if(p.el) p.el.style.display='none'; if(p.ln) p.ln.style.display='none'; continue; }
     nl++;
     if(!p.el){ p.el=document.createElement('div'); p.el.className='plbl'; $('labels').appendChild(p.el);
       p.el.addEventListener('pointerdown',e=>e.stopPropagation()); p.el.addEventListener('click',e=>{ e.stopPropagation(); airInfo(p); }); }
@@ -2830,7 +2844,12 @@ function airTick(dt){
     const top=code?(code+(rt?' '+rt:' '+p.cs.replace(/^[A-Z]{3}/,code))):(p.cs||p.reg||p.type||'✈');
     const txt=top+'|'+Math.round(p.alt/100)*100;
     if(p.el.dataset.t!==txt){ p.el.dataset.t=txt; p.el.innerHTML=''; const b=document.createElement('b'); b.textContent='✈ '+top; const sp=document.createElement('span'); sp.textContent=(Math.round(p.alt/100)*100).toLocaleString()+'m'; p.el.append(b,sp); }
-    p.el.style.display=''; p.el.style.transform=`translate(${((v.x+1)/2*W).toFixed(0)}px,${((1-v.y)/2*H).toFixed(0)}px) translate(-50%,-100%)`;
+    // 札は機体から斜め上に離して置き、細い線でつなぐ
+    const px=(v.x+1)/2*W, py=(1-v.y)/2*H, r=Math.max(8,Math.min(60,len*k*pxm*0.6))+14, left=px>W*0.62, tx=px+(left?-r:r), ty=py-r*0.9;
+    p.el.style.display=''; p.el.style.transform=`translate(${tx.toFixed(0)}px,${ty.toFixed(0)}px) translate(${left?'-100%':'0'},-100%)`;
+    if(!p.ln){ p.ln=document.createElement('div'); p.ln.className='pln'; $('labels').appendChild(p.ln); }
+    const lx=tx-px, ly=ty-py, L=Math.hypot(lx,ly)*0.8;
+    p.ln.style.display=''; p.ln.style.width=L.toFixed(0)+'px'; p.ln.style.transform=`translate(${px.toFixed(0)}px,${py.toFixed(0)}px) rotate(${Math.atan2(ly,lx)}rad)`;
   }
 }
 function airInfo(p){
@@ -2842,6 +2861,17 @@ function airInfo(p){
   add('small','高度 '+Math.round(p.alt).toLocaleString()+' m・速度 '+Math.round(p.gs*3.6)+' km/h・距離 '+(p.d/1000).toFixed(1)+' km');
   if(p.type||p.reg) add('small',[p.type,p.reg].filter(Boolean).join('・'));
   el.classList.remove('hidden'); clearTimeout(showBInfo.tm); showBInfo.tm=setTimeout(()=>el.classList.add('hidden'),5000);
+}
+// 機体が建物の陰に入ったら札も消す（カメラから機体へ線を引き、建物に当たるか調べる）
+let airRay=null;
+function airOcclude(ps){
+  const objs=[]; for(const c of bld.chunks.values()) if(c.mesh){ if(c.mesh.isGroup){ for(const ch of c.mesh.children) if(ch.visible) objs.push(ch); } else objs.push(c.mesh); }
+  for(const st of plat.sets.values()) for(const n of st.nodes) if(n.obj) objs.push(n.obj);
+  if(!airRay) airRay=new THREE.Raycaster();
+  const o=camera.position, d=new THREE.Vector3();
+  for(const p of ps){ d.set(p.x-o.x,p.y-o.y,p.z-o.z); const L=d.length(); d.multiplyScalar(1/L);
+    airRay.set(o,d); airRay.far=Math.min(L,2500);
+    p.hid=objs.length>0 && airRay.intersectObjects(objs,true).length>0; }
 }
 function setAir(on){ air.on=on; if(!on) airClear(); else air.t=0; updateMenuLabels(); }
 
