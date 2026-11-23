@@ -103,6 +103,15 @@ table.res{width:100%;font-size:15px;color:#cdd8e4;border-collapse:collapse}
 table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:700}
 
 /* v15 */
+#spdWrap{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center}
+#spdWrap #spdRange{width:100%;margin:0}
+#spdTicks{height:5px;margin:1px 9px 0;background:repeating-linear-gradient(90deg,rgba(255,255,255,.75) 0 1px,transparent 1px 10%),linear-gradient(90deg,transparent calc(100% - 1px),rgba(255,255,255,.75) 0)}
+#spdNums{display:flex;justify-content:space-between;margin:0 3px;font-size:9px;line-height:1;color:#c9d6e4}
+#spdNums span{width:12px;text-align:center}
+#spdCtl{gap:6px!important;padding:5px 10px!important;width:calc(100% - 16px)!important;max-width:440px}
+#spdCtl button{width:34px!important;height:34px!important;font-size:20px!important}
+#spdSet{min-width:44px!important;font-size:14px!important}
+#spdCtl #backBtn{width:auto!important;padding:0 7px;font-size:12px!important;border-radius:17px}
 #dbg{position:absolute;left:max(8px,env(safe-area-inset-left));bottom:calc(84px + env(safe-area-inset-bottom));font:11px/1.3 ui-monospace,monospace;color:rgba(255,255,255,.85);background:rgba(0,0,0,.4);padding:2px 6px;border-radius:6px;pointer-events:auto}
 #dbg:empty{display:none}
 #locPill{position:absolute;top:max(10px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);background:rgba(10,16,24,.7);color:#fff;font-size:13px;padding:5px 14px;border-radius:16px;white-space:nowrap;max-width:calc(100% - 24px);overflow:hidden;text-overflow:ellipsis;z-index:2}
@@ -165,6 +174,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
         <button class="mi" id="voiceBtn">🔈 音声：オフ</button>
         <button class="mi" id="lblBtn">🏢 建物名：オン</button>
         <button class="mi" id="envBtn">🌦 天気・時刻：オン</button>
+        <button class="mi" id="mBack">⏪ 1km戻る</button>
         <button class="mi" id="mNewGoal">🔍 目的地を変える</button>
         <button class="mi" id="mTitle">🏠 タイトルへ</button>
       </div>
@@ -176,7 +186,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
   <div id="toast" class="hidden"></div>
   <div id="binfo" class="hidden"></div>
   <div id="arrive" class="hidden"><div class="ah">🏁 到着しました</div><div id="arrName" class="an"></div><div id="arrInfo" class="small"></div><div class="at">画面をタップして次の目的地へ</div></div>
-  <div id="spdCtl"><button id="goBtn" title="一時停止">⏸</button><button id="spdDn">−</button><input type="range" id="spdRange" min="0" max="1000" step="1"><button id="spdUp">＋</button><span id="spdSet">43 km/h</span></div>
+  <div id="spdCtl"><button id="goBtn" title="一時停止">⏸</button><button id="backBtn" title="1km戻る">−1km</button><button id="spdDn">−</button><div id="spdWrap"><input type="range" id="spdRange" min="0" max="1000" step="1"><div id="spdTicks"></div><div id="spdNums"><span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>500</span></div></div><button id="spdUp">＋</button><span id="spdSet">43 km/h</span></div>
   <div id="joy" class="hidden"><div id="joyBase"></div><div id="thrBar"><div id="thrFill"></div></div><div id="joyKnob"></div><div id="joyLbl"></div></div>
   <div id="attr"></div>
   <div id="dbg"></div>
@@ -192,7 +202,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 31（2026/11/23 10:04）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 32（2026/11/23 10:22）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -680,11 +690,11 @@ function processTile(t,buf){
   if(gm){ scene.add(gm); t.meshes.push(gm); }
   if(!buf.length) return;
   // 3) road meshes, viaducts, junction patches
-  const lines=[], bridges=[];
+  const lines=[], bridges=[]; pierLows=roads.filter(r=>!r.br);
   for(const r of roads){
     if(!r.ys || r.ys.length*2!==r.pts.length || r.ys.some(v=>!isFinite(v))) r.ys=r.pts.filter((_,i)=>i%2===0).map(()=>0);
     if(!r.br) for(let i=0;i<r.ys.length;i++) r.ys[i]=Math.max(r.ys[i],groundAt(r.pts[2*i],r.pts[2*i+1]));
-    addDeck(t,r.pts,r.ys,r.br==='tunnel',r.mw);
+    addDeck(t,r.pts,r.ys,r.br==='tunnel',r.mw,r.br==='bridge');
     if(r.br==='bridge') bridges.push({pts:r.pts,ys:r.ys,w:r.w});
     else if(r.br!=='tunnel') lines.push({pts:r.pts,ys:r.ys,w:r.w,capA:0,capB:0});
   }
@@ -1061,10 +1071,10 @@ function placeCamera(){
   ground.position.x=car.px; ground.position.z=car.pz; ground.position.y=mode==='real'?-2:-0.2;
   ground.material.map.offset.set(car.px/40, -car.pz/40);
 }
-const SPD_MIN=4, SPD_MAX=500; // km/h
+const SPD_MIN=0, SPD_MAX=500; // km/h
 car.setKmh=43;
 
-const kmh2t=k=>Math.log(k/SPD_MIN)/Math.log(SPD_MAX/SPD_MIN), t2kmh=t=>SPD_MIN*Math.pow(SPD_MAX/SPD_MIN,t);
+const kmh2t=k=>k/SPD_MAX, t2kmh=t=>t*SPD_MAX;
 
 function setSpeedKmh(k){ car.setKmh=Math.max(SPD_MIN,Math.min(SPD_MAX,k)); const r=$('spdRange'); if(r && document.activeElement!==r) r.value=Math.round(kmh2t(car.setKmh)*1000); $('spdSet').textContent=Math.round(car.setKmh)+' km/h'; }
 
@@ -1148,6 +1158,7 @@ function updateNavHUD(){
 }
 function rebuildRouteMesh(){
   if(routeMesh){ scene.remove(routeMesh); routeMesh.geometry.dispose(); routeMesh=null; }
+  if(routeBase){ scene.remove(routeBase); routeBase.geometry.dispose(); routeBase=null; }
   if(!drive.pts) return;
   const s0=car.s, s1=Math.min(drive.total,car.s+1200); if(s1-s0<2) return;
   const a=posAt(s0), raw=[a.x,a.z], P=drive.pts, c=drive.cum;
@@ -1163,10 +1174,12 @@ function rebuildRouteMesh(){
     rel[2*i]=p[2*i]-ox+d.z*LANE; rel[2*i+1]=p[2*i+1]-oz-d.x*LANE; }
   const Pp=new Float32Array(n*6), U=new Float32Array(n*4), I=new Uint32Array((n-1)*6);
   writeStrip(rel,0.9,0.05,5,Pp,U,I,0,0);
+  const bare=new Array(n).fill(false), ry=new Float32Array(n);
   if(mode==='real'){ let py=car.y; for(let i=0;i<n;i++){ const j=Math.min(n-1,i+1), k=Math.max(0,i-1), d=norm(p[2*j]-p[2*k],p[2*j+1]-p[2*k+1]);
-    let y=roadY(p[2*i],p[2*i+1],d.x,d.z,py,flagAt(sAt[i])); if(!roadY.tun) y=Math.max(y,groundAt(p[2*i],p[2*i+1]));
-    if(i>0){ const ds=Math.hypot(p[2*i]-p[2*i-2],p[2*i+1]-p[2*i-1]), m=0.25*ds+0.1; y=Math.min(py+m,Math.max(py-m,y)); }
-    py=y; Pp[(2*i)*3+1]=y+0.6; Pp[(2*i+1)*3+1]=y+0.6; } }
+    let y=roadY(p[2*i],p[2*i+1],d.x,d.z,py,flagAt(sAt[i])); bare[i]=roadY.kind==='-'; if(!roadY.tun) y=Math.max(y,groundAt(p[2*i],p[2*i+1]));
+    if(i>0){ const ds=Math.hypot(p[2*i]-p[2*i-2],p[2*i+1]-p[2*i-1]), m=0.12*ds+0.08; y=Math.min(py+m,Math.max(py-m,y)); }
+    py=y; ry[i]=y; Pp[(2*i)*3+1]=y+0.6; Pp[(2*i+1)*3+1]=y+0.6; }
+    safe('routeBase',()=>buildRouteBase(p,ry,bare,ox,oz)); }
   const mat=rebuildRouteMesh.mat||(rebuildRouteMesh.mat=new THREE.MeshBasicMaterial({map:routeTex,transparent:true,opacity:0.38,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-8}));
   routeMesh=new THREE.Mesh(geom(Pp,U,I),mat); routeMesh.position.set(ox,0,oz); routeMesh.renderOrder=2; scene.add(routeMesh);
 }
@@ -1220,8 +1233,8 @@ function startDrive(){
   $('introName').textContent=drive.goalName;
   const e=posAt(drive.total), dx=e.x-drive.pts[0], dz=e.z-drive.pts[1];
   let brg=Math.atan2(dx,-dz)*180/Math.PI; if(brg<0) brg+=360;
-  const mins=Math.round(drive.total/(car.setKmh/3.6)/60);
-  $('introInfo').textContent=DIRS[Math.round(brg/45)%8]+'へ 直線 '+fmtDist(Math.hypot(dx,dz))+'　ルート '+fmtDist(drive.total)+'（'+car.setKmh.toFixed(0)+'km/hで約'+(mins<60?mins+'分':(mins/60).toFixed(1)+'時間')+'）';
+  const mins=Math.round(drive.total/(Math.max(4,car.setKmh)/3.6)/60);
+  $('introInfo').textContent=DIRS[Math.round(brg/45)%8]+'へ 直線 '+fmtDist(Math.hypot(dx,dz))+'　ルート '+fmtDist(drive.total)+'（'+Math.max(4,car.setKmh).toFixed(0)+'km/hで約'+(mins<60?mins+'分':(mins/60).toFixed(1)+'時間')+'）';
   drive.intro=true; $('intro').classList.remove('hidden');
   requestAnimationFrame(drawOverview);
   rebuildRouteMesh(); updateNavHUD(); placeCamera();
@@ -1383,6 +1396,7 @@ function clearAll(){
   for(const o of worldObjs) disposeObj(o); worldObjs=[]; world=null;
   clearTiles(); for(const c of bld.chunks.values()) if(c.mesh) disposeObj(c.mesh); bld.chunks.clear();
   if(routeMesh){ disposeObj(routeMesh); routeMesh=null; }
+  if(routeBase){ scene.remove(routeBase); routeBase.geometry.dispose(); routeBase=null; }
   drive.pts=null; drive.active=false; goalGroup.visible=false; car.node=-1;
 }
 
@@ -1429,7 +1443,7 @@ function gMove(e){
   if(drive.finished) return;
   const dy=gs.y0-e.clientY, T=dragRange(), dead=24, j=$('joy');
   if(Math.abs(dy)>dead){
-    setSpeedKmh(gs.k0*Math.pow(SPD_MAX/SPD_MIN,(dy-Math.sign(dy)*dead)/(T*2)));
+    setSpeedKmh(gs.k0+SPD_MAX*(dy-Math.sign(dy)*dead)/(T*2));
     j.style.left=gs.x0+'px'; j.style.top=gs.y0+'px'; j.classList.remove('hidden');
     const knob=$('joyKnob'); knob.style.transform='translate(0px,'+Math.max(-T,Math.min(T,-dy))+'px)'; knob.classList.toggle('brk',dy<0);
     $('thrFill').style.height=(kmh2t(car.setKmh)*100)+'%';
@@ -1488,6 +1502,8 @@ $('voiceBtn').onclick=()=>{ voiceOn=!voiceOn; updateMenuLabels();
 $('dbg').onclick=()=>{ const t=$('dbg').textContent.split('  ')[0]; if(!t) return;
   try{ navigator.clipboard.writeText(t).then(()=>toast('座標をコピーしました：'+t),()=>toast(t)); }catch(e){ toast(t); } };
 $('spdDn').onclick=()=>spdStep(-1);
+$('backBtn').onclick=()=>back1km();
+$('mBack').onclick=()=>{ toggleMenu(false); back1km(); };
 $('spdUp').onclick=()=>spdStep(1);
 $('spdRange').addEventListener('input',e=>{ car.setKmh=t2kmh(+e.target.value/1000); $('spdSet').textContent=Math.round(car.setKmh)+' km/h'; });
 $('spdCtl').addEventListener('pointerdown',e=>e.stopPropagation());
@@ -1888,17 +1904,17 @@ function deckHeights(p,br,layer,trueA,trueB){
   }
   return ys;
 }
-function addDeck(t,p,ys,tun,mw){
+function addDeck(t,p,ys,tun,mw,br){
   for(let i=0;i<p.length/2-1;i++){
     const ax=p[2*i],az=p[2*i+1],bx=p[2*i+2],bz=p[2*i+3], L=Math.hypot(bx-ax,bz-az); if(L<0.01) continue;
-    const seg={ax,az,ay:ys[i],bx,bz,by:ys[i+1],ux:(bx-ax)/L,uz:(bz-az)/L,L,tun:!!tun,mw:!!mw};
+    const seg={ax,az,ay:ys[i],bx,bz,by:ys[i+1],ux:(bx-ax)/L,uz:(bz-az)/L,L,tun:!!tun,mw:!!mw,br:!!br};
     const i0=Math.floor(Math.min(ax,bx)/25), i1=Math.floor(Math.max(ax,bx)/25), j0=Math.floor(Math.min(az,bz)/25), j1=Math.floor(Math.max(az,bz)/25);
     for(let a=i0;a<=i1;a++) for(let b=j0;b<=j1;b++){ const k=a+','+b; let l=t.deck.get(k); if(!l){l=[];t.deck.set(k,l);} l.push(seg); }
   }
 }
 // height of the road we are driving on (prefers the deck closest to our current height, so overpasses work)
 function roadY(x,z,hx,hz,prevY,want){
-  roadY.tun=false;
+  roadY.tun=false; roadY.kind='-';
   if(mode!=='real' || !origin) return 0;
   const ll=xz2ll(x,z), t=tiles.get(tileKey(Math.floor(lon2tx(ll[1])),Math.floor(lat2ty(ll[0]))));
   let best=null, bs=1e9;
@@ -1906,13 +1922,15 @@ function roadY(x,z,hx,hz,prevY,want){
     for(let a=ci-1;a<=ci+1;a++) for(let b=cj-1;b<=cj+1;b++){ const l=t.deck.get(a+','+b); if(!l) continue;
       for(const s of l){ let u=((x-s.ax)*s.ux+(z-s.az)*s.uz)/s.L; u=u<0?0:u>1?1:u;
         const px=s.ax+(s.bx-s.ax)*u, pz=s.az+(s.bz-s.az)*u, d=Math.hypot(x-px,z-pz); if(d>6) continue;
+        if(s.tun && want && !want.tun) continue;
+        if(prevY!=null && Math.abs(s.ay+(s.by-s.ay)*u-prevY)>4.5) continue;
         if(hx!=null && Math.abs(s.ux*hx+s.uz*hz)<0.7) continue;
-        const y=s.ay+(s.by-s.ay)*u, sc=(prevY==null?0:Math.abs(y-prevY))+d*0.3+mismatch(s,want); if(sc<bs){ bs=sc; best=y; roadY.tun=s.tun; } } }
+        const y=s.ay+(s.by-s.ay)*u, sc=(prevY==null?0:Math.abs(y-prevY))+d*0.3+mismatch(s,want); if(sc<bs){ bs=sc; best=y; roadY.tun=s.tun; roadY.kind=s.tun?'T':(s.br?'B':'G'); } } }
     if(best==null) for(let a=ci-1;a<=ci+1;a++) for(let b=cj-1;b<=cj+1;b++){ const l=t.deck.get(a+','+b); if(!l) continue;
       for(const s of l){ let u=((x-s.ax)*s.ux+(z-s.az)*s.uz)/s.L; u=u<0?0:u>1?1:u;
-        const d=Math.hypot(x-s.ax-(s.bx-s.ax)*u, z-s.az-(s.bz-s.az)*u); if(d>14) continue; if(s.tun && !(want&&want.tun)) continue;
-        const y=s.ay+(s.by-s.ay)*u, sc=(prevY==null?0:Math.abs(y-prevY))+d*0.3+mismatch(s,want); if(sc<bs){ bs=sc; best=y; roadY.tun=s.tun; } } } }
-  if(best==null){ roadY.tun=false; return Math.max(groundAt(x,z)+0.45,hAt(x,z)); }
+        const d=Math.hypot(x-s.ax-(s.bx-s.ax)*u, z-s.az-(s.bz-s.az)*u); if(d>14) continue; if(s.tun && !(want&&want.tun)) continue; if(prevY!=null && Math.abs(s.ay+(s.by-s.ay)*u-prevY)>4.5) continue;
+        const y=s.ay+(s.by-s.ay)*u, sc=(prevY==null?0:Math.abs(y-prevY))+d*0.3+mismatch(s,want); if(sc<bs){ bs=sc; best=y; roadY.tun=s.tun; roadY.kind=s.tun?'T':(s.br?'B':'G'); } } } }
+  if(best==null){ roadY.tun=false; roadY.kind='-'; return Math.max(groundAt(x,z)+0.45,hAt(x,z)); }
   return best;
 }
 function updateCarY(dt,snap){
@@ -1923,7 +1941,8 @@ function updateCarY(dt,snap){
   if(!snap){ const m=0.25*Math.abs(car.v)*dt+0.08; target=Math.min(car.y+m,Math.max(car.y-m,target)); }
   // 道路の下に潜ったままにならない：選んだ路面との差が小さいならすぐ合わせる、大きい差が続いたら追いつく
   if(!tun && Math.abs(raw-car.y)<3) target=raw;
-  if(!tun && raw-car.y>0.5){ car.under=(car.under||0)+dt; if(car.under>0.6){ target=raw; car.under=0; } } else car.under=0;
+  car.kind=roadY.kind;
+  if(!tun && raw-car.y>0.5 && raw-car.y<4.5){ car.under=(car.under||0)+dt; if(car.under>0.6){ target=raw; car.under=0; } } else car.under=0;
   if(!tun) target=Math.max(target,groundAt(car.x,car.z));
   const ah=posAt(car.s+40); let ahY=roadY(ah.x,ah.z,hx,hz,target,flagAt(car.s+40)); if(!roadY.tun) ahY=Math.max(ahY,groundAt(ah.x,ah.z));
   if(snap){ car.y=target; car.yAhead=ahY; }
@@ -2135,7 +2154,7 @@ function buildBridgeMeshes(list,ox,oz){
       since+=Math.hypot(p[2*i+2]-p[2*i],p[2*i+3]-p[2*i+1]);
       if(since>32){ since=0;                     // 橋脚
         const cx=(l0[0]+r0[0])/2, cz=(l0[2]+r0[2])/2, yTop=l0[1]-TH, yBot=groundAt(cx+ox,cz+oz)-0.5;
-        if(yTop-yBot>2.5){ const s2=0.9;
+        if(yTop-yBot>2.5 && !pierBlocked(cx+ox,cz+oz,yTop)){ const s2=0.9;
           const c=[[cx-s2,cz-s2],[cx+s2,cz-s2],[cx+s2,cz+s2],[cx-s2,cz+s2]];
           for(let q=0;q<4;q++){ const A=c[q], B=c[(q+1)%4]; quad([A[0],yTop,A[1]],[B[0],yTop,B[1]],[B[0],yBot,B[1]],[A[0],yBot,A[1]]); } } }
     }
@@ -2350,7 +2369,53 @@ function updateDbg(){
   const el=$('dbg'); if(!el) return;
   if(!drive.active || mode!=='real' || !origin){ el.textContent=''; return; }
   const ll=xz2ll(car.x,car.z), f=flagAt(car.s);
-  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+'  y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+'  v31 11/23 10:04';
+  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+' '+(car.kind||'')+' y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+'  v32 11/23 10:22';
+}
+
+
+/* ---------- plain road under the route where the map has no drawable road (e.g. road missing or in data as tunnel) ---------- */
+let routeBase=null;
+function buildRouteBase(p,ry,bare,ox,oz){
+  const n=p.length/2, P=[], U=[], HW=3.6; let v=0;
+  const on=i=>bare[Math.max(0,i-1)]||bare[i]||bare[Math.min(n-1,i+1)];
+  for(let i=0;i<n-1;i++){ if(!(on(i)&&on(i+1))) continue;
+    const pt=k=>{ const j=Math.min(n-1,k+1), m=Math.max(0,k-1), d=norm(p[2*j]-p[2*m],p[2*j+1]-p[2*m+1]), x=p[2*k]-ox, z=p[2*k+1]-oz, y=ry[k]+0.06;
+      return [[x+d.z*HW,y,z-d.x*HW],[x-d.z*HW,y,z+d.x*HW]]; };
+    const A=pt(i), B=pt(i+1), L=Math.hypot(p[2*i+2]-p[2*i],p[2*i+3]-p[2*i+1]), v1=v+L/8;
+    P.push(...A[0],...A[1],...B[1], ...A[0],...B[1],...B[0]); U.push(0,v,1,v,1,v1, 0,v,1,v1,0,v1); v=v1; }
+  if(!P.length) return;
+  const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(P,3)); g.setAttribute('uv',new THREE.Float32BufferAttribute(U,2)); g.computeBoundingSphere();
+  routeBase=new THREE.Mesh(g,roadMat()); routeBase.position.set(ox,0,oz); scene.add(routeBase);
+}
+
+/* ---------- bridge piers: not on the route, not on a road underneath ---------- */
+let pierLows=[];
+function routeGrid(){
+  if(drive.rg && drive.rg.pts===drive.pts) return drive.rg.m;
+  const m=new Map(), P=drive.pts, n=P.length/2;
+  for(let i=0;i<n-1;i++){ const a0=Math.floor(Math.min(P[2*i],P[2*i+2])/40), a1=Math.floor(Math.max(P[2*i],P[2*i+2])/40), b0=Math.floor(Math.min(P[2*i+1],P[2*i+3])/40), b1=Math.floor(Math.max(P[2*i+1],P[2*i+3])/40);
+    if((a1-a0+1)*(b1-b0+1)>400) continue;
+    for(let a=a0;a<=a1;a++) for(let b=b0;b<=b1;b++){ const k=a+','+b; let l=m.get(k); if(!l){l=[];m.set(k,l);} l.push(i); } }
+  drive.rg={pts:drive.pts,m}; return m;
+}
+function segD(x,z,ax,az,bx,bz){ const dx=bx-ax, dz=bz-az, L2=dx*dx+dz*dz||1; let u=((x-ax)*dx+(z-az)*dz)/L2; u=u<0?0:u>1?1:u; return [Math.hypot(x-ax-dx*u,z-az-dz*u),u]; }
+function pierBlocked(x,z,yTop){
+  if(drive.pts){ const l=routeGrid().get(Math.floor(x/40)+','+Math.floor(z/40)), P=drive.pts;
+    if(l) for(const i of l) if(segD(x,z,P[2*i],P[2*i+1],P[2*i+2],P[2*i+3])[0]<7) return true; }
+  for(const r of pierLows){ const p=r.pts; for(let i=0;i<p.length/2-1;i++){
+    if(Math.abs(p[2*i]-x)>60 || Math.abs(p[2*i+1]-z)>60) continue;
+    const q=segD(x,z,p[2*i],p[2*i+1],p[2*i+2],p[2*i+3]); if(q[0]<r.w/2+1.5 && r.ys[i]<yTop-2) return true; } }
+  return false;
+}
+
+/* ---------- go back 1 km along the route ---------- */
+function back1km(){
+  if(!drive.active || !drive.pts || drive.intro) return;
+  if(drive.finished){ drive.finished=false; $('arrive').classList.add('hidden'); $('hud').classList.remove('arrived'); }
+  car.s=Math.max(0,car.s-1000); drive.si=0; drive.said=new Set(); drive.hint=0; car.px=null;
+  updatePose(true); updateCarY(0,true); car.gS=car.s; car.gY=car.y; car.grade=0;
+  rebuildRouteMesh(); if(typeof tunnelKey!=='undefined') tunnelKey=''; rebuildTunnel(); updateNavHUD(); placeCamera();
+  toast('1km戻りました');
 }
 
 </script>
