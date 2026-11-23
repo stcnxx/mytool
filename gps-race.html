@@ -203,7 +203,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 35（2026/11/23 12:19）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 36（2026/11/23 12:37）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -590,7 +590,7 @@ function buildWaterMesh(water, ox, oz){
   const m=new THREE.Mesh(g, waterMat()); m.position.set(ox,0,oz); return m;
 }
 function waterMat(){ return waterMat.m||(waterMat.m=new THREE.MeshBasicMaterial({color:0x4f8fc8,side:THREE.DoubleSide})); }
-function disposeObj(o){ scene.remove(o); if(o.geometry && !o.userData.sharedGeo) o.geometry.dispose(); if(o.userData.ownMat){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); } }
+function disposeObj(o){ if(o && o.isGroup && !o.userData.plat){ scene.remove(o); for(const ch of o.children) if(ch.geometry) ch.geometry.dispose(); return; } scene.remove(o); if(o.geometry && !o.userData.sharedGeo) o.geometry.dispose(); if(o.userData.ownMat){ if(o.material.map) o.material.map.dispose(); o.material.dispose(); } }
 
 /* ---------- buildings (textures + mesh) ---------- */
 const BPAL=['#d9d4ca','#c7ccd3','#e4ddcf','#b4bcc6','#ece7dd','#c2b6a6','#d1c3ad','#a9b3be','#dcd0c0','#bfc6b8'];
@@ -742,7 +742,7 @@ function decodeBuildings(T){
 }
 function buildBldMesh(T, list, center){
   if(!list.length) return null;
-  const polys=[];
+  const polys=[], covered=[];
   for(const b of list){
     const strip=p=>{ let q=T.bproj(p), n=q.length/2; if(n>1 && q[0]===q[2*n-2] && q[1]===q[2*n-1]){ q.length-=2; n--; } return q; };
     const pts=strip(b.o), n=pts.length/2; if(n<3) continue;
@@ -752,11 +752,15 @@ function buildBldMesh(T, list, center){
     let base=1e9; const st=Math.max(1,Math.floor(n/8)); for(let i=0;i<n;i+=st) base=Math.min(base,hAt(pts[2*i],pts[2*i+1]));
     if(b.M<4.5 && roadThrough(T,pts)) continue;
     let ar=0, cx=0, cz=0; for(let i=0,j=n-1;i<n;j=i++){ ar+=pts[2*j]*pts[2*i+1]-pts[2*i]*pts[2*j+1]; cx+=pts[2*i]; cz+=pts[2*i+1]; } cx/=n; cz/=n;
-    if(plat.on && platCovers(cx,cz)) continue;
     const pq=poiBest(pts,T);
-    polys.push({pts,n,faces,all:cv.concat(...hv),H:b.H,M:b.M,id:b.id,name:pq?pq.name:'',pcls:pq?pq.cls:'',psub:pq?pq.sub:'',area:Math.abs(ar)/2,lu:luAt(T,cx,cz),base:base-0.4});
+    (platCovers(cx,cz)?covered:polys).push({pts,n,faces,all:cv.concat(...hv),H:b.H,M:b.M,id:b.id,name:pq?pq.name:'',pcls:pq?pq.cls:'',psub:pq?pq.sub:'',area:Math.abs(ar)/2,lu:luAt(T,cx,cz),base:base-0.4});
   }
-  return polys.length?makeBuildingMesh(polys,center[0],center[1]):null;
+  // PLATEAUの建物がある場所の分は別メッシュにして、実写オン中は隠す（名前ラベルは残す）
+  const a=polys.length?makeBuildingMesh(polys,center[0],center[1]):null, b=covered.length?makeBuildingMesh(covered,center[0],center[1]):null;
+  if(!a && !b) return null;
+  const g=new THREE.Group(); if(a) g.add(a); if(b){ b.visible=!plat.on; g.add(b); g.userData.cov=b; }
+  g.userData.meta=[...(a?a.userData.meta:[]),...(b?b.userData.meta:[])];
+  return g;
 }
 function bldTick(dt){
   if(mode!=='real' || !bld.on) return;
@@ -768,13 +772,15 @@ function bldTick(dt){
     if(!T.bchunks){ if(!T.bL) continue; const d=Math.hypot(T.cx-car.x,T.cz-car.z)-1500; if(d<bd){ bd=d; best={T,decode:true}; } continue; }
     for(let i=0;i<16;i++){ const key=T.x+','+T.y+','+i; if(bld.chunks.has(key)) continue; const c=T.bcenters[i], d=Math.hypot(c[0]-car.x,c[1]-car.z)-360; if(d<bd){ bd=d; best={T,i,key,c}; } }
   }
+  if(!best){ for(const c of bld.chunks.values()) if(c.stale && c.c){ c.stale=false;   // PLATEAUの範囲がわかったら1つずつ作り直す（消さずに差し替え）
+      const m=buildBldMesh(c.tile,c.tile.bchunks[c.i],c.c); if(c.mesh) disposeObj(c.mesh); if(m) scene.add(m); c.mesh=m; c.meta=m?m.userData.meta:null; return; } }
   const st=$('bldStat');
   if(!best){ if(TL.busy===0) st.classList.add('hidden'); return; }
   st.textContent='🏢 建物を生成中…'; st.classList.remove('hidden');
   if(best.decode){ decodeBuildings(best.T); return; }
   const mesh=buildBldMesh(best.T, best.T.bchunks[best.i], best.c);
   if(mesh) scene.add(mesh);
-  bld.chunks.set(best.key,{mesh,cx:best.c[0],cz:best.c[1],meta:mesh?mesh.userData.meta:null,tile:best.T});
+  bld.chunks.set(best.key,{mesh,cx:best.c[0],cz:best.c[1],meta:mesh?mesh.userData.meta:null,tile:best.T,i:best.i,c:best.c});
 }
 
 /* ---------- Demo world (generated town, road graph) ---------- */
@@ -1277,7 +1283,7 @@ function handleTap(x,y){
   const r=renderer.domElement.getBoundingClientRect();
   ndc.set((x-r.left)/r.width*2-1, -((y-r.top)/r.height)*2+1);
   raycaster.setFromCamera(ndc,camera);
-  const meshes=[]; for(const c of bld.chunks.values()) if(c.mesh) meshes.push(c.mesh);
+  const meshes=[]; for(const c of bld.chunks.values()) if(c.mesh){ if(c.mesh.isGroup){ for(const ch of c.mesh.children) if(ch.visible) meshes.push(ch); } else meshes.push(c.mesh); }
   if(mode==='demo' && world && world.demoB) meshes.push(world.demoB);
   const hit=raycaster.intersectObjects(meshes,false)[0];
   if(hit && hit.distance<900){ const m=metaOfHit(hit); if(m){ showBInfo(m); return; } }
@@ -2309,7 +2315,7 @@ function updateDbg(){
   const el=$('dbg'); if(!el) return;
   if(!drive.active || mode!=='real' || !origin){ el.textContent=''; return; }
   const ll=xz2ll(car.x,car.z), f=flagAt(car.s);
-  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+' '+(car.kind||'')+' y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+'  v35 11/23 12:19';
+  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+' '+(car.kind||'')+' y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+'  v36 11/23 12:37';
 }
 
 
@@ -2605,7 +2611,7 @@ function platAddTileset(set,ts,url,T0){
 function platKey(r){ const g=0.002, out=[]; for(let a=Math.floor(r.w/g);a<=Math.floor(r.e/g);a++) for(let b=Math.floor(r.s/g);b<=Math.floor(r.n/g);b++) out.push(a+','+b); return out; }
 // その場所にPLATEAUの建物があるか（あれば自動生成の建物は作らない）
 function platCovers(x,z){
-  if(!plat.on || !origin) return false;
+  if(!origin) return false;
   const ll=xz2ll(x,z), lat=ll[0]*Math.PI/180, lon=ll[1]*Math.PI/180, k=Math.floor(lon/0.002)+','+Math.floor(lat/0.002);
   for(const s of plat.sets.values()){ if(!s.ok) continue; const l=s.idx.get(k); if(!l) continue;
     for(const n of l) if(lon>=n.rect.w && lon<=n.rect.e && lat>=n.rect.s && lat<=n.rect.n) return true; }
@@ -2630,7 +2636,7 @@ async function platLoadNode(set,node){
     { const at=$('attr'); if(at && at.textContent.indexOf('PLATEAU')<0) at.textContent+=' / 建物: PLATEAU（国土交通省）'; }
     if(grp){ scene.add(grp); node.obj=grp; }
     node.state='done'; set.ok=true;
-    if(!set.notified){ set.notified=true; for(const [k,c] of bld.chunks){ if(c.mesh) disposeObj(c.mesh); bld.chunks.delete(k); } }   // 重なる自動生成の建物を作り直す
+    if(!set.notified){ set.notified=true; for(const c of bld.chunks.values()) c.stale=true; }   // 重なる自動生成の建物を順に作り直す
   }catch(e){ node.state='err'; node.errT=performance.now(); }
   finally{ plat.busy--; }
 }
@@ -2701,8 +2707,8 @@ function platTick(dt){
 }
 function setPlateau(on){
   plat.on=on; plat.msgKey='';
-  if(!on){ platClearAll(); }
-  for(const [k,c] of bld.chunks){ if(c.mesh) disposeObj(c.mesh); bld.chunks.delete(k); }   // 建物を作り直す
+  if(!on){ for(const st of plat.sets.values()) for(const n of st.nodes) platUnloadNode(n); }   // 実写を消す（一覧は残すので再オンが速い）
+  for(const c of bld.chunks.values()) if(c.mesh && c.mesh.userData.cov) c.mesh.userData.cov.visible=!on;   // 簡易表示の建物をすぐ出す／隠す
   if(on){ toast('PLATEAUの実写建物：準備中…（東京23区など対応地域のみ）'); platLibs().catch(()=>toast('PLATEAU用の部品を読み込めませんでした')); platCatalog().catch(()=>toast('PLATEAUの一覧を取得できませんでした')); }
   updateMenuLabels();
 }
