@@ -211,7 +211,7 @@ table.res td{padding:4px 0}table.res td:last-child{text-align:right;font-weight:
     <p class="small">スタート地点と目的地を日本全国から選べます。選んだルートの地図だけを読み込みます。</p>
     <button class="btn sub" id="demoBtn">🎮 デモマップで走る（通信なし）</button>
     <label class="chk"><input type="checkbox" id="bldChk" checked> 実際の建物も表示する（通信量が増えます）</label>
-    <p class="small" style="margin-top:12px">バージョン 42（2026/11/23 15:56）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
+    <p class="small" style="margin-top:12px">バージョン 41（2026/11/23 15:17）— 表示が変わらない時はページを再読み込みしてください。<br>地図：OpenFreeMap / OpenMapTiles / OpenStreetMap、標高：Terrarium（AWS）、検索：Nominatim、ルート：OSRM、天気：Open-Meteo</p>
   </div>
 </div>
 
@@ -709,7 +709,7 @@ function processTile(t,buf){
   for(const r of roads){
     if(!r.ys || r.ys.length*2!==r.pts.length || r.ys.some(v=>!isFinite(v))) r.ys=r.pts.filter((_,i)=>i%2===0).map(()=>0);
     if(!r.br) for(let i=0;i<r.ys.length;i++) r.ys[i]=Math.max(r.ys[i],groundAt(r.pts[2*i],r.pts[2*i+1]));
-    addDeck(t,r.pts,r.ys,r.br==='tunnel',r.mw,r.br==='bridge',r.w);
+    addDeck(t,r.pts,r.ys,r.br==='tunnel',r.mw,r.br==='bridge');
     if(r.br==='bridge') bridges.push({pts:r.pts,ys:r.ys,w:r.w});
     else if(r.br!=='tunnel') lines.push({pts:r.pts,ys:r.ys,w:r.w,capA:0,capB:0});
   }
@@ -1891,10 +1891,10 @@ function deckHeights(p,br,layer,trueA,trueB){
   }
   return ys;
 }
-function addDeck(t,p,ys,tun,mw,br,w){
+function addDeck(t,p,ys,tun,mw,br){
   for(let i=0;i<p.length/2-1;i++){
     const ax=p[2*i],az=p[2*i+1],bx=p[2*i+2],bz=p[2*i+3], L=Math.hypot(bx-ax,bz-az); if(L<0.01) continue;
-    const seg={ax,az,ay:ys[i],bx,bz,by:ys[i+1],ux:(bx-ax)/L,uz:(bz-az)/L,L,tun:!!tun,mw:!!mw,br:!!br,w:w||6};
+    const seg={ax,az,ay:ys[i],bx,bz,by:ys[i+1],ux:(bx-ax)/L,uz:(bz-az)/L,L,tun:!!tun,mw:!!mw,br:!!br};
     const i0=Math.floor(Math.min(ax,bx)/25), i1=Math.floor(Math.max(ax,bx)/25), j0=Math.floor(Math.min(az,bz)/25), j1=Math.floor(Math.max(az,bz)/25);
     for(let a=i0;a<=i1;a++) for(let b=j0;b<=j1;b++){ const k=a+','+b; let l=t.deck.get(k); if(!l){l=[];t.deck.set(k,l);} l.push(seg); }
   }
@@ -2260,18 +2260,11 @@ function buildMarkings(roads,ox,oz){
 function roadThrough(T,pts){
   if(!T.deck) return false;
   let a=1e12,b=1e12,A=-1e12,B=-1e12; for(let i=0;i<pts.length;i+=2){ a=Math.min(a,pts[i]); A=Math.max(A,pts[i]); b=Math.min(b,pts[i+1]); B=Math.max(B,pts[i+1]); }
-  const n=pts.length/2, seen=new Set();
-  for(let i=Math.floor((a-12)/25);i<=Math.floor((A+12)/25);i++) for(let j=Math.floor((b-12)/25);j<=Math.floor((B+12)/25);j++){ const l=T.deck.get(i+','+j); if(!l) continue;
-    for(const s of l){ if(s.tun || seen.has(s)) continue; seen.add(s);
-      const hw=Math.max(0.5,(s.w||6)/2-1.5);                                   // 車道に食い込んでいたら（歩道ぶん1mは許す）
-      if(Math.max(s.ax,s.bx)<a-hw || Math.min(s.ax,s.bx)>A+hw || Math.max(s.az,s.bz)<b-hw || Math.min(s.az,s.bz)>B+hw) continue;
-      if(inRing(pts,(s.ax+s.bx)/2,(s.az+s.bz)/2) || inRing(pts,s.ax,s.az) || inRing(pts,s.bx,s.bz)) return true;
-      for(let k=0;k<n;k++){ const px=pts[2*k], pz=pts[2*k+1], qx=pts[2*((k+1)%n)], qz=pts[2*((k+1)%n)+1];
-        if(segX(s.ax,s.az,s.bx,s.bz,px,pz,qx,qz)) return true;              // 道路が建物の壁を横切る
-        if(segD(px,pz,s.ax,s.az,s.bx,s.bz)[0]<hw) return true; } } }        // 建物の角が車道の上に出ている
+  for(let i=Math.floor(a/25);i<=Math.floor(A/25);i++) for(let j=Math.floor(b/25);j<=Math.floor(B/25);j++){ const l=T.deck.get(i+','+j); if(!l) continue;
+    for(const s of l){ if(s.tun) continue;
+      for(const f of [0,0.5,1]){ const x=s.ax+(s.bx-s.ax)*f, z=s.az+(s.bz-s.az)*f; if(x<a||x>A||z<b||z>B) continue; if(inRing(pts,x,z)) return true; } } }
   return false;
 }
-function segX(ax,az,bx,bz,cx,cz,dx,dz){ const d1=(bx-ax)*(cz-az)-(bz-az)*(cx-ax), d2=(bx-ax)*(dz-az)-(bz-az)*(dx-ax), d3=(dx-cx)*(az-cz)-(dz-cz)*(ax-cx), d4=(dx-cx)*(bz-cz)-(dz-cz)*(bx-cx); return d1*d2<0 && d3*d4<0; }
 
 /* ---------- tunnel tube along the route (walls, ceiling, lights) ---------- */
 let tunnelMesh=null, tunnelLights=null, tunnelKey='';
@@ -2340,7 +2333,7 @@ function updateDbg(){
   const el=$('dbg'); if(!el) return;
   if(!drive.active || mode!=='real' || !origin){ el.textContent=''; return; }
   const ll=xz2ll(car.x,car.z), f=flagAt(car.s);
-  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+' '+(car.kind||'')+' y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+(air.on?' ✈'+(air.err?'×'+air.err:(air.got==null?'…':air.got+'/'+(air.shown||0)+(air.route?'('+air.route+')':''))):'')+'  v42 11/23 15:56';
+  el.textContent=ll[0].toFixed(5)+', '+ll[1].toFixed(5)+'  s='+Math.round(car.s)+'m'+(f?(f.tun?' T':'')+(f.mw?' M':''):'')+' '+(car.kind||'')+' y='+car.y.toFixed(1)+' g='+groundAt(car.x,car.z).toFixed(1)+(air.on?' ✈'+(air.err?'×'+air.err:(air.got==null?'…':air.got+'/'+(air.shown||0))):'')+'  v41 11/23 15:17';
 }
 
 
@@ -2771,26 +2764,20 @@ const ACSIZE={B788:[57,60],B789:[63,60],B78X:[68,60],B772:[64,61],B77L:[64,65],B
 const ACCAT={A1:[9,11],A2:[20,20],A3:[38,35],A4:[47,38],A5:[65,62],A7:[13,11],B1:[8,15],B6:[3,3]};
 function acSize(type,cat,cs){ return ACSIZE[type] || ACCAT[cat] || (/^[A-Z]{3}\d/.test(cs||'')?[40,36]:[12,12]); }
 function airCode(cs){ const m=/^([A-Z]{3})\d/.exec(cs||''); return m?(AIRLINE[m[1]]||m[1]):''; }
-const AIR_ROUTES=[['中継',u=>MY_PROXY+encodeURIComponent(u)],['直接',u=>u],['中継2',u=>'https://corsproxy.io/?url='+encodeURIComponent(u)]];
-async function airTry(u,body,ms){
-  const ac=new AbortController(), tm=setTimeout(()=>ac.abort(),ms||12000);
-  try{ const r=await fetch(u,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ac.signal}:{signal:ac.signal});
-    if(!r.ok) throw new Error('HTTP '+r.status); const j=await r.json(); if(!j) throw new Error('empty'); return j; }
-  finally{ clearTimeout(tm); }
-}
-// 全部の経路を同時に試して、最初に返ってきたものを使う（My Spot と同じやり方）
-function anyOf(ps){ return new Promise((res,rej)=>{ let n=ps.length, errs=[]; if(!n) rej(new Error('none')); ps.forEach(p=>p.then(res,e=>{ errs.push(e); if(--n===0) rej(errs[0]||new Error('fail')); })); }); }
 async function airFetch(url,body){
-  const pref=air.route?AIR_ROUTES.filter(r=>r[0]===air.route):[];
-  if(pref.length){ try{ return await airTry(pref[0][1](url),body,8000); }catch(e){} }
-  return anyOf(AIR_ROUTES.map(([nm,f])=>airTry(f(url),body).then(j=>{ air.route=nm; return j; })));
+  for(const u of [MY_PROXY+encodeURIComponent(url), url]){
+    const ac=new AbortController(), tm=setTimeout(()=>ac.abort(),12000);
+    try{ const r=await fetch(u,body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ac.signal}:{signal:ac.signal});
+      if(r.ok) return await r.json(); }catch(e){} finally{ clearTimeout(tm); }
+  }
+  throw new Error('air');
 }
 async function airPoll(){
   if(air.busy) return; air.busy=true;
   try{
     const ll=xz2ll(car.x,car.z), la=ll[0].toFixed(4), lo=ll[1].toFixed(4); let j=null;
-    const want=x=>{ if(!x || !(x.ac||x.aircraft)) throw new Error('format'); return x; };
-    try{ j=await anyOf([`https://api.adsb.lol/v2/point/${la}/${lo}/30`,`https://api.airplanes.live/v2/point/${la}/${lo}/30`].map(u=>airFetch(u).then(want))); }catch(e){ j=null; }
+    for(const u of [`https://api.adsb.lol/v2/point/${la}/${lo}/30`,`https://api.airplanes.live/v2/point/${la}/${lo}/30`]){
+      try{ j=await airFetch(u); if(j && (j.ac||j.aircraft)) break; j=null; }catch(e){} }
     if(!j) throw new Error('none');
     const now=performance.now(), seen=new Set();
     for(const a of (j.ac||j.aircraft||[])){
@@ -2931,17 +2918,13 @@ function peakTick(dt){
     cand.sort((a,b)=>(a.rank-b.rank)||(b.ele-a.ele)||(a.d-b.d));
     if(!airRay) airRay=new THREE.Raycaster();
     const tgt=[]; if(far.mesh) tgt.push(far.mesh); for(const t of tiles.values()) for(const m of t.meshes||[]) if(m.userData && m.userData.ground) tgt.push(m);
-    for(const c of bld.chunks.values()) if(c.mesh){ if(c.mesh.isGroup){ for(const ch of c.mesh.children) if(ch.visible) tgt.push(ch); } else tgt.push(c.mesh); }
-    for(const st of plat.sets.values()) for(const nd of st.nodes) if(nd.obj) tgt.push(nd.obj);
     const v=new THREE.Vector3(); let k=0, tries=0;
     for(const p of cand){
       p.on=false; if(k>=8 || tries>=16) continue;
       v.set(p.x,p.y,p.z).project(farCam); if(v.z>1 || Math.abs(v.x)>1 || v.y>1 || v.y<-1) continue;
-      // 山頂の少し下を狙って線を引き、最初に当たるのがその山（山頂の近く）なら見えている。手前に当たれば隠れている、何にも当たらなければ描かれていない
-      tries++; const dir=new THREE.Vector3(p.x-o.x,p.y-Math.max(20,p.d*0.004)-o.y,p.z-o.z), L=dir.length(); dir.multiplyScalar(1/L);
-      airRay.set(o,dir); airRay.far=L+3000;
-      const hit=tgt.length?airRay.intersectObjects(tgt,true)[0]:null;
-      if(!hit || hit.distance<L-Math.max(1500,L*0.04)) continue;
+      tries++; const dir=new THREE.Vector3(p.x-o.x,p.y-o.y,p.z-o.z), L=dir.length(); dir.multiplyScalar(1/L);
+      airRay.set(o,dir); airRay.far=Math.max(0,L-Math.max(300,L*0.02));
+      if(tgt.length && airRay.intersectObjects(tgt,false).length) continue;   // 手前の山や丘に隠れている
       p.on=true; k++; }
   }
   // 札の位置（毎フレーム）。重なる札は後回しの山を省く
