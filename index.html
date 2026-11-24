@@ -180,7 +180,6 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 #wcSheet[hidden]{display:none}
 .wcol{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
 .wc-acts{display:flex;gap:6px;padding-left:6px}.wc-acts button{font:inherit;font-size:.72rem;font-weight:700;border:1px solid rgba(127,140,160,.45);background:rgba(255,255,255,.12);color:inherit;border-radius:8px;padding:3px 9px;cursor:pointer;white-space:nowrap}
-#wcAdd{font-size:.9rem;line-height:1;padding:2px 9px}
 .wcs-del{margin-top:8px;font:inherit;font-size:.8rem;font-weight:700;color:#b91c1c;background:#fff;border:1px solid #fca5a5;border-radius:10px;padding:7px}
 #tzxSheet{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 10px 16px;text-shadow:none}
 #tzxSheet[hidden]{display:none}
@@ -212,6 +211,8 @@ button.mapbtn{margin-top:6px;padding:4px 12px;font-size:.85rem}
 .tzx-lg .w{background:#22e3e8}.tzx-lg .m{background:#f5b942}.tzx-lg .e{background:#f04ad0}.tzx-lg .n{background:#262b36;border:1px solid #4b5563}
 .tzx-hint{font-size:.68rem;color:#6b7280;margin-top:6px}
 #locSheet{position:fixed;inset:0;z-index:120;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:60px 16px 16px;text-shadow:none}#locSheet[hidden]{display:none}
+#locsList li>span:first-child{flex:1;min-width:0}
+.locs-del{flex:none;margin-left:8px;width:30px;height:30px;border:0;border-radius:50%;background:#f1f5f9;color:#64748b;font:inherit;font-size:1.05rem;line-height:1;cursor:pointer}.locs-del:active{background:#e2e8f0}
 .locs-cur{font-weight:700}.locs-h{font-size:.72rem;color:#64748b;padding:8px 6px 2px;cursor:default!important;border-bottom:none!important}.locs-h:hover{background:none!important}
 body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opacity .2s}
 .chosen-tag{display:inline-block;font-size:.7rem;padding:1px 6px;border-radius:6px;border:1px solid var(--line);color:var(--muted);vertical-align:1px}
@@ -232,6 +233,7 @@ body.reloading main>.card:not(#calCard):not(#skyCard){opacity:.55;transition:opa
 .locs-mapbar button{flex:none;padding:7px 12px;border:0;border-radius:9px;background:#3b6fd8;color:#fff;font:inherit;font-weight:700;font-size:.8rem}.locs-mapbar button:disabled{opacity:.4}
 .wcs-list li{padding:8px 6px;border-bottom:1px solid #e2e8f0;cursor:pointer;display:flex;justify-content:space-between;gap:8px}
 .wcs-list li:hover{background:#f1f5f9}
+#wcsCur{flex:none}.wcs-cap{font-size:.72rem;color:#64748b;margin:6px 0 0}.wcs-cur{margin:2px 0 6px!important;overflow:visible!important}.wcs-cur li{cursor:default;align-items:center;padding:4px 6px}.wcs-cur li:hover{background:none}.wcs-cur li>span:first-child{flex:1;min-width:0}
 .wcs-list .sub{color:#64748b;font-size:.8rem}
 .wcs-list .tm{font-variant-numeric:tabular-nums;color:#334155;white-space:nowrap}
 .wc-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:0 4px;min-width:0}.wc-row .wc{flex:none;min-width:0;padding-left:2px;padding-right:0}.wc-row .wc-time{font-size:.86rem}.wc-h{cursor:default}
@@ -394,6 +396,7 @@ footer{background:none!important}
 <div id="wcSheet" hidden>
   <div class="wcs-box">
     <div class="wcs-head"><b id="wcsTitle">都市を選ぶ</b><button id="wcsClose">閉じる</button></div>
+    <div id="wcsCur" hidden></div>
     <input type="search" id="wcsInput" placeholder="都市名で検索（例：パリ、Vancouver）" autocomplete="off">
     <ul id="wcsList" class="wcs-list"></ul>
     <button type="button" id="wcsDel" class="wcs-del" hidden>この時計を消す</button>
@@ -410,7 +413,7 @@ footer{background:none!important}
 <main>
   <section class="card wide" id="calCard">
     <div id="calDate" class="cal-date"></div>
-    <div class="clock-row"><div><div id="calClock" class="cal-clock"></div><div id="calTz" class="cal-tz" hidden></div></div><div class="wcol"><div id="wclocks" class="wclocks"></div><div class="wc-acts"><button type="button" id="wcAdd" title="時計を追加">＋</button><button type="button" id="tzxBtn">時差早見表</button></div></div></div>
+    <div class="clock-row"><div><div id="calClock" class="cal-clock"></div><div id="calTz" class="cal-tz" hidden></div></div><div class="wcol"><div id="wclocks" class="wclocks"></div><div class="wc-acts"><button type="button" id="wcAdd">場所編集</button><button type="button" id="tzxBtn">時差早見表</button></div></div></div>
     <div id="calRoku"></div>
     <div id="calMoon"><canvas id="moonIco" width="92" height="92"></canvas><span id="moonTxt"></span></div>
     <div class="cal-sec"><div class="cal-h">今日は何の日</div><div id="calAnniv"></div></div>
@@ -493,7 +496,7 @@ footer{background:none!important}
 
 <footer>
   <a href="#" id="srcOpen">データソースと注意事項等</a>
-  <div style="margin-top:4px">版：2026-11-22 10:23</div>
+  <div style="margin-top:4px">版：2026-11-24 12:48</div>
 </footer>
 <div id="srcSheet" hidden>
   <div class="wcs-box">
@@ -807,12 +810,12 @@ async function locMapPick(lat, lon, known){
   if(seq === LOCMAP.seq) $("#locsMapName").textContent = `${c.name}（${c.sub}）`;
 }
 function locClose(){ ovClose("loc"); }
-function locItem(c, sub){ return `<li data-loc="${esc(JSON.stringify(c))}"><span>${esc(c.name)} <span class="sub">${esc(sub || c.sub || "")}</span></span>${S.chosen && Math.abs(S.chosen.lat - c.lat) < 1e-3 && Math.abs(S.chosen.lon - c.lon) < 1e-3 ? '<span class="tm">表示中</span>' : ""}</li>`; }
+function locItem(c, sub, delIdx){ return `<li data-loc="${esc(JSON.stringify(c))}"><span>${esc(c.name)} <span class="sub">${esc(sub || c.sub || "")}</span></span>${S.chosen && Math.abs(S.chosen.lat - c.lat) < 1e-3 && Math.abs(S.chosen.lon - c.lon) < 1e-3 ? '<span class="tm">表示中</span>' : ""}${delIdx != null ? `<button type="button" class="locs-del" data-del="${delIdx}" aria-label="${esc(c.name)}を一覧から消す">×</button>` : ""}</li>`; }
 let LOC_T = 0;
 function locBase(){
   const rec = load("recentLocs") || [];
   return `<li data-here="1" class="locs-cur"><span>${ICO.gps}現在地（GPS）</span>${!S.chosen ? '<span class="tm">表示中</span>' : ""}</li>`
-    + (rec.length ? '<li class="locs-h">最近選んだ場所</li>' + rec.map(c => locItem(c)).join("") : "");
+    + (rec.length ? '<li class="locs-h">最近選んだ場所</li>' + rec.map((c, i) => locItem(c, null, i)).join("") : "");
 }
 function locSearch(q){
   q = q.trim(); const list = $("#locsList");
@@ -836,6 +839,9 @@ function locSetup(){
   $("#locsMapBtn").onclick = () => locMapShow($("#locsMapWrap").hidden);
   $("#locsMapOk").onclick = () => { const c = LOCMAP.pick; if(!c) return; locClose(); useChosen({ ...c }); };
   $("#locsList").addEventListener("click", e => {
+    // 最近選んだ場所の × ：一覧から消すだけ（表示中の場所はそのまま）
+    const del = e.target.closest(".locs-del");
+    if(del){ e.stopPropagation(); const rec = load("recentLocs") || []; rec.splice(+del.dataset.del, 1); store("recentLocs", rec); $("#locsList").innerHTML = locBase(); return; }
     const li = e.target.closest("li[data-loc],li[data-here]"); if(!li) return;
     locClose();
     if(li.dataset.here) useHere(); else useChosen(JSON.parse(li.dataset.loc));
@@ -3626,7 +3632,7 @@ function wcParts(tz, d){
   return `${o.month}/${o.day}(${o.weekday}) ${o.hour}:${o.minute}`;
 }
 function renderWorldClocks(){
-  const d = new Date(), ad = $("#wcAdd"); if(ad) ad.hidden = WC.length >= WC_MAX;
+  const d = new Date();
   // 選んだ場所を表示中は、1番目に現在地（GPSの場所）と「現在地に戻る」。移動元の時計は、その間は出さない
   let h = "";
   if(S.chosen){ const hp = load("homePlace") || {}, htz = hp.tz || Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -3637,12 +3643,24 @@ function renderWorldClocks(){
 }
 // 都市の検索（よく使う都市は手元で即時に、それ以外は Open-Meteo の地名検索で）
 let WC_EDIT = 0, WC_T = 0;
-function wcOpen(i){ ovOpen("wc", () => { $("#wcSheet").hidden = true; }); WC_EDIT = i; $("#wcsTitle").textContent = i >= WC.length ? "時計を追加" : `${i+1}つ目の時計の都市`; $("#wcsDel").hidden = i >= WC.length; $("#wcSheet").hidden = false; $("#wcsInput").value = ""; wcSearch(""); setTimeout(() => $("#wcsInput").focus(), 50); }
+function wcOpen(i){ ovOpen("wc", () => { $("#wcSheet").hidden = true; }); WC_EDIT = i; $("#wcsTitle").textContent = i >= WC.length ? "時計を追加" : `${i+1}つ目の時計の都市`; $("#wcsDel").hidden = i >= WC.length; $("#wcSheet").hidden = false; wcCurRender(); $("#wcsInput").value = ""; wcSearch(""); setTimeout(() => $("#wcsInput").focus(), 50); }
 function wcClose(){ ovClose("wc"); }
+// 場所編集：いまの時計の一覧（×で削除）＋検索して追加（最大 WC_MAX）
+function wcOpenEdit(){ ovOpen("wc", () => { $("#wcSheet").hidden = true; $("#wcsCur").hidden = true; }); WC_EDIT = -1; $("#wcsTitle").textContent = "場所編集"; $("#wcsDel").hidden = true; $("#wcSheet").hidden = false; $("#wcsInput").value = ""; wcCurRender(); wcSearch(""); }
+function wcCurRender(){
+  const box = $("#wcsCur"); if(WC_EDIT !== -1){ box.hidden = true; $("#wcsInput").hidden = false; $("#wcsList").hidden = false; return; }
+  const full = WC.length >= WC_MAX, d = new Date();
+  box.hidden = false;
+  box.innerHTML = `<div class="wcs-cap">表示中の時計（${WC.length}/${WC_MAX}）</div>`
+    + (WC.length ? `<ul class="wcs-list wcs-cur">${WC.map(([n, tz], i) => `<li><span>${esc(n)} <span class="sub">${esc(tz.replace(/_/g, " "))}</span></span><span class="tm">${wcParts(tz, d).split(" ")[1]}</span><button type="button" class="locs-del" data-wdel="${i}" aria-label="${esc(n)}を消す">×</button></li>`).join("")}</ul>` : `<div class="muted" style="font-size:.8rem;margin:4px 0 6px">まだありません</div>`)
+    + `<div class="wcs-cap">${full ? `追加できるのは${WC_MAX}つまでです（×で消すと追加できます）` : "追加する都市"}</div>`;
+  $("#wcsInput").hidden = full; $("#wcsList").hidden = full;
+}
 function wcItem(name, sub, tz, lat, lon){ return `<li data-name="${esc(name)}" data-tz="${esc(tz)}"${lat != null ? ` data-lat="${lat}" data-lon="${lon}"` : ""}><span>${esc(name)} <span class="sub">${esc(sub)}</span></span><span class="tm">${wcParts(tz, new Date()).split(" ")[1]}</span></li>`; }
 async function wcSearch(q){
   q = q.trim(); const list = $("#wcsList");
-  const local = WC_CITIES.filter(([n, tz]) => !q || n.includes(q) || tz.toLowerCase().includes(q.toLowerCase()));
+  const have = (n, tz) => WC_EDIT === -1 && WC.some(w => w[0] === n && w[1] === tz);   // 場所編集では追加済みの都市を出さない
+  const local = WC_CITIES.filter(([n, tz]) => (!q || n.includes(q) || tz.toLowerCase().includes(q.toLowerCase())) && !have(n, tz));
   list.innerHTML = local.map(([n, tz]) => wcItem(n, tz.replace(/_/g, " "), tz)).join("") || (q ? '<li class="sub">検索中…</li>' : "");
   clearTimeout(WC_T); if(q.length < 2) return;
   WC_T = setTimeout(async () => {
@@ -3650,7 +3668,7 @@ async function wcSearch(q){
       const j = await getJSON(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=ja&format=json`, { keep:true });
       if($("#wcsInput").value.trim() !== q) return;
       const seen = new Set(local.map(x => x[0]));
-      const more = (j.results || []).filter(r => r.timezone && !seen.has(r.name)).map(r => wcItem(r.name, [r.admin1, r.country].filter(Boolean).join("・"), r.timezone, +r.latitude.toFixed(4), +r.longitude.toFixed(4)));
+      const more = (j.results || []).filter(r => r.timezone && !seen.has(r.name) && !have(r.name, r.timezone)).map(r => wcItem(r.name, [r.admin1, r.country].filter(Boolean).join("・"), r.timezone, +r.latitude.toFixed(4), +r.longitude.toFixed(4)));
       list.innerHTML = local.map(([n, tz]) => wcItem(n, tz.replace(/_/g, " "), tz)).join("") + more.join("") || '<li class="sub">見つかりませんでした</li>';
     }catch(e){ if(!local.length) list.innerHTML = '<li class="sub">検索できませんでした（通信を確認してください）</li>'; }
   }, 350);
@@ -3678,10 +3696,16 @@ function wcSetup(){
   $("#wcSheet").addEventListener("click", e => { if(e.target.id === "wcSheet") wcClose(); });
   $("#wcsInput").addEventListener("input", e => wcSearch(e.target.value));
   $("#wcsList").addEventListener("click", e => { const li = e.target.closest("li[data-tz]"); if(!li) return;
+    const ent = li.dataset.lat ? [li.dataset.name, li.dataset.tz, +li.dataset.lat, +li.dataset.lon] : [li.dataset.name, li.dataset.tz];
+    if(WC_EDIT === -1){   // 場所編集：追加して画面は開いたまま
+      if(WC.length >= WC_MAX) return;
+      WC.push(ent); wcSave(); renderWorldClocks(); $("#wcsInput").value = ""; wcCurRender(); wcSearch(""); if(!$("#tzxSheet").hidden) tzxRender(); return; }
     WC[Math.min(WC_EDIT, WC.length)] = li.dataset.lat ? [li.dataset.name, li.dataset.tz, +li.dataset.lat, +li.dataset.lon] : [li.dataset.name, li.dataset.tz]; wcSave();
     renderWorldClocks(); wcClose(); if(!$("#tzxSheet").hidden) tzxRender(); });
-  $("#wcsDel").onclick = () => { if(WC_EDIT < WC.length){ WC.splice(WC_EDIT, 1); wcSave(); renderWorldClocks(); } wcClose(); };
-  $("#wcAdd").onclick = () => { if(WC.length < WC_MAX) wcOpen(WC.length); };
+  $("#wcsDel").onclick = () => { if(WC_EDIT >= 0 && WC_EDIT < WC.length){ WC.splice(WC_EDIT, 1); wcSave(); renderWorldClocks(); } wcClose(); };
+  $("#wcAdd").onclick = wcOpenEdit;
+  $("#wcsCur").addEventListener("click", e => { const b = e.target.closest("[data-wdel]"); if(!b) return;
+    WC.splice(+b.dataset.wdel, 1); wcSave(); renderWorldClocks(); wcCurRender(); if(!$("#tzxSheet").hidden) tzxRender(); });
   $("#tzxBtn").onclick = tzxOpen;
   tzxSetup();
 }
