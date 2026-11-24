@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="ja"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>港区 むかし・いま地図</title>
+<title>東京23区 むかし・いま地図</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -46,7 +46,7 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:"Hiragino Kaku Gothic
 <div id="divider"><div class="bar"></div><div class="handle">⇔<span class="tagL" id="tagL">むかし</span><span class="tagR">いま</span></div></div>
 
 <div id="top">
-  <h1>港区 むかし・いま地図</h1>
+  <h1>東京23区 むかし・いま地図</h1>
   <div class="row" style="margin-bottom:6px"><span class="lbl old">むかし</span><select id="selOld"></select></div>
   <div class="row"><span class="lbl now">いま</span><select id="selNow"></select></div>
 </div>
@@ -64,8 +64,8 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:"Hiragino Kaku Gothic
 <div id="ver"></div>
 
 <div id="sheet">
-  <h2>港区の場所へ移動<button id="sheetClose">✕</button></h2>
-  <form id="search"><input id="q" placeholder="住所・地名（例：六本木 6丁目）" enterkeyhint="search"><button class="btn" style="flex:0 0 64px">検索</button></form>
+  <h2>場所へ移動<button id="sheetClose">✕</button></h2>
+  <form id="search"><input id="q" placeholder="地名・住所・建物名（例：六本木ヒルズ）" enterkeyhint="search"><button class="btn" style="flex:0 0 64px">検索</button></form>
   <div id="results"></div>
   <div id="places"></div>
 </div>
@@ -73,7 +73,7 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:"Hiragino Kaku Gothic
 
 <script>
 /* ===== 状態とUI（地図の読み込み前から動く） ===== */
-const VERSION='v2.0 · 2026-11-23 21:25';
+const VERSION='v2.1 · 2026-11-25 00:10';
 const $=id=>document.getElementById(id);
 $('ver').textContent=VERSION;
 const GSI='https://cyberjapandata.gsi.go.jp/xyz/';
@@ -90,13 +90,18 @@ const NOW=[
  {id:'pale',ext:'png',name:'地図（淡色）'},
  {id:'seamlessphoto',ext:'jpg',name:'最新の航空写真'}];
 const PLACES=[
- ['東京タワー',35.6586,139.7454],['増上寺',35.6575,139.7483],['芝大門',35.6568,139.7525],['浜松町駅',35.6555,139.7570],
- ['新橋駅',35.6662,139.7583],['汐留',35.6630,139.7610],['虎ノ門',35.6700,139.7495],['赤坂見附',35.6770,139.7370],
- ['青山一丁目',35.6727,139.7240],['六本木',35.6627,139.7320],['麻布十番',35.6563,139.7368],['有栖川宮記念公園',35.6517,139.7234],
- ['白金高輪',35.6427,139.7340],['田町駅',35.6457,139.7476],['芝浦ふ頭',35.6418,139.7585],['泉岳寺',35.6386,139.7377],
- ['高輪ゲートウェイ駅',35.6355,139.7407],['品川駅',35.6285,139.7388],['お台場海浜公園',35.6298,139.7783]];
-// 港区をおおまかに囲む範囲
-const MINATO={s:35.612,w:139.705,n:35.690,e:139.795};
+ ['東京駅',35.6812,139.7671],['皇居',35.6852,139.7528],['日本橋',35.6840,139.7745],['銀座四丁目',35.6717,139.7650],
+ ['築地',35.6655,139.7707],['月島',35.6640,139.7820],['豊洲',35.6550,139.7964],['秋葉原駅',35.6984,139.7731],
+ ['神田神保町',35.6959,139.7576],['東京ドーム',35.7056,139.7519],['上野駅',35.7138,139.7773],['谷中',35.7266,139.7660],
+ ['浅草寺',35.7148,139.7967],['東京スカイツリー',35.7101,139.8107],['両国国技館',35.6969,139.7934],['北千住駅',35.7497,139.8049],
+ ['柴又帝釈天',35.7584,139.8770],['葛西臨海公園',35.6430,139.8613],['巣鴨',35.7334,139.7393],['池袋駅',35.7295,139.7109],
+ ['赤羽駅',35.7778,139.7210],['新宿駅',35.6896,139.7006],['新宿御苑',35.6852,139.7101],['中野駅',35.7058,139.6658],
+ ['明治神宮',35.6764,139.6993],['原宿駅',35.6702,139.7027],['渋谷駅',35.6580,139.7016],['下北沢',35.6613,139.6680],
+ ['二子玉川',35.6115,139.6268],['自由が丘',35.6076,139.6688],['赤坂',35.6770,139.7370],['六本木',35.6627,139.7320],
+ ['東京タワー',35.6586,139.7454],['新橋駅',35.6662,139.7583],['品川駅',35.6285,139.7388],['お台場',35.6298,139.7783],
+ ['羽田空港',35.5494,139.7798]];
+// 東京23区をおおまかに囲む範囲
+const MINATO={s:35.515,w:139.555,n:35.825,e:139.925};
 
 let saved={};try{saved=JSON.parse(localStorage.getItem('mukashi')||'{}');}catch(e){}
 const S={old:saved.old||'ort_old10',now:saved.now||'std',mode:'over',op:saved.op??70,swipe:0.5,hold:false};
@@ -128,20 +133,32 @@ function goTo(lat,lng,z,name){
   if(map)map.setView([lat,lng],z);else pendingGo=[lat,lng,z];
 }
 
-// 地名検索（国土地理院の住所検索）
+// 検索：地名・住所は国土地理院、建物名・施設名はOpenStreetMap（Photon）
+const inArea=(lat,lng)=>lat>MINATO.s&&lat<MINATO.n&&lng>MINATO.w&&lng<MINATO.e;
+async function gsiSearch(q){
+  const r=await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q='+encodeURIComponent(q));
+  return (await r.json()).map(f=>({title:f.properties.title,sub:'地名・住所',lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0]})).filter(h=>inArea(h.lat,h.lng));
+}
+const SKIP=/^(defibrillator|bicycle_parking|bicycle_rental|vending_machine|waste_basket|bench|toilets|parking_entrance|charging_station|post_box|telephone|atm)$/;
+async function osmSearch(q){
+  const bb=[MINATO.w,MINATO.s,MINATO.e,MINATO.n].join(',');
+  const r=await fetch('https://photon.komoot.io/api/?limit=20&lang=default&bbox='+bb+'&q='+encodeURIComponent(q));
+  const seen=new Set();
+  return (await r.json()).features.filter(f=>f.properties.name&&!SKIP.test(f.properties.osm_value)&&f.properties.osm_key!=='emergency').map(f=>{const p=f.properties;
+    return {title:p.name,sub:'建物・施設（'+[p.district||p.city,p.locality].filter(Boolean).join(' ')+'）',lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0]};})
+   .filter(h=>{if(!inArea(h.lat,h.lng))return false;const k=h.title+'|'+h.lat.toFixed(3)+h.lng.toFixed(3);if(seen.has(k))return false;seen.add(k);return true;}).slice(0,10);
+}
 let searchSeq=0;
 $('search').onsubmit=async e=>{
-  e.preventDefault();const q=$('q').value.trim();if(!q)return;
+  e.preventDefault();$('q').blur();const q=$('q').value.trim();if(!q)return;
   const my=++searchSeq;const R=$('results');R.textContent='検索中…';
-  const query=/港区/.test(q)?q:'東京都港区 '+q;
-  try{
-    const res=await fetch('https://msearch.gsi.go.jp/address-search/AddressSearch?q='+encodeURIComponent(query));
-    const js=await res.json();if(my!==searchSeq)return;
-    const hits=js.filter(f=>{const[lng,lat]=f.geometry.coordinates;return lat>MINATO.s&&lat<MINATO.n&&lng>MINATO.w&&lng<MINATO.e;}).slice(0,12);
-    R.textContent='';
-    if(!hits.length){R.textContent='港区内で見つかりませんでした。';return;}
-    hits.forEach(f=>{const b=document.createElement('button');b.textContent=f.properties.title;const[lng,lat]=f.geometry.coordinates;b.onclick=()=>goTo(lat,lng,17,f.properties.title);R.appendChild(b);});
-  }catch(err){if(my===searchSeq)R.textContent='検索できませんでした（通信を確かめてください）。';}
+  const [a,b]=await Promise.allSettled([osmSearch(q),gsiSearch(q)]);
+  if(my!==searchSeq)return;
+  const hits=[...(a.value||[]),...(b.value||[])].slice(0,15);
+  R.textContent='';
+  if(!hits.length){R.textContent=(a.status==='rejected'&&b.status==='rejected')?'検索できませんでした（通信を確かめてください）。':'23区内で見つかりませんでした。';return;}
+  hits.forEach(h=>{const btn=document.createElement('button');btn.textContent=h.title;const sm=document.createElement('small');sm.textContent='　'+h.sub;sm.style.color='#8a7a60';btn.appendChild(sm);
+    btn.onclick=()=>goTo(h.lat,h.lng,18,h.title);R.appendChild(btn);});
 };
 
 // 現在地
@@ -151,7 +168,7 @@ $('btnLoc').onclick=()=>{
   msg('現在地を取得中…');
   navigator.geolocation.getCurrentPosition(p=>{
     const {latitude:lat,longitude:lng}=p.coords;
-    if(lat<MINATO.s||lat>MINATO.n||lng<MINATO.w||lng>MINATO.e){msg('現在地は港区の外のようです');return;}
+    if(lat<MINATO.s||lat>MINATO.n||lng<MINATO.w||lng>MINATO.e){msg('現在地は23区の外のようです');return;}
     msg('現在地を表示しました');
     if(map){map.setView([lat,lng],17);if(locMarker)locMarker.setLatLng([lat,lng]);else locMarker=L.circleMarker([lat,lng],{radius:8,color:'#fff',weight:3,fillColor:'#1f6fd0',fillOpacity:1}).addTo(map);}
     else pendingGo=[lat,lng,17];
@@ -161,8 +178,8 @@ $('btnLoc').onclick=()=>{
 /* ===== 地図 ===== */
 let map=null,oldLayer=null,nowLayer=null,oldPane=null;
 function tileLayer(o,pane){
-  return L.tileLayer(GSI+o.id+'/{z}/{x}/{y}.'+o.ext,{pane:pane||'tilePane',minZoom:11,maxZoom:19,maxNativeZoom:o.id==='std'||o.id==='pale'?18:17,minNativeZoom:o.id.startsWith('ort')||o.id.startsWith('gazo')?10:5,
-    attribution:'出典：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>'});
+  return L.tileLayer(GSI+o.id+'/{z}/{x}/{y}.'+o.ext,{pane:pane||'tilePane',minZoom:10,maxZoom:19,maxNativeZoom:o.id==='std'||o.id==='pale'?18:17,minNativeZoom:o.id.startsWith('ort')||o.id.startsWith('gazo')?10:5,
+    attribution:'出典：<a href="https://maps.gsi.go.jp/development/ichiran.html" target="_blank">国土地理院</a>／検索：<a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap</a>'});
 }
 function apply(){
   $('selOld').value=S.old;$('selNow').value=S.now;
@@ -194,7 +211,7 @@ function updateClip(){
 
 function initMap(){
   const b=L.latLngBounds([MINATO.s,MINATO.w],[MINATO.n,MINATO.e]);
-  map=L.map('map',{zoomControl:false,maxBounds:b.pad(0.15),maxBoundsViscosity:0.8,minZoom:13,maxZoom:19});
+  map=L.map('map',{zoomControl:false,maxBounds:b.pad(0.15),maxBoundsViscosity:0.8,minZoom:11,maxZoom:19});
   L.control.zoom({position:'topright'}).addTo(map);
   oldPane=map.createPane('oldPane');oldPane.style.zIndex=250;
   if(pendingGo)map.setView([pendingGo[0],pendingGo[1]],pendingGo[2]);
