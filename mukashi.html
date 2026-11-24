@@ -7,24 +7,27 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;height:100%;overflow:hidden;font-family:"Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;background:#e9e2d0;color:#2b2118}
 #map{position:fixed;inset:0;background:#ddd6c4}
-#top{position:fixed;z-index:1000;left:8px;right:8px;top:calc(env(safe-area-inset-top) + 8px);background:rgba(250,245,232,.95);border-radius:14px;padding:8px 10px;box-shadow:0 2px 10px rgba(0,0,0,.25)}
-#top h1{margin:0 0 6px;font-size:15px;font-family:"Hiragino Mincho ProN","Yu Mincho",serif}
-#top .row{display:flex;gap:6px;align-items:center;font-size:12px}
-#top select{flex:1;min-width:0;font-size:14px;padding:6px;border-radius:8px;border:1px solid #b9a98a;background:#fff;color:#2b2118}
+#drawer{position:fixed;z-index:1000;left:0;right:0;bottom:0;background:rgba(250,245,232,.97);border-radius:16px 16px 0 0;box-shadow:0 -2px 12px rgba(0,0,0,.25);padding:0 10px calc(env(safe-area-inset-bottom) + 8px);transition:transform .28s ease;will-change:transform}
+#drawer.dragging{transition:none}
+#tab{height:30px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:12px;color:#6a5a45;touch-action:none;cursor:grab}
+#tab .grip{width:38px;height:5px;border-radius:3px;background:#b9a98a}
+#tabLbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.selRow{display:grid;grid-template-columns:3.2em 1fr;gap:6px;align-items:center;font-size:12px;margin-bottom:6px}
+.selRow select{width:100%;min-width:0;font-size:14px;padding:5px 6px;border-radius:8px;border:1px solid #b9a98a;background:#fff;color:#2b2118}
 .lbl{font-weight:bold;white-space:nowrap}
 .lbl.old{color:#8a4a1c}.lbl.now{color:#2f6b7a}
-#bottom{position:fixed;z-index:1000;left:8px;right:8px;bottom:calc(env(safe-area-inset-bottom) + 8px);background:rgba(250,245,232,.95);border-radius:14px;padding:10px;box-shadow:0 -2px 10px rgba(0,0,0,.2)}
-.seg{display:flex;border:1px solid #8a4a1c;border-radius:9px;overflow:hidden;margin-bottom:8px}
-.seg button{flex:1;border:0;background:#fff;color:#8a4a1c;font-size:14px;padding:7px 0}
+.seg{display:flex;border:1px solid #8a4a1c;border-radius:9px;overflow:hidden;margin-bottom:6px}
+.seg button{flex:1;border:0;background:#fff;color:#8a4a1c;font-size:13px;padding:5px 0}
 .seg button.on{background:#8a4a1c;color:#fff}
-#opRow{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:8px}
+#opRow{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:6px}
 #opRow input{flex:1}
 .btns{display:flex;gap:6px}
-.btn{flex:1;font-size:13px;padding:9px 4px;border-radius:9px;border:1px solid #b9a98a;background:#fff;color:#2b2118;touch-action:manipulation}
+.btn{flex:1;font-size:13px;padding:5px 4px;border-radius:9px;border:1px solid #b9a98a;background:#fff;color:#2b2118;touch-action:manipulation}
 .btn:active{background:#efe4cc}
-#hold.on{background:#2f6b7a;color:#fff}
-#msg{font-size:11.5px;color:#6a5a45;margin-top:6px;min-height:15px}
-#ver{position:fixed;z-index:1001;right:12px;bottom:calc(env(safe-area-inset-bottom) + 12px);font-size:9.5px;color:#7a6a55;pointer-events:none}
+#ver{font-size:9.5px;color:#9a8a70;text-align:right;margin-top:4px}
+#toast{position:fixed;z-index:1001;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 42px);background:rgba(43,33,24,.85);color:#fff;font-size:12px;padding:5px 12px;border-radius:999px;white-space:nowrap;opacity:0;transition:opacity .4s,bottom .28s;pointer-events:none}
+#toast.show{opacity:1}
+.leaflet-bottom{bottom:calc(env(safe-area-inset-bottom) + 30px)}
 #divider{position:fixed;z-index:900;top:0;bottom:0;width:0;display:none}
 #divider .bar{position:absolute;top:0;bottom:0;left:-1.5px;width:3px;background:#fff;box-shadow:0 0 4px rgba(0,0,0,.6);pointer-events:none}
 #divider .handle{position:absolute;top:50%;left:-22px;width:44px;height:44px;margin-top:-22px;border-radius:50%;background:#8a4a1c;border:3px solid #fff;box-shadow:0 1px 6px rgba(0,0,0,.5);color:#fff;font-size:16px;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:ew-resize}
@@ -45,23 +48,19 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:"Hiragino Kaku Gothic
 <div id="map"></div>
 <div id="divider"><div class="bar"></div><div class="handle">⇔<span class="tagL" id="tagL">むかし</span><span class="tagR">いま</span></div></div>
 
-<div id="top">
-  <h1>東京23区 むかし・いま地図</h1>
-  <div class="row" style="margin-bottom:6px"><span class="lbl old">むかし</span><select id="selOld"></select></div>
-  <div class="row"><span class="lbl now">いま</span><select id="selNow"></select></div>
-</div>
-
-<div id="bottom">
+<div id="toast"></div>
+<div id="drawer">
+  <div id="tab"><span class="grip"></span><span id="tabLbl"></span></div>
+  <div class="selRow"><span class="lbl old">むかし</span><select id="selOld"></select></div>
+  <div class="selRow"><span class="lbl now">いま</span><select id="selNow"></select></div>
   <div class="seg"><button id="mOver" class="on">重ねる</button><button id="mSwipe">左右で比べる</button></div>
   <div id="opRow"><span>いま</span><input type="range" id="op" min="0" max="100" value="70"><span>むかし</span></div>
   <div class="btns">
-    <button class="btn" id="hold">押す間だけ「いま」</button>
-    <button class="btn" id="btnPlaces">📌 場所</button>
-    <button class="btn" id="btnLoc">📍 現在地</button>
+    <button class="btn" id="btnPlaces">📌 場所検索</button>
+    <button class="btn" id="btnLoc">📍 現在地へ</button>
   </div>
-  <div id="msg"></div>
+  <div id="ver"></div>
 </div>
-<div id="ver"></div>
 
 <div id="sheet">
   <h2>場所へ移動<button id="sheetClose">✕</button></h2>
@@ -73,7 +72,7 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:"Hiragino Kaku Gothic
 
 <script>
 /* ===== 状態とUI（地図の読み込み前から動く） ===== */
-const VERSION='v2.1 · 2026-11-25 00:10';
+const VERSION='v2.2 · 2026-11-25 06:20';
 const $=id=>document.getElementById(id);
 $('ver').textContent=VERSION;
 const GSI='https://cyberjapandata.gsi.go.jp/xyz/';
@@ -104,13 +103,36 @@ const PLACES=[
 const MINATO={s:35.515,w:139.555,n:35.825,e:139.925};
 
 let saved={};try{saved=JSON.parse(localStorage.getItem('mukashi')||'{}');}catch(e){}
-const S={old:saved.old||'ort_old10',now:saved.now||'std',mode:'over',op:saved.op??70,swipe:0.5,hold:false};
+const S={old:saved.old||'ort_old10',now:saved.now||'std',mode:'over',op:saved.op??70,swipe:0.5};
 
 OLD.forEach(o=>$('selOld').add(new Option(o.name,o.id)));
 NOW.forEach(o=>$('selNow').add(new Option(o.name,o.id)));
 $('selOld').value=S.old;$('selNow').value=S.now;$('op').value=S.op;
 function save(){try{const c=map?map.getCenter():null;localStorage.setItem('mukashi',JSON.stringify({old:S.old,now:S.now,op:S.op,lat:c&&c.lat,lng:c&&c.lng,z:map&&map.getZoom()}));}catch(e){}}
-function msg(t){$('msg').textContent=t||'';}
+let toastT=0;
+function msg(t){const el=$('toast');if(!t)return;el.textContent=t;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2600);}
+/* ---- 下から引き出す操作欄 ---- */
+const DR=$('drawer'),TAB=$('tab'),TABH=30,IDLE=8000;
+let drOpen=false,idleT=0;
+function closedY(){return DR.offsetHeight-TABH;}
+function setDrawer(open){drOpen=open;DR.style.transform=open?'translateY(0)':'translateY('+closedY()+'px)';
+  $('toast').style.bottom='calc(env(safe-area-inset-bottom) + '+((open?DR.offsetHeight:TABH)+12)+'px)';
+  updateTab();open?poke():clearTimeout(idleT);}
+function updateTab(){$('tabLbl').textContent=drOpen?'▼ 閉じる':'▲ '+OLD.find(o=>o.id===S.old).name.split('（')[0]+' × '+NOW.find(o=>o.id===S.now).name;}
+function poke(){clearTimeout(idleT);if(!drOpen)return;idleT=setTimeout(()=>{
+  const a=document.activeElement;if(DR.contains(a)&&a.tagName==='SELECT'){poke();return;}
+  if($('sheet').style.display==='block'){poke();return;}
+  setDrawer(false);},IDLE);}
+['pointerdown','input','change','focusin'].forEach(t=>DR.addEventListener(t,poke));
+(function(){let id=null,y0=0,base=0,moved=false;
+  TAB.addEventListener('pointerdown',e=>{id=e.pointerId;TAB.setPointerCapture(id);y0=e.clientY;base=drOpen?0:closedY();moved=false;DR.classList.add('dragging');});
+  TAB.addEventListener('pointermove',e=>{if(e.pointerId!==id)return;const dy=e.clientY-y0;if(Math.abs(dy)>5)moved=true;
+    DR.style.transform='translateY('+Math.max(0,Math.min(closedY(),base+dy))+'px)';});
+  const end=e=>{if(e.pointerId!==id)return;id=null;DR.classList.remove('dragging');const dy=e.clientY-y0;
+    if(!moved)setDrawer(!drOpen);else if(dy<-30)setDrawer(true);else if(dy>30)setDrawer(false);else setDrawer(drOpen);};
+  TAB.addEventListener('pointerup',end);TAB.addEventListener('pointercancel',end);
+})();
+addEventListener('resize',()=>setDrawer(drOpen));
 function oldName(){return OLD.find(o=>o.id===S.old).name;}
 
 $('selOld').onchange=()=>{S.old=$('selOld').value;apply();save();};
@@ -119,10 +141,7 @@ $('op').oninput=()=>{S.op=+$('op').value;apply();};
 $('op').onchange=save;
 $('mOver').onclick=()=>{S.mode='over';apply();};
 $('mSwipe').onclick=()=>{S.mode='swipe';apply();};
-const holdOn=e=>{e.preventDefault();S.hold=true;apply();}, holdOff=()=>{if(S.hold){S.hold=false;apply();}};
-$('hold').addEventListener('pointerdown',holdOn);
-['pointerup','pointercancel','pointerleave'].forEach(t=>$('hold').addEventListener(t,holdOff));
-$('btnPlaces').onclick=()=>{$('sheet').style.display='block';};
+$('btnPlaces').onclick=()=>{$('sheet').style.display='block';setDrawer(false);};
 $('sheetClose').onclick=()=>{$('sheet').style.display='none';};
 PLACES.forEach(p=>{const b=document.createElement('button');b.textContent=p[0];b.onclick=()=>goTo(p[1],p[2],17,p[0]);$('places').appendChild(b);});
 
@@ -185,18 +204,18 @@ function apply(){
   $('selOld').value=S.old;$('selNow').value=S.now;
   $('mOver').classList.toggle('on',S.mode==='over');$('mSwipe').classList.toggle('on',S.mode==='swipe');
   $('opRow').style.display=S.mode==='over'?'flex':'none';
-  $('divider').style.display=S.mode==='swipe'&&!S.hold?'block':'none';
-  $('hold').classList.toggle('on',S.hold);
+  $('divider').style.display=S.mode==='swipe'?'block':'none';
+  updateTab();
   $('tagL').textContent=OLD.find(o=>o.id===S.old).name.split('（')[0];
   if(!map)return;
   if(!oldLayer||oldLayer._id!==S.old){if(oldLayer)map.removeLayer(oldLayer);oldLayer=tileLayer(OLD.find(o=>o.id===S.old),'oldPane');oldLayer._id=S.old;oldLayer.addTo(map);}
   if(!nowLayer||nowLayer._id!==S.now){if(nowLayer)map.removeLayer(nowLayer);nowLayer=tileLayer(NOW.find(o=>o.id===S.now));nowLayer._id=S.now;nowLayer.addTo(map);}
-  oldPane.style.opacity=S.hold?0:(S.mode==='over'?S.op/100:1);
+  oldPane.style.opacity=S.mode==='over'?S.op/100:1;
   updateClip();
 }
 function updateClip(){
   if(!map)return;
-  if(S.mode!=='swipe'||S.hold){oldPane.style.clip='';return;}
+  if(S.mode!=='swipe'){oldPane.style.clip='';return;}
   const size=map.getSize(),nw=map.containerPointToLayerPoint([0,0]),se=map.containerPointToLayerPoint(size);
   const x=nw.x+size.x*S.swipe;
   oldPane.style.clip='rect('+nw.y+'px,'+x+'px,'+se.y+'px,'+nw.x+'px)';
@@ -223,6 +242,7 @@ function initMap(){
   msg('「むかし」は '+oldName()+' の航空写真です');
 }
 apply();
+setDrawer(false);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js" onload="initMap()" onerror="document.getElementById('loadErr').style.display='flex'"></script>
 </body></html>
