@@ -24,6 +24,8 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:"Hiragino Kaku Gothic
 .btns{display:flex;gap:6px}
 .btn{flex:1;font-size:13px;padding:5px 4px;border-radius:9px;border:1px solid #b9a98a;background:#fff;color:#2b2118;touch-action:manipulation}
 .btn:active{background:#efe4cc}
+#btnPin.on{background:#2f6b7a;color:#fff;border-color:#2f6b7a}
+.pin{width:16px;height:16px;background:#d6362b;border:2px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 1px 3px rgba(0,0,0,.55)}
 #ver{font-size:9.5px;color:#9a8a70;text-align:right;margin-top:4px}
 #toast{position:fixed;z-index:1001;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 42px);background:rgba(43,33,24,.85);color:#fff;font-size:12px;padding:5px 12px;border-radius:999px;white-space:nowrap;opacity:0;transition:opacity .4s,bottom .28s;pointer-events:none}
 #toast.show{opacity:1}
@@ -57,7 +59,8 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:"Hiragino Kaku Gothic
   <div id="opRow"><span>いま</span><input type="range" id="op" min="0" max="100" value="70"><span>むかし</span></div>
   <div class="btns">
     <button class="btn" id="btnPlaces">📌 場所検索</button>
-    <button class="btn" id="btnLoc">📍 現在地へ</button>
+    <button class="btn" id="btnLoc">🧭 現在地へ</button>
+    <button class="btn" id="btnPin"></button>
   </div>
   <div id="ver"></div>
 </div>
@@ -72,7 +75,7 @@ html,body{margin:0;height:100%;overflow:hidden;font-family:"Hiragino Kaku Gothic
 
 <script>
 /* ===== 状態とUI（地図の読み込み前から動く） ===== */
-const VERSION='v2.2 · 2026-11-25 06:20';
+const VERSION='v2.3 · 2026-11-25 10:05';
 const $=id=>document.getElementById(id);
 $('ver').textContent=VERSION;
 const GSI='https://cyberjapandata.gsi.go.jp/xyz/';
@@ -103,12 +106,12 @@ const PLACES=[
 const MINATO={s:35.515,w:139.555,n:35.825,e:139.925};
 
 let saved={};try{saved=JSON.parse(localStorage.getItem('mukashi')||'{}');}catch(e){}
-const S={old:saved.old||'ort_old10',now:saved.now||'std',mode:'over',op:saved.op??70,swipe:0.5};
+const S={old:saved.old||'ort_old10',now:saved.now||'std',mode:'over',op:saved.op??70,swipe:0.5,pin:saved.pin!==false};
 
 OLD.forEach(o=>$('selOld').add(new Option(o.name,o.id)));
 NOW.forEach(o=>$('selNow').add(new Option(o.name,o.id)));
 $('selOld').value=S.old;$('selNow').value=S.now;$('op').value=S.op;
-function save(){try{const c=map?map.getCenter():null;localStorage.setItem('mukashi',JSON.stringify({old:S.old,now:S.now,op:S.op,lat:c&&c.lat,lng:c&&c.lng,z:map&&map.getZoom()}));}catch(e){}}
+function save(){try{const c=map?map.getCenter():null;localStorage.setItem('mukashi',JSON.stringify({old:S.old,now:S.now,op:S.op,pin:S.pin,lat:c&&c.lat,lng:c&&c.lng,z:map&&map.getZoom()}));}catch(e){}}
 let toastT=0;
 function msg(t){const el=$('toast');if(!t)return;el.textContent=t;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2600);}
 /* ---- 下から引き出す操作欄 ---- */
@@ -181,16 +184,33 @@ $('search').onsubmit=async e=>{
 };
 
 // 現在地
-let locMarker=null;
+// 現在地ピン（既定でオン、トグルで消せる）
+let locMarker=null,lastPos=null,watchId=null;
+function renderPin(){
+  if(!map)return;
+  if(S.pin&&lastPos){
+    if(!locMarker)locMarker=L.marker(lastPos,{icon:L.divIcon({className:'',html:'<div class="pin"></div>',iconSize:[20,20],iconAnchor:[10,24]}),interactive:false,keyboard:false,zIndexOffset:1000});
+    locMarker.setLatLng(lastPos);if(!map.hasLayer(locMarker))locMarker.addTo(map);
+  }else if(locMarker&&map.hasLayer(locMarker))map.removeLayer(locMarker);
+}
+function startWatch(){
+  if(watchId!==null||!navigator.geolocation)return;
+  watchId=navigator.geolocation.watchPosition(p=>{lastPos=[p.coords.latitude,p.coords.longitude];renderPin();},
+    err=>{if(err.code===1)msg('現在地の利用が許可されていません');},{enableHighAccuracy:true,maximumAge:10000,timeout:20000});
+}
+function stopWatch(){if(watchId!==null){navigator.geolocation.clearWatch(watchId);watchId=null;}}
+function updatePinBtn(){$('btnPin').textContent=S.pin?'📍 ピン オン':'📍 ピン オフ';$('btnPin').classList.toggle('on',S.pin);}
+$('btnPin').onclick=()=>{S.pin=!S.pin;updatePinBtn();save();if(S.pin){startWatch();msg('現在地ピンを表示します');}else{stopWatch();msg('現在地ピンを消しました');}renderPin();};
+updatePinBtn();
+if(S.pin)startWatch();
 $('btnLoc').onclick=()=>{
   if(!navigator.geolocation){msg('この端末では現在地を使えません');return;}
   msg('現在地を取得中…');
   navigator.geolocation.getCurrentPosition(p=>{
-    const {latitude:lat,longitude:lng}=p.coords;
+    const {latitude:lat,longitude:lng}=p.coords;lastPos=[lat,lng];renderPin();
     if(lat<MINATO.s||lat>MINATO.n||lng<MINATO.w||lng>MINATO.e){msg('現在地は23区の外のようです');return;}
-    msg('現在地を表示しました');
-    if(map){map.setView([lat,lng],17);if(locMarker)locMarker.setLatLng([lat,lng]);else locMarker=L.circleMarker([lat,lng],{radius:8,color:'#fff',weight:3,fillColor:'#1f6fd0',fillOpacity:1}).addTo(map);}
-    else pendingGo=[lat,lng,17];
+    msg('現在地へ移動しました');
+    if(map)map.setView([lat,lng],17);else pendingGo=[lat,lng,17];
   },err=>{msg(err.code===1?'現在地の利用が許可されていません':'現在地を取得できませんでした');},{enableHighAccuracy:true,timeout:15000});
 };
 
@@ -239,6 +259,7 @@ function initMap(){
   map.on('move zoom resize viewreset zoomend moveend',updateClip);
   map.on('moveend',save);
   apply();
+  renderPin();
   msg('「むかし」は '+oldName()+' の航空写真です');
 }
 apply();
